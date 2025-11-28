@@ -16,7 +16,7 @@ services:
     env_file:
       - .env
     ports:
-      - "3101:3000"
+      - "3104:3000"
     depends_on:
       db:
         condition: service_healthy
