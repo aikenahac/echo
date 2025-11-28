@@ -1,0 +1,222 @@
+{
+  "common": {
+    "search": "Search",
+    "searching": "Searching...",
+    "loading": "Loading...",
+    "save": "Save",
+    "saving": "Saving...",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "back": "Back",
+    "confirm": "Are you sure?",
+    "success": "Success!",
+    "error": "An error occurred"
+  },
+  "navigation": {
+    "home": "Echo",
+    "searchBooks": "Search Books",
+    "library": "Library",
+    "feed": "Feed",
+    "findUsers": "Find Users",
+    "profile": "Profile",
+    "signIn": "Sign In"
+  },
+  "home": {
+    "welcome": "Welcome to Echo",
+    "tagline": "Track your reading journey, discover new books, and connect with fellow readers.",
+    "welcomeBack": "Welcome back!",
+    "features": {
+      "track": {
+        "title": "Track Your Reading",
+        "description": "Organize your books into shelves, track progress, and rate what you've read."
+      },
+      "connect": {
+        "title": "Connect with Readers",
+        "description": "Follow friends, share reviews, and discover what others are reading."
+      },
+      "achieve": {
+        "title": "Achieve Your Goals",
+        "description": "Set reading goals, build streaks, and celebrate your progress."
+      }
+    },
+    "quickLinks": {
+      "library": {
+        "title": "My Library",
+        "description": "View and manage your book collection"
+      },
+      "search": {
+        "title": "Search Books",
+        "description": "Discover and add new books to your library"
+      },
+      "feed": {
+        "title": "Activity Feed",
+        "description": "See what your friends are reading"
+      },
+      "profile": {
+        "title": "My Profile",
+        "description": "View your reading stats and achievements"
+      }
+    }
+  },
+  "search": {
+    "title": "Search Books",
+    "placeholder": "Search for books by title, author, or ISBN...",
+    "noResults": "No results found. Try a different search term.",
+    "searchButton": "Search",
+    "searching": "Searching...",
+    "addToLibrary": "Add to library:",
+    "viewDetails": "View Details",
+    "source": {
+      "internal": "Results from your database",
+      "external": "Results from Open Library (no matches in your database)"
+    },
+    "status": {
+      "want": "Want",
+      "reading": "Reading",
+      "finished": "Finished"
+    },
+    "noCover": "No cover"
+  },
+  "library": {
+    "title": "My Library",
+    "tabs": {
+      "want": "Want to Read",
+      "reading": "Currently Reading",
+      "finished": "Finished"
+    },
+    "empty": {
+      "title": "No books in this category yet.",
+      "description": "Start by searching for books and adding them to your library."
+    },
+    "actions": {
+      "changeStatus": "Change status",
+      "removeConfirm": "Are you sure you want to remove this book from your library?",
+      "remove": "Remove from library"
+    }
+  },
+  "book": {
+    "details": {
+      "published": "Published:",
+      "pages": "Pages:",
+      "isbn": "ISBN:",
+      "yourStatus": "Your Status:",
+      "started": "Started:",
+      "finished": "Finished:"
+    },
+    "progress": {
+      "title": "Reading Progress",
+      "updateButton": "Update Progress",
+      "updating": "Updating...",
+      "currentPage": "Current page",
+      "congratulations": "Congratulations! You've finished this book!"
+    },
+    "rating": {
+      "title": "Your Rating",
+      "prompt": "Rate this book:",
+      "yourRating": "Your rating:",
+      "outOf": "You rated this book {rating} out of 5 stars"
+    },
+    "review": {
+      "title": "Your Review",
+      "write": "Write Review",
+      "edit": "Edit Review",
+      "post": "Post Review",
+      "update": "Update Review",
+      "delete": "Delete Review",
+      "placeholder": "Write your thoughts about this book...",
+      "private": "Make this review private (only you can see it)",
+      "noReview": "You haven't written a review yet.",
+      "deleteConfirm": "Are you sure you want to delete this review?"
+    },
+    "friendReviews": {
+      "title": "Reviews from People You Follow"
+    },
+    "signInPrompt": "Sign in to add this book to your library and write reviews."
+  },
+  "profile": {
+    "title": "My Profile",
+    "stats": {
+      "booksThisYear": "Books This Year",
+      "pagesRead": "Pages Read",
+      "dayStreak": "Day Streak"
+    },
+    "information": {
+      "title": "Profile Information",
+      "editButton": "Edit Profile",
+      "username": "Username",
+      "bio": "Bio",
+      "noUsername": "Not set",
+      "noBio": "No bio yet"
+    },
+    "form": {
+      "title": "Edit Profile",
+      "usernamePlaceholder": "Your username",
+      "bioPlaceholder": "Tell us about yourself",
+      "saveChanges": "Save Changes"
+    },
+    "shelves": {
+      "currentlyReading": "Currently Reading",
+      "recentlyFinished": "Recently Finished"
+    },
+    "setup": {
+      "title": "Welcome to Echo!",
+      "description": "Let's set up your profile. Choose a username to get started.",
+      "usernameLabel": "Username",
+      "usernamePlaceholder": "Enter your username",
+      "continue": "Continue",
+      "saving": "Saving..."
+    }
+  },
+  "feed": {
+    "title": "Activity Feed",
+    "empty": {
+      "title": "Your feed is empty!",
+      "description": "Follow other users to see their reading activity here.",
+      "action": "Find Users to Follow"
+    },
+    "activities": {
+      "startedReading": "started reading",
+      "finishedReading": "finished reading",
+      "reviewed": "reviewed"
+    },
+    "by": "by"
+  },
+  "users": {
+    "searchTitle": "Search Users",
+    "searchPlaceholder": "Search by username or email...",
+    "searchButton": "Search",
+    "following": "Following",
+    "follow": "Follow",
+    "noResults": "No users found. Try a different search term.",
+    "searchPrompt": "Enter a username or email to search for users."
+  },
+  "toast": {
+    "bookAdded": "Added \"{title}\" to your library",
+    "bookStatusUpdated": "Book status updated",
+    "bookRemoved": "Book removed from library",
+    "progressUpdated": "Progress updated!",
+    "ratingSaved": "Rating saved!",
+    "reviewPosted": "Review posted!",
+    "reviewUpdated": "Review updated!",
+    "reviewDeleted": "Review deleted",
+    "profileUpdated": "Profile updated!",
+    "userFollowed": "Followed user!",
+    "userUnfollowed": "Unfollowed user",
+    "errors": {
+      "unauthorized": "Unauthorized",
+      "bookAlreadyInLibrary": "Book already in your library",
+      "bookNotFound": "Book not found in your library",
+      "invalidPage": "Please enter a valid page number",
+      "pageExceedsTotal": "Page cannot exceed {total}",
+      "invalidRating": "Rating must be between 1 and 5",
+      "reviewContentEmpty": "Please write a review",
+      "reviewNotFound": "Review not found",
+      "usernameEmpty": "Please enter a username",
+      "usernameTaken": "Username already taken",
+      "alreadyFollowing": "Already following this user",
+      "cannotFollowSelf": "You cannot follow yourself",
+      "failed": "Operation failed. Please try again."
+    }
+  }
+}
