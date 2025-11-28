@@ -1,6 +1,7 @@
 services:
   migrations:
     image: ghcr.io/aikenahac/echo:master
+    pull_policy: always
     container_name: echo-migrations
     env_file:
       - .env
@@ -14,6 +15,7 @@ services:
 
   app:
     image: ghcr.io/aikenahac/echo:master
+    pull_policy: always
     container_name: echo
     env_file:
       - .env
