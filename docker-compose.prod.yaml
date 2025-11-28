@@ -1,4 +1,17 @@
 services:
+  studio:
+    image: ghcr.io/drizzle-team/gateway:latest
+    container_name: mentorstvo-db-studio
+    environment:
+      - PORT=4983
+
+      - MASTERPASS=${DRIZZLE_MASTERPASS}
+    volumes:
+      - drizzle_gateway:/app
+    networks:
+      - mentorship
+    restart: unless-stopped
+
   migrations:
     image: ghcr.io/aikenahac/echo:master
     pull_policy: always
