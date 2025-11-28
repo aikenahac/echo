@@ -23,7 +23,7 @@ services:
     restart: unless-stopped
 
   db:
-    image: postgres:latest
+    image: postgres:17
     container_name: echo-db
     env_file:
       - .env
