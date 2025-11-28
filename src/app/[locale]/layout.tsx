@@ -83,6 +83,11 @@ export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
 }
 
+// This layout uses the database at runtime (user session checks). Ensure pages
+// under this layout are rendered at runtime so the build step doesn't attempt
+// to import the DB when DATABASE_URL isn't available in build containers.
+export const dynamic = "force-dynamic";
+
 export default async function LocaleLayout({
   children,
   params,
