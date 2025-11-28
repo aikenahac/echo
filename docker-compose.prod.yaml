@@ -9,6 +9,8 @@ services:
         condition: service_healthy
     command: sh -c "pnpm drizzle-kit push && exit 0"
     restart: "no"
+    networks:
+      - echo-network
 
   app:
     image: ghcr.io/aikenahac/echo:master
@@ -21,6 +23,8 @@ services:
       db:
         condition: service_healthy
     restart: unless-stopped
+    networks:
+      - echo-network
 
   db:
     image: postgres:17
@@ -35,6 +39,12 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
+    networks:
+      - echo-network
 
 volumes:
   echo_db_data:
+
+networks:
+  echo-network:
+    driver: bridge
