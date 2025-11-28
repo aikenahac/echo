@@ -7,7 +7,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    command: sh -c "pnpm drizzle-kit push && exit 0"
+    command: sh -c "node dist/migrate.js && exit 0"
     restart: "no"
     networks:
       - echo-network
@@ -22,6 +22,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
     restart: unless-stopped
     networks:
       - echo-network
