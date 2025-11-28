@@ -9,8 +9,6 @@ import {
   removeBookFromLibrary,
   type ReadingStatus,
 } from "@/app/[locale]/actions/books";
-import type { userBooks, books } from "@/db/schema";
-import type { InferSelectModel } from "drizzle-orm";
 import { useTranslations } from "next-intl";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import {
@@ -24,10 +22,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import Image from "next/image";
-
-type UserBook = InferSelectModel<typeof userBooks> & {
-  book: InferSelectModel<typeof books>;
-};
+import { UserBook } from "@/types";
 
 interface BookCardProps {
   userBook: UserBook;
