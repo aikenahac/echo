@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { updateProfile } from "@/app/[locale]/actions/profile";
 import type { users } from "@/db/schema";
 import type { InferSelectModel } from "drizzle-orm";
@@ -13,6 +14,8 @@ interface EditProfileFormProps {
 }
 
 export function EditProfileForm({ user }: EditProfileFormProps) {
+  const t = useTranslations("profile");
+  const tToast = useTranslations("toast");
   const [isEditing, setIsEditing] = useState(false);
   const [username, setUsername] = useState(user.username || "");
   const [bio, setBio] = useState(user.bio || "");
@@ -26,7 +29,7 @@ export function EditProfileForm({ user }: EditProfileFormProps) {
       if (result.error) {
         toast.error(result.error);
       } else {
-        toast.success("Profile updated!");
+        toast.success(tToast("profileUpdated"));
         setIsEditing(false);
       }
     });
@@ -36,22 +39,22 @@ export function EditProfileForm({ user }: EditProfileFormProps) {
     return (
       <div className="border rounded-lg p-6 space-y-4">
         <div className="flex justify-between items-center">
-          <h2 className="text-xl font-semibold">Profile Information</h2>
+          <h2 className="text-xl font-semibold">{t("information.title")}</h2>
           <button
             onClick={() => setIsEditing(true)}
             className="text-sm px-4 py-2 border rounded-md hover:bg-accent"
           >
-            Edit Profile
+            {t("information.editButton")}
           </button>
         </div>
         <div className="space-y-2">
           <div>
-            <p className="text-sm font-semibold text-muted-foreground">Username</p>
-            <p>{user.username || "Not set"}</p>
+            <p className="text-sm font-semibold text-muted-foreground">{t("information.username")}</p>
+            <p>{user.username || t("information.noUsername")}</p>
           </div>
           <div>
-            <p className="text-sm font-semibold text-muted-foreground">Bio</p>
-            <p className="whitespace-pre-wrap">{user.bio || "No bio yet"}</p>
+            <p className="text-sm font-semibold text-muted-foreground">{t("information.bio")}</p>
+            <p className="whitespace-pre-wrap">{user.bio || t("information.noBio")}</p>
           </div>
         </div>
       </div>
@@ -60,30 +63,30 @@ export function EditProfileForm({ user }: EditProfileFormProps) {
 
   return (
     <div className="border rounded-lg p-6">
-      <h2 className="text-xl font-semibold mb-4">Edit Profile</h2>
+      <h2 className="text-xl font-semibold mb-4">{t("form.title")}</h2>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label htmlFor="username" className="block text-sm font-medium mb-1">
-            Username
+            {t("form.username")}
           </label>
           <input
             id="username"
             type="text"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            placeholder="Your username"
+            placeholder={t("form.usernamePlaceholder")}
             className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
         <div>
           <label htmlFor="bio" className="block text-sm font-medium mb-1">
-            Bio
+            {t("form.bio")}
           </label>
           <textarea
             id="bio"
             value={bio}
             onChange={(e) => setBio(e.target.value)}
-            placeholder="Tell us about yourself"
+            placeholder={t("form.bioPlaceholder")}
             rows={4}
             className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary resize-none"
           />
@@ -94,7 +97,7 @@ export function EditProfileForm({ user }: EditProfileFormProps) {
             disabled={isPending}
             className="px-6 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50"
           >
-            {isPending ? "Saving..." : "Save Changes"}
+            {isPending ? t("form.saving") : t("form.saveChanges")}
           </button>
           <button
             type="button"
@@ -106,7 +109,7 @@ export function EditProfileForm({ user }: EditProfileFormProps) {
             disabled={isPending}
             className="px-6 py-2 border rounded-md hover:bg-accent disabled:opacity-50"
           >
-            Cancel
+            {t("form.cancel")}
           </button>
         </div>
       </form>

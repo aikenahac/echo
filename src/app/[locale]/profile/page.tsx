@@ -1,6 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import Image from "next/image";
+import { useTranslations } from "next-intl";
+import { getTranslations } from "next-intl/server";
 import { db } from "@/db";
 import { users, userBooks } from "@/db/schema";
 import { eq, and, gte } from "drizzle-orm";
@@ -9,6 +11,7 @@ import { ProfileStats } from "@/components/profile-stats";
 import { EditProfileForm } from "@/components/edit-profile-form";
 
 export default async function ProfilePage() {
+  const t = await getTranslations("profile");
   const { userId } = await auth();
 
   if (!userId) {
@@ -78,7 +81,7 @@ export default async function ProfilePage() {
     <div className="container mx-auto px-4 py-8 max-w-4xl">
       <div className="space-y-8">
         <div>
-          <h1 className="text-3xl font-bold mb-2">My Profile</h1>
+          <h1 className="text-3xl font-bold mb-2">{t("title")}</h1>
           <p className="text-muted-foreground">{user.email}</p>
         </div>
 
@@ -92,7 +95,7 @@ export default async function ProfilePage() {
 
         {currentlyReading.length > 0 && (
           <div>
-            <h2 className="text-2xl font-bold mb-4">Currently Reading</h2>
+            <h2 className="text-2xl font-bold mb-4">{t("shelves.currentlyReading")}</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
               {currentlyReading.map((userBook) => (
                 <div key={userBook.id}>
@@ -106,7 +109,7 @@ export default async function ProfilePage() {
                       />
                     ) : (
                       <div className="w-full h-full bg-muted rounded flex items-center justify-center text-xs text-muted-foreground hover:opacity-90 transition-opacity">
-                        No cover
+                        {t("shelves.noCover")}
                       </div>
                     )}
                   </a>
@@ -118,7 +121,7 @@ export default async function ProfilePage() {
 
         {recentlyFinished.length > 0 && (
           <div>
-            <h2 className="text-2xl font-bold mb-4">Recently Finished</h2>
+            <h2 className="text-2xl font-bold mb-4">{t("shelves.recentlyFinished")}</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
               {recentlyFinished.map((userBook) => (
                 <div key={userBook.id}>
@@ -132,7 +135,7 @@ export default async function ProfilePage() {
                       />
                     ) : (
                       <div className="w-full h-full bg-muted rounded flex items-center justify-center text-xs text-muted-foreground hover:opacity-90 transition-opacity">
-                        No cover
+                        {t("shelves.noCover")}
                       </div>
                     )}
                   </a>

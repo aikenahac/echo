@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { userBooks } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { LibraryTabs } from "@/components/library-tabs";
 import { LibraryIsland } from "@/components/library-island";
 
 export default async function LibraryPage() {
@@ -30,11 +29,6 @@ export default async function LibraryPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-8">My Library</h1>
-      {/* <LibraryTabs
-        wantToRead={wantToRead}
-        currentlyReading={currentlyReading}
-        finished={finished}
-      /> */}
       <LibraryIsland
         wantToRead={wantToRead}
         currentlyReading={currentlyReading}

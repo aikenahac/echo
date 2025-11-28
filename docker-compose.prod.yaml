@@ -1,0 +1,40 @@
+services:
+  migrations:
+    image: ghcr.io/aikenahac/echo:master
+    container_name: echo-migrations
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    command: sh -c "pnpm drizzle-kit push && exit 0"
+    restart: "no"
+
+  app:
+    image: ghcr.io/aikenahac/echo:master
+    container_name: echo
+    env_file:
+      - .env
+    ports:
+      - "3101:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: postgres:latest
+    container_name: echo-db
+    env_file:
+      - .env
+    volumes:
+      - echo_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  echo_db_data:

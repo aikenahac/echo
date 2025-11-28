@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import { useTranslations } from "next-intl";
 import { ProgressTracker } from "@/components/progress-tracker";
 import { RatingForm } from "@/components/rating-form";
 import { ReviewForm } from "@/components/review-form";
@@ -30,6 +31,7 @@ export function BookDetails({
   friendReviews,
   isAuthenticated,
 }: BookDetailsProps) {
+  const t = useTranslations("book");
   const [showReviewForm, setShowReviewForm] = useState(false);
 
   return (
@@ -48,7 +50,7 @@ export function BookDetails({
             </div>
           ) : (
             <div className="w-full aspect-[2/3] bg-muted rounded-lg flex items-center justify-center text-muted-foreground">
-              No cover available
+              {t("details.noCover")}
             </div>
           )}
         </div>
@@ -81,7 +83,7 @@ export function BookDetails({
           {/* User's Status */}
           {userBook && (
             <div className="border-t pt-4">
-              <p className="text-sm font-semibold mb-2">Your Status:</p>
+              <p className="text-sm font-semibold mb-2">{t("details.yourStatus")}</p>
               <p className="text-sm capitalize">{userBook.status.replace("_", " ")}</p>
               {userBook.startedAt && (
                 <p className="text-xs text-muted-foreground">
@@ -101,7 +103,7 @@ export function BookDetails({
       {/* Progress Tracker */}
       {userBook && userBook.status === "reading" && book.pages && (
         <div className="border rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-4">Reading Progress</h2>
+          <h2 className="text-xl font-semibold mb-4">{t("progress.sectionTitle")}</h2>
           <ProgressTracker
             userBookId={userBook.id}
             currentPage={userBook.currentPage || 0}
@@ -113,7 +115,7 @@ export function BookDetails({
       {/* Rating */}
       {userBook && userBook.status === "finished" && (
         <div className="border rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-4">Your Rating</h2>
+          <h2 className="text-xl font-semibold mb-4">{t("rating.sectionTitle")}</h2>
           <RatingForm userBookId={userBook.id} currentRating={userBook.rating} />
         </div>
       )}
@@ -122,13 +124,13 @@ export function BookDetails({
       {userBook && (
         <div className="border rounded-lg p-6">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">Your Review</h2>
+            <h2 className="text-xl font-semibold">{t("review.sectionTitle")}</h2>
             {!showReviewForm && (
               <button
                 onClick={() => setShowReviewForm(true)}
                 className="text-sm px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
               >
-                {userReview ? "Edit Review" : "Write Review"}
+                {userReview ? t("review.editButton") : t("review.writeButton")}
               </button>
             )}
           </div>
@@ -178,7 +180,7 @@ export function BookDetails({
 
       {!isAuthenticated && (
         <div className="text-center py-8 text-muted-foreground">
-          <p>Sign in to add this book to your library and write reviews.</p>
+          <p>{t("signInPrompt")}</p>
         </div>
       )}
     </div>
