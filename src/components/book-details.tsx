@@ -83,8 +83,12 @@ export function BookDetails({
           {/* User's Status */}
           {userBook && (
             <div className="border-t pt-4">
-              <p className="text-sm font-semibold mb-2">{t("details.yourStatus")}</p>
-              <p className="text-sm capitalize">{userBook.status.replace("_", " ")}</p>
+              <p className="text-sm font-semibold mb-2">
+                {t("details.yourStatus")}
+              </p>
+              <p className="text-sm capitalize">
+                {userBook.status.replace("_", " ")}
+              </p>
               {userBook.startedAt && (
                 <p className="text-xs text-muted-foreground">
                   Started: {new Date(userBook.startedAt).toLocaleDateString()}
@@ -103,7 +107,9 @@ export function BookDetails({
       {/* Progress Tracker */}
       {userBook && userBook.status === "reading" && book.pages && (
         <div className="border rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-4">{t("progress.sectionTitle")}</h2>
+          <h2 className="text-xl font-semibold mb-4">
+            {t("progress.sectionTitle")}
+          </h2>
           <ProgressTracker
             userBookId={userBook.id}
             currentPage={userBook.currentPage || 0}
@@ -115,8 +121,13 @@ export function BookDetails({
       {/* Rating */}
       {userBook && userBook.status === "finished" && (
         <div className="border rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-4">{t("rating.sectionTitle")}</h2>
-          <RatingForm userBookId={userBook.id} currentRating={userBook.rating} />
+          <h2 className="text-xl font-semibold mb-4">
+            {t("rating.sectionTitle")}
+          </h2>
+          <RatingForm
+            userBookId={userBook.id}
+            currentRating={userBook.rating}
+          />
         </div>
       )}
 
@@ -124,7 +135,9 @@ export function BookDetails({
       {userBook && (
         <div className="border rounded-lg p-6">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold">{t("review.sectionTitle")}</h2>
+            <h2 className="text-xl font-semibold">
+              {t("review.sectionTitle")}
+            </h2>
             {!showReviewForm && (
               <button
                 onClick={() => setShowReviewForm(true)}
@@ -144,7 +157,9 @@ export function BookDetails({
             />
           ) : userReview ? (
             <div className="space-y-2">
-              <p className="text-sm whitespace-pre-wrap">{userReview.content}</p>
+              <p className="text-sm whitespace-pre-wrap">
+                {userReview.content}
+              </p>
               <p className="text-xs text-muted-foreground">
                 {userReview.isPrivate ? "Private" : "Public"} •{" "}
                 {new Date(userReview.createdAt).toLocaleDateString()}
@@ -161,10 +176,15 @@ export function BookDetails({
       {/* Friend Reviews */}
       {friendReviews.length > 0 && (
         <div className="border rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-4">Reviews from People You Follow</h2>
+          <h2 className="text-xl font-semibold mb-4">
+            Reviews from People You Follow
+          </h2>
           <div className="space-y-4">
             {friendReviews.map((review) => (
-              <div key={review.id} className="border-b last:border-b-0 pb-4 last:pb-0">
+              <div
+                key={review.id}
+                className="border-b last:border-b-0 pb-4 last:pb-0"
+              >
                 <p className="font-semibold text-sm mb-1">
                   {review.user.username || review.user.email}
                 </p>

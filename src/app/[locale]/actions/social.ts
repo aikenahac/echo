@@ -42,7 +42,7 @@ export async function followUser(followingId: string) {
     const existing = await db.query.follows.findFirst({
       where: and(
         eq(follows.followerId, userId),
-        eq(follows.followingId, followingId)
+        eq(follows.followingId, followingId),
       ),
     });
 
@@ -81,7 +81,10 @@ export async function unfollowUser(followingId: string) {
     await db
       .delete(follows)
       .where(
-        and(eq(follows.followerId, userId), eq(follows.followingId, followingId))
+        and(
+          eq(follows.followerId, userId),
+          eq(follows.followingId, followingId),
+        ),
       );
 
     revalidatePath("/users/search");

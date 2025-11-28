@@ -3,7 +3,10 @@
 import { db } from "@/db";
 import { books } from "@/db/schema";
 import { or, ilike, sql } from "drizzle-orm";
-import { searchBooks as searchOpenLibrary, type OpenLibraryBook } from "@/lib/books";
+import {
+  searchBooks as searchOpenLibrary,
+  type OpenLibraryBook,
+} from "@/lib/books";
 
 export interface SearchResult {
   id?: string; // UUID for internal books
@@ -21,7 +24,7 @@ export interface SearchResult {
  * Hybrid search: First search internal database, then fall back to Open Library API
  */
 export async function searchBooksHybrid(
-  query: string
+  query: string,
 ): Promise<SearchResult[]> {
   if (!query.trim()) {
     return [];
@@ -37,8 +40,8 @@ export async function searchBooksHybrid(
       or(
         ilike(books.title, `%${searchTerm}%`),
         ilike(books.author, `%${searchTerm}%`),
-        ilike(books.isbn, `%${searchTerm}%`)
-      )
+        ilike(books.isbn, `%${searchTerm}%`),
+      ),
     )
     .limit(20);
 

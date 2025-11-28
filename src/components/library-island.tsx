@@ -3,8 +3,14 @@
 import { BookCard } from "@/components/book-card";
 import { useTranslations } from "next-intl";
 import { Card } from "./ui/card";
-import { useMemo} from "react";
-import { Bookmark, BookOpen, CheckCircle, LayoutGrid, List } from "lucide-react";
+import { useMemo } from "react";
+import {
+  Bookmark,
+  BookOpen,
+  CheckCircle,
+  LayoutGrid,
+  List,
+} from "lucide-react";
 
 import { useSearchParams } from "next/navigation";
 import { ReadingStatus, UserBook } from "@/types";
@@ -76,7 +82,7 @@ export function LibraryIsland({
               "h-8 w-8",
               layout === "grid"
                 ? "bg-primary/60 text-primary-foreground hover:bg-primary/80"
-                : "hover:bg-primary/80"
+                : "hover:bg-primary/80",
             )}
           >
             <LayoutGrid className="h-4 w-4" />
@@ -89,7 +95,7 @@ export function LibraryIsland({
               "h-8 w-8",
               layout === "list"
                 ? "bg-primary/60 text-primary-foreground hover:bg-primary/80"
-                : "hover:bg-primary/80"
+                : "hover:bg-primary/80",
             )}
           >
             <List className="h-4 w-4" />
@@ -106,7 +112,7 @@ export function LibraryIsland({
                 "justify-start gap-2",
                 activeTab === type
                   ? "bg-primary/60 text-accent-foreground"
-                  : "hover:bg-primary/80"
+                  : "hover:bg-primary/80",
               )}
             >
               <Icon className="h-4 w-4" />
@@ -116,13 +122,12 @@ export function LibraryIsland({
         })}
       </div>
       <div className="w-full h-full overflow-auto">
-        {isLoaded && (
-          layout === "grid" ? (
+        {isLoaded &&
+          (layout === "grid" ? (
             <GridView books={tabs[activeTab].books} />
           ) : (
             <ListView books={tabs[activeTab].books} />
-          )
-        )}
+          ))}
       </div>
     </Card>
   );
@@ -163,7 +168,10 @@ const ListView = ({ books }: { books: UserBook[] }) => {
     <div className="flex flex-col gap-4">
       {books.map((userBook) => (
         <Card key={userBook.id} className="flex flex-row gap-4 p-4">
-          <Link href={`/books/${userBook.bookId}`} className="relative w-24 h-36 shrink-0">
+          <Link
+            href={`/books/${userBook.bookId}`}
+            className="relative w-24 h-36 shrink-0"
+          >
             {userBook.book.coverUrl ? (
               <Image
                 src={userBook.book.coverUrl}
@@ -180,9 +188,13 @@ const ListView = ({ books }: { books: UserBook[] }) => {
           <div className="flex-1 flex flex-col gap-2">
             <div>
               <Link href={`/books/${userBook.bookId}`}>
-                <h3 className="font-semibold hover:underline">{userBook.book.title}</h3>
+                <h3 className="font-semibold hover:underline">
+                  {userBook.book.title}
+                </h3>
               </Link>
-              <p className="text-sm text-muted-foreground">{userBook.book.author}</p>
+              <p className="text-sm text-muted-foreground">
+                {userBook.book.author}
+              </p>
             </div>
             {userBook.status === "reading" && userBook.book.pages && (
               <div className="text-sm text-muted-foreground">

@@ -5,7 +5,13 @@ import { Star } from "lucide-react";
 import { toast } from "sonner";
 import { rateBook } from "@/app/[locale]/actions/books";
 import { useTranslations } from "next-intl";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 interface RatingFormProps {
@@ -37,9 +43,7 @@ export function RatingForm({ userBookId, currentRating }: RatingFormProps) {
       <CardHeader>
         <CardTitle>{t("title")}</CardTitle>
         {rating > 0 ? (
-          <CardDescription>
-            {t("outOf", { rating })}
-          </CardDescription>
+          <CardDescription>{t("outOf", { rating })}</CardDescription>
         ) : (
           <CardDescription>{t("prompt")}</CardDescription>
         )}

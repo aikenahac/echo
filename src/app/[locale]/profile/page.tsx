@@ -41,22 +41,19 @@ export default async function ProfilePage() {
 
   // Fetch reading stats
   const finishedBooks = await db.query.userBooks.findMany({
-    where: and(
-      eq(userBooks.userId, userId),
-      eq(userBooks.status, "finished")
-    ),
+    where: and(eq(userBooks.userId, userId), eq(userBooks.status, "finished")),
     with: {
       book: true,
     },
   });
 
   const booksThisYear = finishedBooks.filter(
-    (ub) => ub.finishedAt && new Date(ub.finishedAt) >= currentYearStart
+    (ub) => ub.finishedAt && new Date(ub.finishedAt) >= currentYearStart,
   );
 
   const totalPages = booksThisYear.reduce(
     (sum, ub) => sum + (ub.book.pages || 0),
-    0
+    0,
   );
 
   // Fetch currently reading books
@@ -95,11 +92,16 @@ export default async function ProfilePage() {
 
         {currentlyReading.length > 0 && (
           <div>
-            <h2 className="text-2xl font-bold mb-4">{t("shelves.currentlyReading")}</h2>
+            <h2 className="text-2xl font-bold mb-4">
+              {t("shelves.currentlyReading")}
+            </h2>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
               {currentlyReading.map((userBook) => (
                 <div key={userBook.id}>
-                  <a href={`/books/${userBook.bookId}`} className="block relative aspect-[2/3]">
+                  <a
+                    href={`/books/${userBook.bookId}`}
+                    className="block relative aspect-[2/3]"
+                  >
                     {userBook.book.coverUrl ? (
                       <Image
                         src={userBook.book.coverUrl}
@@ -121,11 +123,16 @@ export default async function ProfilePage() {
 
         {recentlyFinished.length > 0 && (
           <div>
-            <h2 className="text-2xl font-bold mb-4">{t("shelves.recentlyFinished")}</h2>
+            <h2 className="text-2xl font-bold mb-4">
+              {t("shelves.recentlyFinished")}
+            </h2>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
               {recentlyFinished.map((userBook) => (
                 <div key={userBook.id}>
-                  <a href={`/books/${userBook.bookId}`} className="block relative aspect-[2/3]">
+                  <a
+                    href={`/books/${userBook.bookId}`}
+                    className="block relative aspect-[2/3]"
+                  >
                     {userBook.book.coverUrl ? (
                       <Image
                         src={userBook.book.coverUrl}

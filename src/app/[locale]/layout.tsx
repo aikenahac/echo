@@ -12,6 +12,7 @@ import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import "../globals.css";
+import { Metadata } from "next";
 
 const eb_garamond = EB_Garamond({
   subsets: ["latin"],
@@ -31,6 +32,53 @@ const ibm_plex_mono = IBM_Plex_Mono({
   variable: "--font-mono",
 });
 
+export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_BASE_URL || "https://echo.aiken.si",
+  ),
+  title: {
+    default: "Echo Reads - Better diary for your books",
+    template: "%s | Echo Reads",
+  },
+  description: "Better diary for your books",
+  keywords: [],
+  authors: [{ name: "Echo" }],
+  creator: "Echo",
+  publisher: "Echo",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "/",
+    title: "Echo Reads - Better diary for your books",
+    description: "Better diary for your books",
+    siteName: "Mess with Humanity",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Echo Reads - Better diary for your books",
+    description: "Better diary for your books",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  alternates: {
+    canonical: "/",
+  },
+};
+
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
 }
@@ -45,6 +93,7 @@ export default async function LocaleLayout({
   const { locale } = await params;
 
   // Ensure that the incoming `locale` is valid
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if (!routing.locales.includes(locale as any)) {
     notFound();
   }

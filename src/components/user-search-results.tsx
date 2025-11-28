@@ -24,7 +24,7 @@ export function UserSearchResults({
   const router = useRouter();
   const [query, setQuery] = useState(initialQuery);
   const [following, setFollowing] = useState<Set<string>>(
-    new Set(initialFollowing)
+    new Set(initialFollowing),
   );
   const [isPending, startTransition] = useTransition();
 
@@ -96,9 +96,7 @@ export function UserSearchResults({
                 className="border rounded-lg p-4 flex items-center justify-between"
               >
                 <div>
-                  <p className="font-semibold">
-                    {user.username || user.email}
-                  </p>
+                  <p className="font-semibold">{user.username || user.email}</p>
                   {user.bio && (
                     <p className="text-sm text-muted-foreground line-clamp-1">
                       {user.bio}
@@ -107,7 +105,9 @@ export function UserSearchResults({
                 </div>
                 <button
                   onClick={() =>
-                    isFollowing ? handleUnfollow(user.id) : handleFollow(user.id)
+                    isFollowing
+                      ? handleUnfollow(user.id)
+                      : handleFollow(user.id)
                   }
                   disabled={isPending}
                   className={`px-4 py-2 rounded-md text-sm disabled:opacity-50 ${

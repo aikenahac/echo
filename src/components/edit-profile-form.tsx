@@ -49,12 +49,18 @@ export function EditProfileForm({ user }: EditProfileFormProps) {
         </div>
         <div className="space-y-2">
           <div>
-            <p className="text-sm font-semibold text-muted-foreground">{t("information.username")}</p>
+            <p className="text-sm font-semibold text-muted-foreground">
+              {t("information.username")}
+            </p>
             <p>{user.username || t("information.noUsername")}</p>
           </div>
           <div>
-            <p className="text-sm font-semibold text-muted-foreground">{t("information.bio")}</p>
-            <p className="whitespace-pre-wrap">{user.bio || t("information.noBio")}</p>
+            <p className="text-sm font-semibold text-muted-foreground">
+              {t("information.bio")}
+            </p>
+            <p className="whitespace-pre-wrap">
+              {user.bio || t("information.noBio")}
+            </p>
           </div>
         </div>
       </div>

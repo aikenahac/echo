@@ -12,7 +12,7 @@ import { revalidatePath } from "next/cache";
 export async function createOrUpdateReview(
   bookId: string,
   content: string,
-  isPrivate: boolean
+  isPrivate: boolean,
 ) {
   const { userId } = await auth();
 

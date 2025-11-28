@@ -14,7 +14,7 @@ export type ReadingStatus = "want" | "reading" | "finished";
  */
 export async function addBookToLibrary(
   bookData: NormalizedBook,
-  status: ReadingStatus
+  status: ReadingStatus,
 ) {
   const { userId } = await auth();
 
@@ -59,7 +59,7 @@ export async function addBookToLibrary(
     const existingUserBook = await db.query.userBooks.findFirst({
       where: and(
         eq(userBooks.userId, userId),
-        eq(userBooks.bookId, existingBook.id)
+        eq(userBooks.bookId, existingBook.id),
       ),
     });
 
@@ -93,7 +93,7 @@ export async function addBookToLibrary(
  */
 export async function updateBookStatus(
   userBookId: string,
-  status: ReadingStatus
+  status: ReadingStatus,
 ) {
   const { userId } = await auth();
 
@@ -174,7 +174,7 @@ export async function removeBookFromLibrary(userBookId: string) {
  */
 export async function updateReadingProgress(
   userBookId: string,
-  currentPage: number
+  currentPage: number,
 ) {
   const { userId } = await auth();
 

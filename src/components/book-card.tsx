@@ -10,7 +10,12 @@ import {
   type ReadingStatus,
 } from "@/app/[locale]/actions/books";
 import { useTranslations } from "next-intl";
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+} from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -120,7 +125,10 @@ export function BookCard({ userBook }: BookCardProps) {
       </div>
 
       <CardHeader className="p-0">
-        <Link href={`/books/${userBook.bookId}`} className="block relative h-64">
+        <Link
+          href={`/books/${userBook.bookId}`}
+          className="block relative h-64"
+        >
           {userBook.book.coverUrl ? (
             <Image
               src={userBook.book.coverUrl}
@@ -142,7 +150,9 @@ export function BookCard({ userBook }: BookCardProps) {
             {userBook.book.title}
           </h3>
         </Link>
-        <p className="text-sm text-muted-foreground mt-1">{userBook.book.author}</p>
+        <p className="text-sm text-muted-foreground mt-1">
+          {userBook.book.author}
+        </p>
       </CardContent>
 
       <CardFooter className="flex flex-col gap-2">

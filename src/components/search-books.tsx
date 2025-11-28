@@ -3,14 +3,25 @@
 import { useState, useTransition } from "react";
 import Image from "next/image";
 import { Search, Loader2, Database, Globe } from "lucide-react";
-import { searchBooksHybrid, type SearchResult } from "@/app/[locale]/actions/search";
-import { addBookToLibrary, type ReadingStatus } from "@/app/[locale]/actions/books";
+import {
+  searchBooksHybrid,
+  type SearchResult,
+} from "@/app/[locale]/actions/search";
+import {
+  addBookToLibrary,
+  type ReadingStatus,
+} from "@/app/[locale]/actions/books";
 import { toast } from "sonner";
 import { Link } from "@/i18n/routing";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 export function SearchBooks() {
@@ -19,7 +30,9 @@ export function SearchBooks() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [searchSource, setSearchSource] = useState<"internal" | "external" | null>(null);
+  const [searchSource, setSearchSource] = useState<
+    "internal" | "external" | null
+  >(null);
   const [isPending, startTransition] = useTransition();
 
   const handleSearch = async (e: React.FormEvent) => {
@@ -104,7 +117,10 @@ export function SearchBooks() {
               <Card key={bookKey} className="flex flex-col">
                 <CardHeader className="p-0">
                   {book.source === "internal" && book.id ? (
-                    <Link href={`/books/${book.id}`} className="block relative h-64">
+                    <Link
+                      href={`/books/${book.id}`}
+                      className="block relative h-64"
+                    >
                       {book.coverUrl ? (
                         <Image
                           src={book.coverUrl}
@@ -145,7 +161,9 @@ export function SearchBooks() {
                   ) : (
                     <h3 className="font-semibold line-clamp-2">{book.title}</h3>
                   )}
-                  <p className="text-sm text-muted-foreground mt-1">{book.author}</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {book.author}
+                  </p>
                   {book.publishedYear && (
                     <p className="text-xs text-muted-foreground mt-1">
                       {book.publishedYear}
@@ -159,7 +177,9 @@ export function SearchBooks() {
                     </Button>
                   ) : (
                     <>
-                      <p className="text-xs font-medium w-full">{t("addToLibrary")}</p>
+                      <p className="text-xs font-medium w-full">
+                        {t("addToLibrary")}
+                      </p>
                       <div className="flex gap-2 w-full">
                         <Button
                           variant="outline"
@@ -199,7 +219,9 @@ export function SearchBooks() {
       )}
 
       {results.length === 0 && !isSearching && query && (
-        <p className="text-center text-muted-foreground py-8">{t("noResults")}</p>
+        <p className="text-center text-muted-foreground py-8">
+          {t("noResults")}
+        </p>
       )}
     </div>
   );

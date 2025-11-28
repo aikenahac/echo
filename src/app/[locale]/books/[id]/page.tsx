@@ -25,17 +25,19 @@ export default async function BookDetailPage({
   // Fetch user's book status if logged in
   let userBook = null;
   if (userId) {
-    userBook = await db.query.userBooks.findFirst({
-      where: and(eq(userBooks.userId, userId), eq(userBooks.bookId, id)),
-    }) ?? null;
+    userBook =
+      (await db.query.userBooks.findFirst({
+        where: and(eq(userBooks.userId, userId), eq(userBooks.bookId, id)),
+      })) ?? null;
   }
 
   // Fetch user's review if exists
   let userReview = null;
   if (userId) {
-    userReview = await db.query.reviews.findFirst({
-      where: and(eq(reviews.userId, userId), eq(reviews.bookId, id)),
-    }) ?? null;
+    userReview =
+      (await db.query.reviews.findFirst({
+        where: and(eq(reviews.userId, userId), eq(reviews.bookId, id)),
+      })) ?? null;
   }
 
   // Fetch reviews from followed users
@@ -50,10 +52,7 @@ export default async function BookDetailPage({
     if (followingIds.length > 0) {
       // Fetch reviews from followed users
       friendReviews = await db.query.reviews.findMany({
-        where: and(
-          eq(reviews.bookId, id),
-          eq(reviews.isPrivate, false)
-        ),
+        where: and(eq(reviews.bookId, id), eq(reviews.isPrivate, false)),
         with: {
           user: true,
         },
@@ -61,7 +60,7 @@ export default async function BookDetailPage({
 
       // Filter to only show reviews from followed users
       friendReviews = friendReviews.filter((review) =>
-        followingIds.includes(review.userId)
+        followingIds.includes(review.userId),
       );
     }
   }

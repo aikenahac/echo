@@ -33,7 +33,7 @@ export const users = pgTable(
   (table) => ({
     emailIdx: index("users_email_idx").on(table.email),
     usernameIdx: index("users_username_idx").on(table.username),
-  })
+  }),
 );
 
 // Books table
@@ -52,7 +52,7 @@ export const books = pgTable(
   (table) => ({
     isbnIdx: index("books_isbn_idx").on(table.isbn),
     titleIdx: index("books_title_idx").on(table.title),
-  })
+  }),
 );
 
 // User Books (reading list/library)
@@ -78,8 +78,11 @@ export const userBooks = pgTable(
     userIdIdx: index("user_books_user_id_idx").on(table.userId),
     bookIdIdx: index("user_books_book_id_idx").on(table.bookId),
     statusIdx: index("user_books_status_idx").on(table.status),
-    userBookIdx: index("user_books_user_book_idx").on(table.userId, table.bookId),
-  })
+    userBookIdx: index("user_books_user_book_idx").on(
+      table.userId,
+      table.bookId,
+    ),
+  }),
 );
 
 // Reviews table
@@ -101,7 +104,7 @@ export const reviews = pgTable(
   (table) => ({
     userIdIdx: index("reviews_user_id_idx").on(table.userId),
     bookIdIdx: index("reviews_book_id_idx").on(table.bookId),
-  })
+  }),
 );
 
 // Follows table
@@ -120,7 +123,7 @@ export const follows = pgTable(
     pk: primaryKey({ columns: [table.followerId, table.followingId] }),
     followerIdx: index("follows_follower_idx").on(table.followerId),
     followingIdx: index("follows_following_idx").on(table.followingId),
-  })
+  }),
 );
 
 // Relations

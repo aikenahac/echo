@@ -1,11 +1,13 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import Image from "next/image";
+import { getTranslations } from "next-intl/server";
 import { db } from "@/db";
 import { follows, userBooks, reviews } from "@/db/schema";
 import { eq, and, inArray, desc, or } from "drizzle-orm";
 
 export default async function FeedPage() {
+  const t = await getTranslations("feed");
   const { userId } = await auth();
 
   if (!userId) {
@@ -22,7 +24,7 @@ export default async function FeedPage() {
   if (followingIds.length === 0) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-8">Activity Feed</h1>
+        <h1 className="text-3xl font-bold mb-8">{t("title")}</h1>
         <div className="text-center py-12 text-muted-foreground">
           <p>Your feed is empty!</p>
           <p className="text-sm mt-2">
@@ -43,7 +45,7 @@ export default async function FeedPage() {
   const recentBooks = await db.query.userBooks.findMany({
     where: and(
       inArray(userBooks.userId, followingIds),
-      or(eq(userBooks.status, "reading"), eq(userBooks.status, "finished"))
+      or(eq(userBooks.status, "reading"), eq(userBooks.status, "finished")),
     ),
     with: {
       book: true,
@@ -56,7 +58,7 @@ export default async function FeedPage() {
   const recentReviews = await db.query.reviews.findMany({
     where: and(
       inArray(reviews.userId, followingIds),
-      eq(reviews.isPrivate, false)
+      eq(reviews.isPrivate, false),
     ),
     with: {
       book: true,

@@ -29,9 +29,7 @@ export interface NormalizedBook {
  * @param query - The search query
  * @returns Array of books from Open Library
  */
-export async function searchBooks(
-  query: string
-): Promise<OpenLibraryBook[]> {
+export async function searchBooks(query: string): Promise<OpenLibraryBook[]> {
   if (!query.trim()) {
     return [];
   }
@@ -39,7 +37,7 @@ export async function searchBooks(
   try {
     const response = await fetch(
       `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=20`,
-      { next: { revalidate: 3600 } } // Cache for 1 hour
+      { next: { revalidate: 3600 } }, // Cache for 1 hour
     );
 
     if (!response.ok) {
@@ -59,11 +57,13 @@ export async function searchBooks(
  * @param isbn - The ISBN of the book
  * @returns Book data from Open Library
  */
-export async function getBookByISBN(isbn: string): Promise<OpenLibraryBook | null> {
+export async function getBookByISBN(
+  isbn: string,
+): Promise<OpenLibraryBook | null> {
   try {
     const response = await fetch(
       `https://openlibrary.org/search.json?isbn=${encodeURIComponent(isbn)}&limit=1`,
-      { next: { revalidate: 86400 } } // Cache for 24 hours
+      { next: { revalidate: 86400 } }, // Cache for 24 hours
     );
 
     if (!response.ok) {
@@ -84,7 +84,10 @@ export async function getBookByISBN(isbn: string): Promise<OpenLibraryBook | nul
  * @param size - The size of the cover (S, M, L)
  * @returns Cover URL or null
  */
-export function getCoverUrl(coverId?: number, size: 'S' | 'M' | 'L' = 'M'): string | null {
+export function getCoverUrl(
+  coverId?: number,
+  size: "S" | "M" | "L" = "M",
+): string | null {
   if (!coverId) return null;
   return `https://covers.openlibrary.org/b/id/${coverId}-${size}.jpg`;
 }
@@ -99,7 +102,7 @@ export function normalizeBookData(book: OpenLibraryBook): NormalizedBook {
     isbn: book.isbn?.[0] || null,
     title: book.title,
     author: book.author_name?.[0] || "Unknown Author",
-    coverUrl: getCoverUrl(book.cover_i, 'L'),
+    coverUrl: getCoverUrl(book.cover_i, "L"),
     pages: book.number_of_pages_median || null,
     publishedYear: book.first_publish_year || null,
   };

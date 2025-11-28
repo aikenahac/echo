@@ -31,7 +31,7 @@ export default async function UserSearchPage({
     searchResults = await db.query.users.findMany({
       where: or(
         ilike(users.username, `%${query}%`),
-        ilike(users.email, `%${query}%`)
+        ilike(users.email, `%${query}%`),
       ),
       limit: 20,
     });

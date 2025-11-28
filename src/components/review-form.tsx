@@ -2,14 +2,23 @@
 
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
-import { createOrUpdateReview, deleteReview } from "@/app/[locale]/actions/reviews";
+import {
+  createOrUpdateReview,
+  deleteReview,
+} from "@/app/[locale]/actions/reviews";
 import type { reviews } from "@/db/schema";
 import type { InferSelectModel } from "drizzle-orm";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Trash2 } from "lucide-react";
 
 type Review = InferSelectModel<typeof reviews>;
@@ -30,7 +39,9 @@ export function ReviewForm({
   const t = useTranslations("book.review");
   const tToast = useTranslations("toast");
   const [content, setContent] = useState(existingReview?.content || "");
-  const [isPrivate, setIsPrivate] = useState(existingReview?.isPrivate || false);
+  const [isPrivate, setIsPrivate] = useState(
+    existingReview?.isPrivate || false,
+  );
   const [isPending, startTransition] = useTransition();
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -47,7 +58,7 @@ export function ReviewForm({
         toast.error(result.error);
       } else {
         toast.success(
-          existingReview ? tToast("reviewUpdated") : tToast("reviewPosted")
+          existingReview ? tToast("reviewUpdated") : tToast("reviewPosted"),
         );
         onSuccess();
       }
@@ -98,7 +109,10 @@ export function ReviewForm({
               onChange={(e) => setIsPrivate(e.target.checked)}
               className="h-4 w-4 rounded border-gray-300"
             />
-            <Label htmlFor="private" className="text-sm font-normal cursor-pointer">
+            <Label
+              htmlFor="private"
+              className="text-sm font-normal cursor-pointer"
+            >
               {t("private")}
             </Label>
           </div>
@@ -109,8 +123,8 @@ export function ReviewForm({
             {isPending
               ? t("updating")
               : existingReview
-              ? t("update")
-              : t("post")}
+                ? t("update")
+                : t("post")}
           </Button>
           <Button
             type="button"
