@@ -37,6 +37,9 @@ ENV NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL=$NEXT_PUBLIC_CLERK_SIGN_UP_FORC
 # Build the application
 RUN pnpm build
 
+# Compile the migration script
+RUN npx tsc src/db/migrate.ts --outDir dist --module commonjs --moduleResolution node --esModuleInterop --skipLibCheck
+
 # Production image, copy all the files and run next
 FROM base AS runner
 WORKDIR /app
@@ -70,6 +73,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/src/db ./src/db
 COPY --from=builder --chown=nextjs:nodejs /app/drizzle ./drizzle
 COPY --from=builder --chown=nextjs:nodejs /app/drizzle.config.ts ./drizzle.config.ts
+COPY --from=builder --chown=nextjs:nodejs /app/dist/migrate.js ./dist/migrate.js
 
 # Change ownership of node_modules
 RUN chown -R nextjs:nodejs /app/node_modules
@@ -81,5 +85,5 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Start the application
-CMD ["node", "server.js"]
+# Start the application (run migrations first)
+CMD ["sh", "-c", "node dist/migrate.js && node server.js"]
