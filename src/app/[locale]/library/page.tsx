@@ -9,7 +9,7 @@ export default async function LibraryPage() {
   const { userId } = await auth();
 
   if (!userId) {
-    redirect("/sign-in");
+    redirect("/");
   }
 
   // Fetch all user books with book details

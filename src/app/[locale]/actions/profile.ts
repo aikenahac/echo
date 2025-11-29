@@ -1,6 +1,6 @@
 "use server";
 
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -17,6 +17,17 @@ export async function updateProfile(username: string, bio: string) {
   }
 
   try {
+    // Get current user from Clerk to access email
+    const clerkUser = await currentUser();
+    if (!clerkUser) {
+      return { error: "User not found" };
+    }
+
+    const email = clerkUser.emailAddresses[0]?.emailAddress;
+    if (!email) {
+      return { error: "Email not found" };
+    }
+
     // Check if username is already taken (if changed)
     if (username) {
       const existingUser = await db.query.users.findFirst({
@@ -28,14 +39,22 @@ export async function updateProfile(username: string, bio: string) {
       }
     }
 
-    // Update user profile
+    // Upsert user profile (insert or update)
     await db
-      .update(users)
-      .set({
+      .insert(users)
+      .values({
+        id: userId,
+        email: email,
         username: username || null,
         bio: bio || null,
       })
-      .where(eq(users.id, userId));
+      .onConflictDoUpdate({
+        target: users.id,
+        set: {
+          username: username || null,
+          bio: bio || null,
+        },
+      });
 
     revalidatePath("/profile");
 

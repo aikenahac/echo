@@ -14,7 +14,7 @@ export default async function UserSearchPage({
   const { q: query } = await searchParams;
 
   if (!userId) {
-    redirect("/sign-in");
+    redirect("/");
   }
 
   let searchResults: any[] = [];

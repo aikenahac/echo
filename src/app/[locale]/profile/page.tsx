@@ -15,7 +15,7 @@ export default async function ProfilePage() {
   const { userId } = await auth();
 
   if (!userId) {
-    redirect("/sign-in");
+    redirect("/");
   }
 
   // Ensure user exists in database
@@ -33,7 +33,7 @@ export default async function ProfilePage() {
   });
 
   if (!user) {
-    redirect("/sign-in");
+    redirect("/");
   }
 
   // Get current year start date

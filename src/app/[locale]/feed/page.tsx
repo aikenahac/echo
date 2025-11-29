@@ -11,7 +11,7 @@ export default async function FeedPage() {
   const { userId } = await auth();
 
   if (!userId) {
-    redirect("/sign-in");
+    redirect("/");
   }
 
   // Get list of users the current user follows
