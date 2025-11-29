@@ -9,7 +9,7 @@ services:
     volumes:
       - drizzle_gateway:/app
     networks:
-      - mentorship
+      - echo-network
     restart: unless-stopped
 
   migrations:
