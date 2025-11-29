@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   Table,
   TableBody,
@@ -40,6 +41,7 @@ export function UsersDataTable({ data }: { data: User[] }) {
   const [loadingUserId, setLoadingUserId] = useState<string | null>(null);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const parentRef = useRef<HTMLDivElement>(null);
 
   const filteredData = data.filter((user) => {
     const matchesSearch =
@@ -48,6 +50,28 @@ export function UsersDataTable({ data }: { data: User[] }) {
     const matchesRole = roleFilter === "all" || user.role === roleFilter;
     return matchesSearch && matchesRole;
   });
+
+  const virtualizer = useVirtualizer({
+    count: filteredData.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 73, // Estimated row height in pixels
+    overscan: 5, // Render 5 extra rows above and below visible area
+  });
+
+  const items = virtualizer.getVirtualItems();
+
+  // Define column widths for alignment
+  const columnWidths = {
+    email: "280px",
+    username: "180px",
+    role: "120px",
+    joined: "140px",
+    actions: "340px",
+  };
+
+  const totalWidth = Object.values(columnWidths).reduce((acc, width) => {
+    return acc + parseInt(width);
+  }, 0);
 
   const handleRoleChange = async (userId: string, newRole: string) => {
     setLoadingUserId(userId);
@@ -111,87 +135,120 @@ export function UsersDataTable({ data }: { data: User[] }) {
         </Select>
       </div>
 
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Email</TableHead>
-              <TableHead>Username</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Joined</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredData.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground">
-                  No users found
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredData.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell className="font-medium">{user.email}</TableCell>
-                  <TableCell>{user.username || "—"}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        user.role === "admin"
-                          ? "default"
-                          : user.role === "moderator"
-                            ? "secondary"
-                            : "outline"
-                      }
-                    >
-                      {user.role}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {new Date(user.createdAt).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Select
-                        defaultValue={user.role}
-                        onValueChange={(value) => handleRoleChange(user.id, value)}
-                        disabled={loadingUserId === user.id}
-                      >
-                        <SelectTrigger className="w-[130px]">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="user">User</SelectItem>
-                          <SelectItem value="moderator">Moderator</SelectItem>
-                          <SelectItem value="admin">Admin</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => setEditingUser(user)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        onClick={() => handleDeleteUser(user.id, user.email)}
-                        disabled={deletingUserId === user.id}
-                      >
-                        {deletingUserId === user.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
-                  </TableCell>
+      <div className="rounded-md border overflow-hidden">
+        <div className="overflow-x-auto">
+          <div style={{ minWidth: `${totalWidth}px` }}>
+            <Table style={{ tableLayout: "fixed", width: `${totalWidth}px` }}>
+              <TableHeader className="sticky top-0 bg-background z-10 border-b">
+                <TableRow>
+                  <TableHead style={{ width: columnWidths.email }}>Email</TableHead>
+                  <TableHead style={{ width: columnWidths.username }}>Username</TableHead>
+                  <TableHead style={{ width: columnWidths.role }}>Role</TableHead>
+                  <TableHead style={{ width: columnWidths.joined }}>Joined</TableHead>
+                  <TableHead style={{ width: columnWidths.actions }} className="text-right">Actions</TableHead>
                 </TableRow>
-              ))
+              </TableHeader>
+            </Table>
+
+            {filteredData.length === 0 ? (
+              <div className="p-8 text-center text-muted-foreground">
+                No users found
+              </div>
+            ) : (
+              <div
+                ref={parentRef}
+                className="overflow-y-auto overflow-x-hidden"
+                style={{ height: "calc(100vh - 350px)" }} // Fixed height for virtualization
+              >
+                <Table style={{ tableLayout: "fixed", width: `${totalWidth}px` }}>
+                  <TableBody
+                    style={{
+                      height: `${virtualizer.getTotalSize()}px`,
+                      position: "relative",
+                    }}
+                  >
+                    {items.map((virtualRow) => {
+                      const user = filteredData[virtualRow.index];
+                      return (
+                        <TableRow
+                          key={user.id}
+                          style={{
+                            position: "absolute",
+                            top: 0,
+                            left: 0,
+                            width: "100%",
+                            height: `${virtualRow.size}px`,
+                            transform: `translateY(${virtualRow.start}px)`,
+                          }}
+                        >
+                          <TableCell style={{ width: columnWidths.email }} className="font-medium">
+                            <div className="truncate">{user.email}</div>
+                          </TableCell>
+                          <TableCell style={{ width: columnWidths.username }}>
+                            <div className="truncate">{user.username || "—"}</div>
+                          </TableCell>
+                          <TableCell style={{ width: columnWidths.role }}>
+                            <Badge
+                              variant={
+                                user.role === "admin"
+                                  ? "default"
+                                  : user.role === "moderator"
+                                    ? "secondary"
+                                    : "outline"
+                              }
+                            >
+                              {user.role}
+                            </Badge>
+                          </TableCell>
+                          <TableCell style={{ width: columnWidths.joined }}>
+                            {new Date(user.createdAt).toLocaleDateString()}
+                          </TableCell>
+                          <TableCell style={{ width: columnWidths.actions }} className="text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <Select
+                                defaultValue={user.role}
+                                onValueChange={(value) => handleRoleChange(user.id, value)}
+                                disabled={loadingUserId === user.id}
+                              >
+                                <SelectTrigger className="w-[130px]">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="user">User</SelectItem>
+                                  <SelectItem value="moderator">Moderator</SelectItem>
+                                  <SelectItem value="admin">Admin</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => setEditingUser(user)}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                size="icon"
+                                onClick={() => handleDeleteUser(user.id, user.email)}
+                                disabled={deletingUserId === user.id}
+                              >
+                                {deletingUserId === user.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Trash2 className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
             )}
-          </TableBody>
-        </Table>
+          </div>
+        </div>
       </div>
 
       <div className="text-sm text-muted-foreground">

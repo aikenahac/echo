@@ -2,7 +2,7 @@
 
 import { db } from "@/db";
 import { books } from "@/db/schema";
-import { or, ilike, sql } from "drizzle-orm";
+import { or, ilike, sql, and, eq } from "drizzle-orm";
 import {
   searchBooks as searchOpenLibrary,
   type OpenLibraryBook,
@@ -21,7 +21,58 @@ export interface SearchResult {
 }
 
 /**
+ * Save external book results to the database to build our catalog
+ */
+async function saveExternalBooksToDatabase(
+  externalBooks: OpenLibraryBook[],
+): Promise<void> {
+  for (const book of externalBooks) {
+    try {
+      const isbn = book.isbn?.[0] || null;
+      const title = book.title;
+      const author = book.author_name?.[0] || "Unknown Author";
+      const coverUrl = book.cover_i
+        ? `https://covers.openlibrary.org/b/id/${book.cover_i}-L.jpg`
+        : null;
+      const pages = book.number_of_pages_median || null;
+      const publishedYear = book.first_publish_year || null;
+
+      // Check if book already exists
+      let existingBook = null;
+
+      if (isbn) {
+        // If book has ISBN, check by ISBN
+        existingBook = await db.query.books.findFirst({
+          where: eq(books.isbn, isbn),
+        });
+      } else {
+        // If no ISBN, check by title and author to avoid duplicates
+        existingBook = await db.query.books.findFirst({
+          where: and(eq(books.title, title), eq(books.author, author)),
+        });
+      }
+
+      // Only insert if book doesn't exist
+      if (!existingBook) {
+        await db.insert(books).values({
+          isbn,
+          title,
+          author,
+          coverUrl,
+          pages,
+          publishedYear,
+        });
+      }
+    } catch (error) {
+      // Log error but continue processing other books
+      console.error("Error saving book to database:", error);
+    }
+  }
+}
+
+/**
  * Hybrid search: First search internal database, then fall back to Open Library API
+ * All external results are automatically saved to the database
  */
 export async function searchBooksHybrid(
   query: string,
@@ -61,6 +112,14 @@ export async function searchBooksHybrid(
 
   // Step 2: No internal results, search Open Library API
   const externalResults = await searchOpenLibrary(searchTerm);
+
+  // Step 3: Save all external results to database for future searches
+  if (externalResults.length > 0) {
+    // Save in the background (don't await to keep search fast)
+    saveExternalBooksToDatabase(externalResults).catch((error) => {
+      console.error("Background save failed:", error);
+    });
+  }
 
   return externalResults.map((book) => ({
     key: book.key,
