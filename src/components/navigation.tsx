@@ -2,11 +2,54 @@
 
 import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
 import { Link } from "@/i18n/routing";
-import { Search, Library, Activity, User } from "lucide-react";
+import { Search, Library, Activity, User, ChevronDown, ChevronUp } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { usePathname } from "next/navigation";
+import { useState, useMemo } from "react";
+import { Button } from "./ui/button";
 
 export function Navigation() {
   const t = useTranslations("navigation");
+  const pathname = usePathname();
+  const [isMobileNavExpanded, setIsMobileNavExpanded] = useState(false);
+
+  const navItems = useMemo(
+    () => [
+      {
+        href: "/books/search",
+        icon: Search,
+        label: t("searchBooks"),
+        match: (path: string) => path.includes("/books/search"),
+      },
+      {
+        href: "/library",
+        icon: Library,
+        label: t("library"),
+        match: (path: string) => path.includes("/library"),
+      },
+      {
+        href: "/feed",
+        icon: Activity,
+        label: t("feed"),
+        match: (path: string) => path.includes("/feed"),
+      },
+      {
+        href: "/users/search",
+        icon: User,
+        label: t("findUsers"),
+        match: (path: string) => path.includes("/users/search"),
+      },
+      {
+        href: "/profile",
+        icon: User,
+        label: t("profile"),
+        match: (path: string) => path.includes("/profile"),
+      },
+    ],
+    [t]
+  );
+
+  const activeNav = navItems.find((item) => item.match(pathname));
 
   return (
     <nav className="border-b">
@@ -20,40 +63,19 @@ export function Navigation() {
           {/* Desktop Navigation */}
           <SignedIn>
             <div className="hidden md:flex items-center gap-6">
-              <Link
-                href="/books/search"
-                className="flex items-center gap-2 text-sm hover:text-primary transition-colors"
-              >
-                <Search className="h-4 w-4" />
-                {t("searchBooks")}
-              </Link>
-              <Link
-                href="/library"
-                className="flex items-center gap-2 text-sm hover:text-primary transition-colors"
-              >
-                <Library className="h-4 w-4" />
-                {t("library")}
-              </Link>
-              <Link
-                href="/feed"
-                className="flex items-center gap-2 text-sm hover:text-primary transition-colors"
-              >
-                <Activity className="h-4 w-4" />
-                {t("feed")}
-              </Link>
-              <Link
-                href="/users/search"
-                className="flex items-center gap-2 text-sm hover:text-primary transition-colors"
-              >
-                <User className="h-4 w-4" />
-                {t("findUsers")}
-              </Link>
-              <Link
-                href="/profile"
-                className="flex items-center gap-2 text-sm hover:text-primary transition-colors"
-              >
-                {t("profile")}
-              </Link>
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className="flex items-center gap-2 text-sm hover:text-primary transition-colors"
+                  >
+                    <Icon className="h-4 w-4" />
+                    {item.label}
+                  </Link>
+                );
+              })}
               <UserButton />
             </div>
           </SignedIn>
@@ -69,43 +91,63 @@ export function Navigation() {
 
         {/* Mobile Navigation */}
         <SignedIn>
-          <div className="md:hidden pb-4">
-            <div className="flex flex-col gap-2">
-              <Link
-                href="/books/search"
-                className="flex items-center gap-2 text-sm hover:text-primary transition-colors py-2"
-              >
-                <Search className="h-4 w-4" />
-                {t("searchBooks")}
-              </Link>
-              <Link
-                href="/library"
-                className="flex items-center gap-2 text-sm hover:text-primary transition-colors py-2"
-              >
-                <Library className="h-4 w-4" />
-                {t("library")}
-              </Link>
-              <Link
-                href="/feed"
-                className="flex items-center gap-2 text-sm hover:text-primary transition-colors py-2"
-              >
-                <Activity className="h-4 w-4" />
-                {t("feed")}
-              </Link>
-              <Link
-                href="/users/search"
-                className="flex items-center gap-2 text-sm hover:text-primary transition-colors py-2"
-              >
-                <User className="h-4 w-4" />
-                {t("findUsers")}
-              </Link>
-              <Link
-                href="/profile"
-                className="flex items-center gap-2 text-sm hover:text-primary transition-colors py-2"
-              >
-                {t("profile")}
-              </Link>
-            </div>
+          <div className="md:hidden pb-2">
+            {!isMobileNavExpanded && activeNav && (
+              <div className="flex items-center justify-between py-2">
+                <Link
+                  href={activeNav.href}
+                  className="flex items-center gap-2 text-sm"
+                >
+                  <activeNav.icon className="h-4 w-4" />
+                  {activeNav.label}
+                </Link>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsMobileNavExpanded(true)}
+                  className="h-8 w-8 p-0"
+                >
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+
+            {isMobileNavExpanded && (
+              <div className="pb-2">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium">Navigation</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsMobileNavExpanded(false)}
+                    className="h-8 w-8 p-0"
+                  >
+                    <ChevronUp className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="flex flex-col gap-2">
+                  {navItems.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = item.match(pathname);
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setIsMobileNavExpanded(false)}
+                        className={`flex items-center gap-2 text-sm transition-colors py-2 px-2 rounded-md ${
+                          isActive
+                            ? "bg-primary/10 text-primary"
+                            : "hover:bg-accent"
+                        }`}
+                      >
+                        <Icon className="h-4 w-4" />
+                        {item.label}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </SignedIn>
       </div>
