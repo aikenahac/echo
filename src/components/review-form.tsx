@@ -118,7 +118,7 @@ export function ReviewForm({
           </div>
         </CardContent>
 
-        <CardFooter className="flex gap-2">
+        <CardFooter className="flex gap-2 mt-4">
           <Button type="submit" disabled={isPending}>
             {isPending
               ? t("updating")

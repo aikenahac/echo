@@ -2,52 +2,70 @@
 
 import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
 import { Link } from "@/i18n/routing";
-import { Search, Library, Activity, User, ChevronDown, ChevronUp } from "lucide-react";
+import { Search, Library, Activity, User, ChevronDown, ChevronUp, Shield } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { usePathname } from "next/navigation";
 import { useState, useMemo } from "react";
 import { Button } from "./ui/button";
 import Image from "next/image";
 
-export function Navigation() {
+interface NavigationProps {
+  hasAdminAccess?: boolean;
+}
+
+export function Navigation({ hasAdminAccess = false }: NavigationProps) {
   const t = useTranslations("navigation");
   const pathname = usePathname();
   const [isMobileNavExpanded, setIsMobileNavExpanded] = useState(false);
 
   const navItems = useMemo(
-    () => [
-      {
-        href: "/books/search",
-        icon: Search,
-        label: t("searchBooks"),
-        match: (path: string) => path.includes("/books/search"),
-      },
-      {
-        href: "/library",
-        icon: Library,
-        label: t("library"),
-        match: (path: string) => path.includes("/library"),
-      },
-      {
-        href: "/feed",
-        icon: Activity,
-        label: t("feed"),
-        match: (path: string) => path.includes("/feed"),
-      },
-      {
-        href: "/users/search",
-        icon: User,
-        label: t("findUsers"),
-        match: (path: string) => path.includes("/users/search"),
-      },
-      {
-        href: "/profile",
-        icon: User,
-        label: t("profile"),
-        match: (path: string) => path.includes("/profile"),
-      },
-    ],
-    [t]
+    () => {
+      const items = [
+        {
+          href: "/books/search",
+          icon: Search,
+          label: t("searchBooks"),
+          match: (path: string) => path.includes("/books/search"),
+        },
+        {
+          href: "/library",
+          icon: Library,
+          label: t("library"),
+          match: (path: string) => path.includes("/library"),
+        },
+        {
+          href: "/feed",
+          icon: Activity,
+          label: t("feed"),
+          match: (path: string) => path.includes("/feed"),
+        },
+        {
+          href: "/users/search",
+          icon: User,
+          label: t("findUsers"),
+          match: (path: string) => path.includes("/users/search"),
+        },
+        {
+          href: "/profile",
+          icon: User,
+          label: t("profile"),
+          match: (path: string) => path.includes("/profile"),
+        },
+      ];
+
+      // Add admin link if user has admin access
+      if (hasAdminAccess) {
+        items.push({
+          href: "/admin",
+          icon: Shield,
+          label: "Admin",
+          match: (path: string) => path.includes("/admin"),
+        });
+      }
+
+      return items;
+    },
+    [t, hasAdminAccess]
   );
 
   const activeNav = navItems.find((item) => item.match(pathname));

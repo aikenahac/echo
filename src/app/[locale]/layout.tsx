@@ -106,15 +106,17 @@ export default async function LocaleLayout({
   // Providing all messages to the client side is the easiest way to get started
   const messages = await getMessages();
 
-  // Check if user needs to set username
+  // Check if user needs to set username and has admin access
   const { userId } = await auth();
   let hasUsername = true;
+  let hasAdminAccess = false;
 
   if (userId) {
     const user = await db.query.users.findFirst({
       where: eq(users.id, userId),
     });
     hasUsername = !!user?.username;
+    hasAdminAccess = user?.role === "moderator" || user?.role === "admin";
   }
 
   return (
@@ -124,7 +126,7 @@ export default async function LocaleLayout({
           className={`${eb_garamond.variable} ${eb_garamond_body.variable} ${ibm_plex_mono.variable} antialiased`}
         >
           <NextIntlClientProvider messages={messages}>
-            <Navigation />
+            <Navigation hasAdminAccess={hasAdminAccess} />
             <main>{children}</main>
             <UsernameSetupDialog hasUsername={hasUsername} />
             <Toaster richColors />

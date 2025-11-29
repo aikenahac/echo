@@ -18,6 +18,8 @@ export const readingStatusEnum = pgEnum("reading_status", [
   "finished",
 ]);
 
+export const userRoleEnum = pgEnum("user_role", ["user", "moderator", "admin"]);
+
 // Users table
 export const users = pgTable(
   "users",
@@ -26,13 +28,16 @@ export const users = pgTable(
     email: text("email").notNull().unique(),
     username: text("username").unique(),
     bio: text("bio"),
+    role: userRoleEnum("role").default("user").notNull(),
     isPremium: boolean("is_premium").default(false).notNull(),
     stripeCustomerId: text("stripe_customer_id"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => ({
     emailIdx: index("users_email_idx").on(table.email),
     usernameIdx: index("users_username_idx").on(table.username),
+    roleIdx: index("users_role_idx").on(table.role),
   }),
 );
 
@@ -129,12 +134,34 @@ export const follows = pgTable(
   }),
 );
 
+// Audit Logs table
+export const auditLogs = pgTable(
+  "audit_logs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    action: text("action").notNull(), // e.g., "user.role.update", "review.delete"
+    targetId: text("target_id"),
+    targetType: text("target_type"), // "user", "review", "book"
+    metadata: text("metadata"), // JSON string
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdIdx: index("audit_logs_user_id_idx").on(table.userId),
+    actionIdx: index("audit_logs_action_idx").on(table.action),
+    createdAtIdx: index("audit_logs_created_at_idx").on(table.createdAt),
+  }),
+);
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   userBooks: many(userBooks),
   reviews: many(reviews),
   followers: many(follows, { relationName: "following" }),
   following: many(follows, { relationName: "follower" }),
+  auditLogs: many(auditLogs),
 }));
 
 export const booksRelations = relations(books, ({ many }) => ({
@@ -174,5 +201,12 @@ export const followsRelations = relations(follows, ({ one }) => ({
     fields: [follows.followingId],
     references: [users.id],
     relationName: "following",
+  }),
+}));
+
+export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
+  user: one(users, {
+    fields: [auditLogs.userId],
+    references: [users.id],
   }),
 }));

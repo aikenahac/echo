@@ -109,7 +109,7 @@ function SidebarContent({
               buttonVariants({ variant: "ghost" }),
               "justify-start gap-2",
               activeTab === type
-                ? "bg-primary/60 text-accent-foreground"
+                ? "bg-primary/60 text-accent-foreground hover:bg-primary/80"
                 : "hover:bg-primary/80",
             )}
           >

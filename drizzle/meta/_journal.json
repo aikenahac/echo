@@ -22,6 +22,13 @@
       "when": 1764420620881,
       "tag": "0002_big_the_fury",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1764428184811,
+      "tag": "0003_modern_spitfire",
+      "breakpoints": true
     }
   ]
 }
