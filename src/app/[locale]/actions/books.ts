@@ -268,3 +268,44 @@ export async function rateBook(userBookId: string, rating: number) {
     return { error: "Failed to rate book" };
   }
 }
+
+/**
+ * Toggle favorite status for a book in the user's library
+ */
+export async function toggleBookFavorite(
+  userBookId: string,
+  isFavorite: boolean,
+) {
+  const { userId } = await auth();
+
+  if (!userId) {
+    return { error: "Unauthorized" };
+  }
+
+  try {
+    const userBook = await db.query.userBooks.findFirst({
+      where: and(eq(userBooks.id, userBookId), eq(userBooks.userId, userId)),
+    });
+
+    if (!userBook) {
+      return { error: "Book not found in your library" };
+    }
+
+    await db
+      .update(userBooks)
+      .set({
+        isFavorite,
+        updatedAt: new Date(),
+      })
+      .where(eq(userBooks.id, userBookId));
+
+    revalidatePath("/library");
+    revalidatePath("/profile");
+    revalidatePath(`/books/${userBook.bookId}`);
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error toggling favorite status:", error);
+    return { error: "Failed to update favorite status" };
+  }
+}

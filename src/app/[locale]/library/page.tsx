@@ -21,7 +21,8 @@ export default async function LibraryPage() {
     orderBy: (userBooks, { desc }) => [desc(userBooks.createdAt)],
   });
 
-  // Separate books by status
+  // Separate books by favorites and status
+  const favoriteBooks = allUserBooks.filter((ub) => ub.isFavorite);
   const wantToRead = allUserBooks.filter((ub) => ub.status === "want");
   const currentlyReading = allUserBooks.filter((ub) => ub.status === "reading");
   const finished = allUserBooks.filter((ub) => ub.status === "finished");
@@ -30,6 +31,7 @@ export default async function LibraryPage() {
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-8">My Library</h1>
       <LibraryIsland
+        favorites={favoriteBooks}
         wantToRead={wantToRead}
         currentlyReading={currentlyReading}
         finished={finished}

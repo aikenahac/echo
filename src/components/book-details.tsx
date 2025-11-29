@@ -1,8 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
+import { Heart } from "lucide-react";
+import { toast } from "sonner";
+import { toggleBookFavorite } from "@/app/[locale]/actions/books";
+import { Button } from "@/components/ui/button";
 import { ProgressTracker } from "@/components/progress-tracker";
 import { RatingForm } from "@/components/rating-form";
 import { ReviewForm } from "@/components/review-form";
@@ -33,6 +37,23 @@ export function BookDetails({
 }: BookDetailsProps) {
   const t = useTranslations("book");
   const [showReviewForm, setShowReviewForm] = useState(false);
+  const [isPending, startTransition] = useTransition();
+
+  const handleToggleFavorite = () => {
+    if (!userBook) return;
+
+    startTransition(async () => {
+      const newFavoriteStatus = !userBook.isFavorite;
+      const result = await toggleBookFavorite(userBook.id, newFavoriteStatus);
+      if (result.error) {
+        toast.error(result.error);
+      } else {
+        toast.success(
+          newFavoriteStatus ? "Added to favorites" : "Removed from favorites"
+        );
+      }
+    });
+  };
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
@@ -99,6 +120,20 @@ export function BookDetails({
                   Finished: {new Date(userBook.finishedAt).toLocaleDateString()}
                 </p>
               )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleToggleFavorite}
+                disabled={isPending}
+                className="mt-3"
+              >
+                <Heart
+                  className={`h-4 w-4 mr-2 ${
+                    userBook.isFavorite ? "fill-red-500 text-red-500" : ""
+                  }`}
+                />
+                {userBook.isFavorite ? "Remove from Favorites" : "Add to Favorites"}
+              </Button>
             </div>
           )}
         </div>

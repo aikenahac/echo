@@ -81,6 +81,7 @@
   "library": {
     "title": "My Library",
     "tabs": {
+      "favorites": "Favorites",
       "want": "Want to Read",
       "reading": "Currently Reading",
       "finished": "Finished"
@@ -91,6 +92,8 @@
     },
     "actions": {
       "changeStatus": "Change status",
+      "addToFavorites": "Add to Favorites",
+      "removeFromFavorites": "Remove from Favorites",
       "removeConfirm": "Are you sure you want to remove this book from your library?",
       "remove": "Remove from library"
     }
@@ -166,6 +169,7 @@
       "cancel": "Cancel"
     },
     "shelves": {
+      "favorites": "Favorite Books",
       "currentlyReading": "Currently Reading",
       "recentlyFinished": "Recently Finished",
       "noCover": "No cover"
@@ -206,6 +210,8 @@
     "bookAdded": "Added \"{title}\" to your library",
     "bookStatusUpdated": "Book status updated",
     "bookRemoved": "Book removed from library",
+    "bookAddedToFavorites": "Added to favorites",
+    "bookRemovedFromFavorites": "Removed from favorites",
     "progressUpdated": "Progress updated!",
     "ratingSaved": "Rating saved!",
     "reviewPosted": "Review posted!",

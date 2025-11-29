@@ -12,6 +12,7 @@ import {
   List,
   Menu,
   X,
+  Heart,
 } from "lucide-react";
 
 import { useSearchParams } from "next/navigation";
@@ -35,45 +36,29 @@ const useFilter = (): {
 };
 
 interface LibraryTabsProps {
+  favorites: UserBook[];
   wantToRead: UserBook[];
   currentlyReading: UserBook[];
   finished: UserBook[];
 }
 
-export function LibraryIsland({
-  wantToRead,
-  currentlyReading,
-  finished,
-}: LibraryTabsProps) {
-  const t = useTranslations("library");
-  const { tab, collection } = useFilter();
-  const { layout, setLayout, isLoaded } = useLibraryLayout();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+interface SidebarContentProps {
+  setIsSidebarOpen: (open: boolean) => void;
+  setLayout: (layout: "grid" | "list") => void;
+  layout: "grid" | "list";
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  tabs: Record<string, { label: string; books: UserBook[]; icon: any }>;
+  activeTab: string;
+}
 
-  const tabs = useMemo(
-    () => ({
-      want: {
-        label: t("tabs.want"),
-        books: wantToRead,
-        icon: Bookmark,
-      },
-      reading: {
-        label: t("tabs.reading"),
-        books: currentlyReading,
-        icon: BookOpen,
-      },
-      finished: {
-        label: t("tabs.finished"),
-        books: finished,
-        icon: CheckCircle,
-      },
-    }),
-    [t, wantToRead, currentlyReading, finished],
-  );
-
-  const activeTab = tab ?? "reading";
-
-  const SidebarContent = () => (
+function SidebarContent({
+  setIsSidebarOpen,
+  setLayout,
+  layout,
+  tabs,
+  activeTab,
+}: SidebarContentProps) {
+  return (
     <>
       <div className="w-full flex flex-row items-center justify-between gap-1 mb-2">
         <Button
@@ -135,6 +120,46 @@ export function LibraryIsland({
       })}
     </>
   );
+}
+
+export function LibraryIsland({
+  favorites,
+  wantToRead,
+  currentlyReading,
+  finished,
+}: LibraryTabsProps) {
+  const t = useTranslations("library");
+  const { tab, collection } = useFilter();
+  const { layout, setLayout, isLoaded } = useLibraryLayout();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  const tabs = useMemo(
+    () => ({
+      favorites: {
+        label: t("tabs.favorites"),
+        books: favorites,
+        icon: Heart,
+      },
+      want: {
+        label: t("tabs.want"),
+        books: wantToRead,
+        icon: Bookmark,
+      },
+      reading: {
+        label: t("tabs.reading"),
+        books: currentlyReading,
+        icon: BookOpen,
+      },
+      finished: {
+        label: t("tabs.finished"),
+        books: finished,
+        icon: CheckCircle,
+      },
+    }),
+    [t, favorites, wantToRead, currentlyReading, finished],
+  );
+
+  const activeTab = tab ?? "reading";
 
   return (
     <div className="w-full h-[80vh] flex flex-col md:flex-row gap-4">
@@ -170,7 +195,13 @@ export function LibraryIsland({
           isSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
         )}
       >
-        <SidebarContent />
+        <SidebarContent
+          setIsSidebarOpen={setIsSidebarOpen}
+          setLayout={setLayout}
+          layout={layout}
+          tabs={tabs}
+          activeTab={activeTab}
+        />
       </Card>
 
       {/* Main content */}

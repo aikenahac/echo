@@ -85,8 +85,8 @@ NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_..."
 CLERK_SECRET_KEY="sk_..."
 
 # Clerk URLs (optional, can use defaults)
-NEXT_PUBLIC_CLERK_SIGN_IN_URL="/sign-in"
-NEXT_PUBLIC_CLERK_SIGN_UP_URL="/sign-up"
+NEXT_PUBLIC_CLERK_SIGN_IN_URL="/"
+NEXT_PUBLIC_CLERK_SIGN_UP_URL="/"
 ```
 
 4. Set up the database:

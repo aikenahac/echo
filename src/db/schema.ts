@@ -69,6 +69,7 @@ export const userBooks = pgTable(
     status: readingStatusEnum("status").notNull().default("want"),
     currentPage: integer("current_page").default(0),
     rating: integer("rating"), // 1-5
+    isFavorite: boolean("is_favorite").default(false).notNull(),
     startedAt: timestamp("started_at"),
     finishedAt: timestamp("finished_at"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -78,6 +79,7 @@ export const userBooks = pgTable(
     userIdIdx: index("user_books_user_id_idx").on(table.userId),
     bookIdIdx: index("user_books_book_id_idx").on(table.bookId),
     statusIdx: index("user_books_status_idx").on(table.status),
+    favoriteIdx: index("user_books_favorite_idx").on(table.isFavorite),
     userBookIdx: index("user_books_user_book_idx").on(
       table.userId,
       table.bookId,

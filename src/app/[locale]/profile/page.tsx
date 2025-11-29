@@ -7,6 +7,7 @@ import { db } from "@/db";
 import { users, userBooks } from "@/db/schema";
 import { eq, and, gte } from "drizzle-orm";
 import { sql } from "drizzle-orm";
+import { Heart } from "lucide-react";
 import { ProfileStats } from "@/components/profile-stats";
 import { EditProfileForm } from "@/components/edit-profile-form";
 
@@ -56,6 +57,16 @@ export default async function ProfilePage() {
     0,
   );
 
+  // Fetch favorite books
+  const favoriteBooks = await db.query.userBooks.findMany({
+    where: and(eq(userBooks.userId, userId), eq(userBooks.isFavorite, true)),
+    with: {
+      book: true,
+    },
+    limit: 6,
+    orderBy: (userBooks, { desc }) => [desc(userBooks.updatedAt)],
+  });
+
   // Fetch currently reading books
   const currentlyReading = await db.query.userBooks.findMany({
     where: and(eq(userBooks.userId, userId), eq(userBooks.status, "reading")),
@@ -89,6 +100,40 @@ export default async function ProfilePage() {
         />
 
         <EditProfileForm user={user} />
+
+        {favoriteBooks.length > 0 && (
+          <div className="border-2 border-primary/20 rounded-lg p-6 bg-gradient-to-br from-primary/5 to-transparent">
+            <div className="flex items-center gap-2 mb-6">
+              <Heart className="h-6 w-6 fill-primary text-primary" />
+              <h2 className="text-3xl font-bold">
+                {t("shelves.favorites")}
+              </h2>
+            </div>
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4">
+              {favoriteBooks.map((userBook) => (
+                <div key={userBook.id}>
+                  <a
+                    href={`/books/${userBook.bookId}`}
+                    className="block relative aspect-[2/3] group"
+                  >
+                    {userBook.book.coverUrl ? (
+                      <Image
+                        src={userBook.book.coverUrl}
+                        alt={userBook.book.title}
+                        fill
+                        className="rounded-lg shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200 object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-muted rounded-lg flex items-center justify-center text-xs text-muted-foreground hover:bg-muted/80 transition-colors">
+                        {t("shelves.noCover")}
+                      </div>
+                    )}
+                  </a>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {currentlyReading.length > 0 && (
           <div>

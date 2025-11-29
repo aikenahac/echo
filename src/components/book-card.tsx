@@ -2,11 +2,12 @@
 
 import { Link } from "@/i18n/routing";
 import { useState, useTransition } from "react";
-import { MoreVertical, Trash2, Star } from "lucide-react";
+import { MoreVertical, Trash2, Star, Heart } from "lucide-react";
 import { toast } from "sonner";
 import {
   updateBookStatus,
   removeBookFromLibrary,
+  toggleBookFavorite,
   type ReadingStatus,
 } from "@/app/[locale]/actions/books";
 import { useTranslations } from "next-intl";
@@ -46,6 +47,23 @@ export function BookCard({ userBook }: BookCardProps) {
         toast.error(result.error);
       } else {
         toast.success(tToast("bookStatusUpdated"));
+        setShowMenu(false);
+      }
+    });
+  };
+
+  const handleToggleFavorite = () => {
+    startTransition(async () => {
+      const newFavoriteStatus = !userBook.isFavorite;
+      const result = await toggleBookFavorite(userBook.id, newFavoriteStatus);
+      if (result.error) {
+        toast.error(result.error);
+      } else {
+        toast.success(
+          newFavoriteStatus
+            ? tToast("bookAddedToFavorites")
+            : tToast("bookRemovedFromFavorites")
+        );
         setShowMenu(false);
       }
     });
@@ -113,6 +131,20 @@ export function BookCard({ userBook }: BookCardProps) {
             )}
             <DropdownMenuSeparator />
             <DropdownMenuItem
+              onClick={handleToggleFavorite}
+              disabled={isPending}
+            >
+              <Heart
+                className={`h-4 w-4 mr-2 ${
+                  userBook.isFavorite ? "fill-red-500 text-red-500" : ""
+                }`}
+              />
+              {userBook.isFavorite
+                ? t("actions.removeFromFavorites")
+                : t("actions.addToFavorites")}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
               onClick={handleRemove}
               disabled={isPending}
               className="text-destructive"
@@ -124,7 +156,7 @@ export function BookCard({ userBook }: BookCardProps) {
         </DropdownMenu>
       </div>
 
-      <CardHeader className="p-0">
+      <CardHeader className="p-0 relative">
         <Link
           href={`/books/${userBook.bookId}`}
           className="block relative h-64"
@@ -142,6 +174,25 @@ export function BookCard({ userBook }: BookCardProps) {
             </div>
           )}
         </Link>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleToggleFavorite();
+          }}
+          disabled={isPending}
+          className="absolute top-2 left-2 z-10 h-8 w-8 bg-background/80 hover:bg-background/90 backdrop-blur-sm shadow-md"
+        >
+          <Heart
+            className={`h-4 w-4 transition-colors ${
+              userBook.isFavorite
+                ? "fill-primary text-primary"
+                : "text-muted-foreground"
+            }`}
+          />
+        </Button>
       </CardHeader>
 
       <CardContent className="flex-1 pt-4">
