@@ -27,11 +27,28 @@ export function UsernameSetupDialog({ hasUsername }: UsernameSetupDialogProps) {
   const [isPending, startTransition] = useTransition();
   const [isOpen, setIsOpen] = useState(!hasUsername);
 
+  const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // Only allow letters, numbers, underscores, and dots
+    const filtered = value.replace(/[^a-zA-Z0-9_.]/g, "");
+    setUsername(filtered);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!username.trim()) {
       toast.error(tToast("errors.usernameEmpty"));
+      return;
+    }
+
+    if (username.length < 3) {
+      toast.error("Username must be at least 3 characters long");
+      return;
+    }
+
+    if (username.length > 30) {
+      toast.error("Username must be at most 30 characters long");
       return;
     }
 
@@ -70,11 +87,15 @@ export function UsernameSetupDialog({ hasUsername }: UsernameSetupDialogProps) {
               <Input
                 id="username"
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                onChange={handleUsernameChange}
                 placeholder={t("setup.usernamePlaceholder")}
                 disabled={isPending}
                 autoFocus
+                maxLength={30}
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                Only letters, numbers, underscores (_), and dots (.) allowed. 3-30 characters.
+              </p>
             </div>
           </div>
           <DialogFooter>

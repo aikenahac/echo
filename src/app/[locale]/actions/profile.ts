@@ -28,8 +28,27 @@ export async function updateProfile(username: string, bio: string) {
       return { error: "Email not found" };
     }
 
-    // Check if username is already taken (if changed)
+    // Validate username format
     if (username) {
+      // Only allow letters, numbers, underscores, and dots
+      const usernameRegex = /^[a-zA-Z0-9_.]+$/;
+      if (!usernameRegex.test(username)) {
+        return {
+          error: "Username can only contain letters, numbers, underscores, and dots",
+        };
+      }
+
+      // Check minimum length
+      if (username.length < 3) {
+        return { error: "Username must be at least 3 characters long" };
+      }
+
+      // Check maximum length
+      if (username.length > 30) {
+        return { error: "Username must be at most 30 characters long" };
+      }
+
+      // Check if username is already taken
       const existingUser = await db.query.users.findFirst({
         where: eq(users.username, username),
       });

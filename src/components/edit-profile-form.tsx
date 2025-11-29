@@ -21,8 +21,25 @@ export function EditProfileForm({ user }: EditProfileFormProps) {
   const [bio, setBio] = useState(user.bio || "");
   const [isPending, startTransition] = useTransition();
 
+  const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // Only allow letters, numbers, underscores, and dots
+    const filtered = value.replace(/[^a-zA-Z0-9_.]/g, "");
+    setUsername(filtered);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (username && username.length < 3) {
+      toast.error("Username must be at least 3 characters long");
+      return;
+    }
+
+    if (username && username.length > 30) {
+      toast.error("Username must be at most 30 characters long");
+      return;
+    }
 
     startTransition(async () => {
       const result = await updateProfile(username, bio);
@@ -79,10 +96,14 @@ export function EditProfileForm({ user }: EditProfileFormProps) {
             id="username"
             type="text"
             value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            onChange={handleUsernameChange}
             placeholder={t("form.usernamePlaceholder")}
             className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+            maxLength={30}
           />
+          <p className="text-xs text-muted-foreground mt-1">
+            Only letters, numbers, underscores (_), and dots (.) allowed. 3-30 characters.
+          </p>
         </div>
         <div>
           <label htmlFor="bio" className="block text-sm font-medium mb-1">
