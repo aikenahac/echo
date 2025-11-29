@@ -30,6 +30,9 @@ export function SearchBooks() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [offset, setOffset] = useState(0);
   const [searchSource, setSearchSource] = useState<
     "internal" | "external" | null
   >(null);
@@ -37,15 +40,38 @@ export function SearchBooks() {
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log({query})
     if (!query.trim()) return;
 
     setIsSearching(true);
-    const books = await searchBooksHybrid(query);
-    console.log(JSON.stringify(books))
+    setOffset(0);
+    setHasMore(true);
+
+    const books = await searchBooksHybrid(query, 0, 20);
     setResults(books);
     setSearchSource(books.length > 0 ? books[0].source : null);
+    setHasMore(books.length === 20); // If we got 20 results, there might be more
     setIsSearching(false);
+  };
+
+  const handleLoadMore = async () => {
+    if (!query.trim() || isLoadingMore) return;
+
+    setIsLoadingMore(true);
+    const newOffset = offset + 20;
+
+    const moreBooks = await searchBooksHybrid(query, newOffset, 20);
+
+    // Deduplicate by checking if book already exists in results
+    const existingIds = new Set(results.map(r => r.id || r.key || `${r.isbn}-${r.title}`));
+    const uniqueNewBooks = moreBooks.filter((book) => {
+      const bookId = book.id || book.key || `${book.isbn}-${book.title}`;
+      return !existingIds.has(bookId);
+    });
+
+    setResults([...results, ...uniqueNewBooks]);
+    setOffset(newOffset);
+    setHasMore(moreBooks.length === 20); // If we got 20 results, there might be more
+    setIsLoadingMore(false);
   };
 
   const handleAddToLibrary = (book: SearchResult, status: ReadingStatus) => {
@@ -111,85 +137,111 @@ export function SearchBooks() {
       )}
 
       {results.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {results.map((book) => {
-            const bookKey = book.id || book.key || `${book.isbn}-${book.title}`;
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {results.map((book) => {
+              const bookKey = book.id || book.key || `${book.isbn}-${book.title}`;
 
-            return (
-              <Card key={bookKey} className="flex flex-col">
-                <CardHeader className="p-0">
-                  <div className="relative h-64">
-                    {book.coverUrl ? (
-                      <Image
-                        src={book.coverUrl}
-                        alt={book.title}
-                        fill
-                        className="object-cover rounded-t-lg"
-                      />
-                    ) : (
-                      <div className="w-full h-64 bg-muted rounded-t-lg flex items-center justify-center text-muted-foreground">
-                        {t("noCover")}
-                      </div>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent className="flex-1 pt-4">
-                  <h3 className="font-semibold line-clamp-2">{book.title}</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {book.author}
-                  </p>
-                  {book.publishedYear && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {book.publishedYear}
+              return (
+                <Card key={bookKey} className="flex flex-col">
+                  <CardHeader className="p-0">
+                    <div className="relative h-64">
+                      {book.coverUrl ? (
+                        <Image
+                          src={book.coverUrl}
+                          alt={book.title}
+                          fill
+                          className="object-cover rounded-t-lg"
+                        />
+                      ) : (
+                        <div className="w-full h-64 bg-muted rounded-t-lg flex items-center justify-center text-muted-foreground">
+                          {t("noCover")}
+                        </div>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="flex-1 pt-4">
+                    <h3 className="font-semibold line-clamp-2">{book.title}</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {book.author}
                     </p>
-                  )}
-                  {book.source === "internal" && book.id && (
-                    <Link
-                      href={`/books/${book.id}`}
-                      className="text-xs text-primary hover:underline mt-2 inline-block"
-                    >
-                      {t("viewDetails")}
-                    </Link>
-                  )}
-                </CardContent>
-                <CardFooter className="flex flex-col gap-2">
-                  <p className="text-xs font-medium w-full">
-                    {t("addToLibrary")}
-                  </p>
-                  <div className="flex gap-2 w-full">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleAddToLibrary(book, "want")}
-                      disabled={isPending}
-                      className="flex-1"
-                    >
-                      {t("status.want")}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleAddToLibrary(book, "reading")}
-                      disabled={isPending}
-                      className="flex-1"
-                    >
-                      {t("status.reading")}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleAddToLibrary(book, "finished")}
-                      disabled={isPending}
-                      className="flex-1"
-                    >
-                      {t("status.finished")}
-                    </Button>
-                  </div>
-                </CardFooter>
-              </Card>
-            );
-          })}
-        </div>
+                    {book.publishedYear && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {book.publishedYear}
+                      </p>
+                    )}
+                    {book.source === "internal" && book.id && (
+                      <Link
+                        href={`/books/${book.id}`}
+                        className="text-xs text-primary hover:underline mt-2 inline-block"
+                      >
+                        {t("viewDetails")}
+                      </Link>
+                    )}
+                  </CardContent>
+                  <CardFooter className="flex flex-col gap-2">
+                    <p className="text-xs font-medium w-full">
+                      {t("addToLibrary")}
+                    </p>
+                    <div className="flex gap-2 w-full">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleAddToLibrary(book, "want")}
+                        disabled={isPending}
+                        className="flex-1"
+                      >
+                        {t("status.want")}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleAddToLibrary(book, "reading")}
+                        disabled={isPending}
+                        className="flex-1"
+                      >
+                        {t("status.reading")}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleAddToLibrary(book, "finished")}
+                        disabled={isPending}
+                        className="flex-1"
+                      >
+                        {t("status.finished")}
+                      </Button>
+                    </div>
+                  </CardFooter>
+                </Card>
+              );
+            })}
+          </div>
+
+          {hasMore && (
+            <div className="flex justify-center pt-6">
+              <Button
+                onClick={handleLoadMore}
+                disabled={isLoadingMore}
+                variant="outline"
+                size="lg"
+              >
+                {isLoadingMore ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Loading more...
+                  </>
+                ) : (
+                  `Load More Results`
+                )}
+              </Button>
+            </div>
+          )}
+
+          <div className="text-center text-sm text-muted-foreground">
+            Showing {results.length} result{results.length !== 1 ? 's' : ''}
+          </div>
+        </>
       )}
 
       {results.length === 0 && !isSearching && query && (

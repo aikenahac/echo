@@ -2,7 +2,7 @@
 
 import { db } from "@/db";
 import { books } from "@/db/schema";
-import { or, ilike, sql, and, eq } from "drizzle-orm";
+import { or, ilike, and, eq } from "drizzle-orm";
 import {
   searchBooks as searchOpenLibrary,
   type OpenLibraryBook,
@@ -71,17 +71,24 @@ async function saveExternalBooksToDatabase(
 }
 
 /**
- * Hybrid search: First search internal database, then fall back to Open Library API
+ * Hybrid search: Combines database and Open Library API results
  * All external results are automatically saved to the database
+ *
+ * @param query - Search term
+ * @param offset - Pagination offset (default: 0)
+ * @param limit - Number of results per page (default: 20)
  */
 export async function searchBooksHybrid(
   query: string,
+  offset: number = 0,
+  limit: number = 20,
 ): Promise<SearchResult[]> {
   if (!query.trim()) {
     return [];
   }
 
   const searchTerm = query.trim();
+  const results: SearchResult[] = [];
 
   // Step 1: Search internal database
   const internalResults = await db
@@ -94,11 +101,12 @@ export async function searchBooksHybrid(
         ilike(books.isbn, `%${searchTerm}%`),
       ),
     )
-    .limit(20);
+    .limit(limit)
+    .offset(offset);
 
-  // If we found results in the internal database, return them
-  if (internalResults.length > 0) {
-    return internalResults.map((book) => ({
+  // Add internal results
+  results.push(
+    ...internalResults.map((book) => ({
       id: book.id,
       isbn: book.isbn,
       title: book.title,
@@ -107,30 +115,59 @@ export async function searchBooksHybrid(
       pages: book.pages,
       publishedYear: book.publishedYear,
       source: "internal" as const,
-    }));
-  }
+    })),
+  );
 
-  // Step 2: No internal results, search Open Library API
-  const externalResults = await searchOpenLibrary(searchTerm);
+  // Step 2: If we have fewer than the limit, supplement with API results
+  if (results.length < limit) {
+    const remainingSlots = limit - results.length;
 
-  // Step 3: Save all external results to database for future searches
-  if (externalResults.length > 0) {
-    // Save in the background (don't await to keep search fast)
-    saveExternalBooksToDatabase(externalResults).catch((error) => {
-      console.error("Background save failed:", error);
+    // Calculate API page (Open Library uses pages, not offsets)
+    const apiPage = Math.floor(offset / 20) + 1;
+
+    const externalResults = await searchOpenLibrary(searchTerm);
+
+    // Filter out books already in internal results (by ISBN or title+author)
+    const internalIsbns = new Set(
+      results.map((r) => r.isbn).filter((isbn): isbn is string => !!isbn),
+    );
+    const internalTitleAuthors = new Set(
+      results.map((r) => `${r.title}|${r.author}`),
+    );
+
+    const uniqueExternalResults = externalResults.filter((book) => {
+      const isbn = book.isbn?.[0];
+      const titleAuthor = `${book.title}|${book.author_name?.[0] || "Unknown Author"}`;
+
+      return (
+        (!isbn || !internalIsbns.has(isbn)) &&
+        !internalTitleAuthors.has(titleAuthor)
+      );
     });
+
+    // Save external results to database in the background
+    if (uniqueExternalResults.length > 0) {
+      saveExternalBooksToDatabase(uniqueExternalResults).catch((error) => {
+        console.error("Background save failed:", error);
+      });
+    }
+
+    // Add external results up to remaining slots
+    results.push(
+      ...uniqueExternalResults.slice(0, remainingSlots).map((book) => ({
+        key: book.key,
+        isbn: book.isbn?.[0] || null,
+        title: book.title,
+        author: book.author_name?.[0] || "Unknown Author",
+        coverUrl: book.cover_i
+          ? `https://covers.openlibrary.org/b/id/${book.cover_i}-L.jpg`
+          : null,
+        pages: book.number_of_pages_median || null,
+        publishedYear: book.first_publish_year || null,
+        source: "external" as const,
+      })),
+    );
   }
 
-  return externalResults.map((book) => ({
-    key: book.key,
-    isbn: book.isbn?.[0] || null,
-    title: book.title,
-    author: book.author_name?.[0] || "Unknown Author",
-    coverUrl: book.cover_i
-      ? `https://covers.openlibrary.org/b/id/${book.cover_i}-L.jpg`
-      : null,
-    pages: book.number_of_pages_median || null,
-    publishedYear: book.first_publish_year || null,
-    source: "external" as const,
-  }));
+  return results;
 }
