@@ -134,6 +134,90 @@ export async function getAuditLogs(limit = 100) {
 }
 
 /**
+ * Update user data (admin only)
+ */
+export async function updateUserAsAdmin(
+  targetUserId: string,
+  data: {
+    email?: string;
+    username?: string;
+    bio?: string;
+    role?: "user" | "moderator" | "admin";
+    isPremium?: boolean;
+  },
+) {
+  const currentUser = await requireRole(["admin"]);
+
+  if (currentUser.id === targetUserId && data.role) {
+    return { error: "Cannot change your own role" };
+  }
+
+  try {
+    // Validate username format if provided
+    if (data.username !== undefined) {
+      if (data.username === null || data.username === "") {
+        // Allow clearing username
+        data.username = null as any;
+      } else {
+        const usernameRegex = /^[a-zA-Z0-9_.]{3,30}$/;
+        if (!usernameRegex.test(data.username)) {
+          return {
+            error:
+              "Username must be 3-30 characters and contain only letters, numbers, underscores, and periods",
+          };
+        }
+
+        // Check if username is already taken
+        const existingUser = await db.query.users.findFirst({
+          where: eq(users.username, data.username),
+        });
+
+        if (existingUser && existingUser.id !== targetUserId) {
+          return { error: "Username is already taken" };
+        }
+      }
+    }
+
+    // Validate email format if provided
+    if (data.email !== undefined) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(data.email)) {
+        return { error: "Invalid email format" };
+      }
+
+      // Check if email is already taken
+      const existingUser = await db.query.users.findFirst({
+        where: eq(users.email, data.email),
+      });
+
+      if (existingUser && existingUser.id !== targetUserId) {
+        return { error: "Email is already taken" };
+      }
+    }
+
+    await db
+      .update(users)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(users.id, targetUserId));
+
+    // Log the action
+    await db.insert(auditLogs).values({
+      userId: currentUser.id,
+      action: "user.update",
+      targetId: targetUserId,
+      targetType: "user",
+      metadata: JSON.stringify(data),
+    });
+
+    revalidatePath("/admin/users");
+    return { success: true };
+  } catch (error) {
+    console.error("Error updating user:", error);
+    return { error: "Failed to update user" };
+  }
+}
+
+/**
  * Delete a user and all their data (admin only)
  */
 export async function deleteUserAsAdmin(targetUserId: string) {

@@ -20,14 +20,17 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { updateUserRole, deleteUserAsAdmin } from "@/app/[locale]/actions/admin";
+import { EditUserDialog } from "@/components/admin/edit-user-dialog";
 import { toast } from "sonner";
-import { Trash2, Loader2 } from "lucide-react";
+import { Trash2, Loader2, Pencil } from "lucide-react";
 
 interface User {
   id: string;
   email: string;
   username: string | null;
-  role: string;
+  bio: string | null;
+  role: "user" | "moderator" | "admin";
+  isPremium: boolean;
   createdAt: Date;
 }
 
@@ -36,6 +39,7 @@ export function UsersDataTable({ data }: { data: User[] }) {
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [loadingUserId, setLoadingUserId] = useState<string | null>(null);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
 
   const filteredData = data.filter((user) => {
     const matchesSearch =
@@ -163,6 +167,13 @@ export function UsersDataTable({ data }: { data: User[] }) {
                         </SelectContent>
                       </Select>
                       <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => setEditingUser(user)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
                         variant="destructive"
                         size="icon"
                         onClick={() => handleDeleteUser(user.id, user.email)}
@@ -186,6 +197,14 @@ export function UsersDataTable({ data }: { data: User[] }) {
       <div className="text-sm text-muted-foreground">
         Showing {filteredData.length} of {data.length} users
       </div>
+
+      {editingUser && (
+        <EditUserDialog
+          user={editingUser}
+          open={!!editingUser}
+          onOpenChange={(open) => !open && setEditingUser(null)}
+        />
+      )}
     </div>
   );
 }
