@@ -68,8 +68,8 @@
     "addToLibrary": "Add to library:",
     "viewDetails": "View Details",
     "source": {
-      "internal": "Results from your database",
-      "external": "Results from Open Library (no matches in your database)"
+      "internal": "Results from internal database",
+      "external": "Results from Open Library (no matches in internal database)"
     },
     "status": {
       "want": "Want",

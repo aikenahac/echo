@@ -118,51 +118,23 @@ export function SearchBooks() {
             return (
               <Card key={bookKey} className="flex flex-col">
                 <CardHeader className="p-0">
-                  {book.source === "internal" && book.id ? (
-                    <Link
-                      href={`/books/${book.id}`}
-                      className="block relative h-64"
-                    >
-                      {book.coverUrl ? (
-                        <Image
-                          src={book.coverUrl}
-                          alt={book.title}
-                          fill
-                          className="object-cover rounded-t-lg hover:opacity-90 transition-opacity"
-                        />
-                      ) : (
-                        <div className="w-full h-64 bg-muted rounded-t-lg flex items-center justify-center text-muted-foreground hover:opacity-90 transition-opacity">
-                          {t("noCover")}
-                        </div>
-                      )}
-                    </Link>
-                  ) : (
-                    <div className="relative h-64">
-                      {book.coverUrl ? (
-                        <Image
-                          src={book.coverUrl}
-                          alt={book.title}
-                          fill
-                          className="object-cover rounded-t-lg"
-                        />
-                      ) : (
-                        <div className="w-full h-64 bg-muted rounded-t-lg flex items-center justify-center text-muted-foreground">
-                          {t("noCover")}
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  <div className="relative h-64">
+                    {book.coverUrl ? (
+                      <Image
+                        src={book.coverUrl}
+                        alt={book.title}
+                        fill
+                        className="object-cover rounded-t-lg"
+                      />
+                    ) : (
+                      <div className="w-full h-64 bg-muted rounded-t-lg flex items-center justify-center text-muted-foreground">
+                        {t("noCover")}
+                      </div>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent className="flex-1 pt-4">
-                  {book.source === "internal" && book.id ? (
-                    <Link href={`/books/${book.id}`}>
-                      <h3 className="font-semibold line-clamp-2 hover:underline">
-                        {book.title}
-                      </h3>
-                    </Link>
-                  ) : (
-                    <h3 className="font-semibold line-clamp-2">{book.title}</h3>
-                  )}
+                  <h3 className="font-semibold line-clamp-2">{book.title}</h3>
                   <p className="text-sm text-muted-foreground mt-1">
                     {book.author}
                   </p>
@@ -171,48 +143,48 @@ export function SearchBooks() {
                       {book.publishedYear}
                     </p>
                   )}
+                  {book.source === "internal" && book.id && (
+                    <Link
+                      href={`/books/${book.id}`}
+                      className="text-xs text-primary hover:underline mt-2 inline-block"
+                    >
+                      {t("viewDetails")}
+                    </Link>
+                  )}
                 </CardContent>
                 <CardFooter className="flex flex-col gap-2">
-                  {book.source === "internal" && book.id ? (
-                    <Button asChild className="w-full">
-                      <Link href={`/books/${book.id}`}>{t("viewDetails")}</Link>
+                  <p className="text-xs font-medium w-full">
+                    {t("addToLibrary")}
+                  </p>
+                  <div className="flex gap-2 w-full">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleAddToLibrary(book, "want")}
+                      disabled={isPending}
+                      className="flex-1"
+                    >
+                      {t("status.want")}
                     </Button>
-                  ) : (
-                    <>
-                      <p className="text-xs font-medium w-full">
-                        {t("addToLibrary")}
-                      </p>
-                      <div className="flex gap-2 w-full">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleAddToLibrary(book, "want")}
-                          disabled={isPending}
-                          className="flex-1"
-                        >
-                          {t("status.want")}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleAddToLibrary(book, "reading")}
-                          disabled={isPending}
-                          className="flex-1"
-                        >
-                          {t("status.reading")}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleAddToLibrary(book, "finished")}
-                          disabled={isPending}
-                          className="flex-1"
-                        >
-                          {t("status.finished")}
-                        </Button>
-                      </div>
-                    </>
-                  )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleAddToLibrary(book, "reading")}
+                      disabled={isPending}
+                      className="flex-1"
+                    >
+                      {t("status.reading")}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleAddToLibrary(book, "finished")}
+                      disabled={isPending}
+                      className="flex-1"
+                    >
+                      {t("status.finished")}
+                    </Button>
+                  </div>
                 </CardFooter>
               </Card>
             );
