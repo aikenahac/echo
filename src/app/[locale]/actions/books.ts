@@ -67,6 +67,14 @@ export async function addBookToLibrary(
       return { error: "Book already in your library" };
     }
 
+    console.log({
+        userId,
+        bookId: existingBook.id,
+        status,
+        startedAt: status === "reading" ? new Date() : null,
+        pageCount: existingBook.pages,
+      })
+
     // Add book to user's library
     const [userBook] = await db
       .insert(userBooks)
@@ -75,6 +83,7 @@ export async function addBookToLibrary(
         bookId: existingBook.id,
         status,
         startedAt: status === "reading" ? new Date() : null,
+        pageCount: existingBook.pages,
       })
       .returning();
 
@@ -135,6 +144,104 @@ export async function updateBookStatus(
   } catch (error) {
     console.error("Error updating book status:", error);
     return { error: "Failed to update book status" };
+  }
+}
+
+/**
+ * Update the page count of a book in the user's library
+ */
+export async function updateBookPageCount(
+  userBookId: string,
+  pageCount: number,
+) {
+  const { userId } = await auth();
+
+  if (!userId) {
+    return { error: "Unauthorized" };
+  }
+
+  try {
+    const userBook = await db.query.userBooks.findFirst({
+      where: and(eq(userBooks.id, userBookId), eq(userBooks.userId, userId)),
+    });
+
+    if (!userBook) {
+      return { error: "Book not found in your library" };
+    }
+
+    const updateData: Record<string, unknown> = {
+      pageCount,
+      updatedAt: new Date(),
+    };
+
+    if (userBook.currentPage && (pageCount > userBook.currentPage)) {
+      updateData.status = "reading"
+    }
+
+    await db
+      .update(userBooks)
+      .set(updateData)
+      .where(eq(userBooks.id, userBookId));
+
+    revalidatePath("/library");
+    revalidatePath(`/books/${userBook.bookId}`);
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error updating book page count:", error);
+    return { error: "Failed to update book page count" };
+  }
+}
+
+/**
+ * Update the current page of a book in the user's library
+ */
+export async function updateBookCurrentPage(
+  userBookId: string,
+  currentPage: number,
+) {
+  const { userId } = await auth();
+
+  if (!userId) {
+    return { error: "Unauthorized" };
+  }
+
+  try {
+    const userBook = await db.query.userBooks.findFirst({
+      where: and(eq(userBooks.id, userBookId), eq(userBooks.userId, userId)),
+    });
+
+    if (!userBook) {
+      return { error: "Book not found in your library" };
+    }
+
+    const updateData: Record<string, unknown> = {
+      currentPage,
+      updatedAt: new Date(),
+    };
+
+    if (currentPage > 0 && userBook.status !== "reading") {
+      updateData.status = "reading"
+      updateData.startedAt = new Date();
+    }
+
+    if (currentPage === userBook.pageCount) {
+      updateData.finishedAt = new Date();
+      updateData.status = "finished"
+    }
+
+    await db
+      .update(userBooks)
+      .set(updateData)
+      .where(eq(userBooks.id, userBookId));
+
+    revalidatePath("/library");
+    revalidatePath(`/books/${userBook.bookId}`);
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error updating book current page:", error);
+    return { error: "Failed to update book current page" };
   }
 }
 

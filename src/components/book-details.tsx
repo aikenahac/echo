@@ -3,9 +3,9 @@
 import { useState, useTransition } from "react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
-import { Heart } from "lucide-react";
+import { Heart, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { toggleBookFavorite } from "@/app/[locale]/actions/books";
+import { removeBookFromLibrary, toggleBookFavorite } from "@/app/[locale]/actions/books";
 import { Button } from "@/components/ui/button";
 import { ProgressTracker } from "@/components/progress-tracker";
 import { RatingForm } from "@/components/rating-form";
@@ -55,13 +55,28 @@ export function BookDetails({
     });
   };
 
+  const handleRemoveFromLibrary = () => {
+    if (!userBook) return;
+
+    startTransition(async () => {
+      const result = await removeBookFromLibrary(userBook.id);
+      if (result.error) {
+        toast.error(result.error);
+      } else {
+        toast.success(
+          `Removed "${book.title}" from library`
+        );
+      }
+    });
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       {/* Book Info */}
       <div className="flex flex-col md:flex-row gap-8">
         <div className="md:w-1/3">
           {book.coverUrl ? (
-            <div className="relative w-full aspect-[2/3]">
+            <div className="relative w-full aspect-2/3">
               <Image
                 src={book.coverUrl}
                 alt={book.title}
@@ -70,7 +85,7 @@ export function BookDetails({
               />
             </div>
           ) : (
-            <div className="w-full aspect-[2/3] bg-muted rounded-lg flex items-center justify-center text-muted-foreground">
+            <div className="w-full aspect-2/3 bg-muted rounded-lg flex items-center justify-center text-muted-foreground">
               {t("details.noCover")}
             </div>
           )}
@@ -133,6 +148,19 @@ export function BookDetails({
                   }`}
                 />
                 {userBook.isFavorite ? "Remove from Favorites" : "Add to Favorites"}
+              </Button>
+              <br/>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleRemoveFromLibrary}
+                disabled={isPending}
+                className="mt-3"
+              >
+                <Trash2
+                  className={`h-4 w-4 mr-2`}
+                />
+                Remove from library
               </Button>
             </div>
           )}

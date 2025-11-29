@@ -1,0 +1,1 @@
+ALTER TABLE "user_books" ADD COLUMN "page_count" integer DEFAULT 0;

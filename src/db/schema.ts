@@ -68,6 +68,7 @@ export const userBooks = pgTable(
       .references(() => books.id, { onDelete: "cascade" }),
     status: readingStatusEnum("status").notNull().default("want"),
     currentPage: integer("current_page").default(0),
+    pageCount: integer("page_count").default(0),
     rating: integer("rating"), // 1-5
     isFavorite: boolean("is_favorite").default(false).notNull(),
     startedAt: timestamp("started_at"),

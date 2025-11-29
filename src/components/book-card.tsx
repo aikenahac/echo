@@ -2,13 +2,14 @@
 
 import { Link } from "@/i18n/routing";
 import { useState, useTransition } from "react";
-import { MoreVertical, Trash2, Star, Heart } from "lucide-react";
+import { MoreVertical, Trash2, Star, Heart, Plus, Minus } from "lucide-react";
 import { toast } from "sonner";
 import {
   updateBookStatus,
   removeBookFromLibrary,
   toggleBookFavorite,
   type ReadingStatus,
+  updateBookCurrentPage,
 } from "@/app/[locale]/actions/books";
 import { useTranslations } from "next-intl";
 import {
@@ -29,6 +30,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import Image from "next/image";
 import { UserBook } from "@/types";
+import { PageEditPopover } from "./page-edit-popover";
 
 interface BookCardProps {
   userBook: UserBook;
@@ -39,6 +41,7 @@ export function BookCard({ userBook }: BookCardProps) {
   const tToast = useTranslations("toast");
   const [showMenu, setShowMenu] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [currentPage, setCurrentPage] = useState(userBook.currentPage || 0);
 
   const handleStatusChange = (status: ReadingStatus) => {
     startTransition(async () => {
@@ -62,7 +65,7 @@ export function BookCard({ userBook }: BookCardProps) {
         toast.success(
           newFavoriteStatus
             ? tToast("bookAddedToFavorites")
-            : tToast("bookRemovedFromFavorites")
+            : tToast("bookRemovedFromFavorites"),
         );
         setShowMenu(false);
       }
@@ -82,6 +85,32 @@ export function BookCard({ userBook }: BookCardProps) {
         toast.success(tToast("bookRemoved"));
       }
     });
+  };
+
+  const updateCurrentPage = async (newValue: number) => {
+    if (userBook.pageCount && (newValue > userBook.pageCount)) {
+      return;
+    }
+
+    const result = await updateBookCurrentPage(userBook.id, newValue);
+
+    if (result.error) {
+      toast.error("There was an error updating the current page");
+      return;
+    }
+
+    setCurrentPage(newValue);
+  };
+
+  const handleDecrementCurrentPage = () => {
+    // Prevent the value from going below 0
+    if (currentPage > 0) {
+      updateCurrentPage(currentPage - 1);
+    }
+  };
+
+  const handleIncrementCurrentPage = () => {
+    updateCurrentPage(currentPage + 1);
   };
 
   const progressPercentage =
@@ -204,6 +233,30 @@ export function BookCard({ userBook }: BookCardProps) {
         <p className="text-sm text-muted-foreground mt-1">
           {userBook.book.author}
         </p>
+
+        <div className="flex flex-row items-center gap-1">
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={handleDecrementCurrentPage}
+          >
+            <Minus className="h-2 w-2" />
+          </Button>
+          <PageEditPopover
+            userBook={userBook}
+            currentPage={currentPage}
+            updateCurrentPage={updateCurrentPage}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={handleIncrementCurrentPage}
+          >
+            <Plus className="h-2 w-2" />
+          </Button>
+        </div>
       </CardContent>
 
       <CardFooter className="flex flex-col gap-2">

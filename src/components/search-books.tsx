@@ -37,10 +37,12 @@ export function SearchBooks() {
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log({query})
     if (!query.trim()) return;
 
     setIsSearching(true);
     const books = await searchBooksHybrid(query);
+    console.log(JSON.stringify(books))
     setResults(books);
     setSearchSource(books.length > 0 ? books[0].source : null);
     setIsSearching(false);

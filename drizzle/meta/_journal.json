@@ -15,6 +15,13 @@
       "when": 1764417309253,
       "tag": "0001_productive_fenris",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1764420620881,
+      "tag": "0002_big_the_fury",
+      "breakpoints": true
     }
   ]
 }

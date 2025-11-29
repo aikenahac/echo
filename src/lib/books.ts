@@ -35,8 +35,20 @@ export async function searchBooks(query: string): Promise<OpenLibraryBook[]> {
   }
 
   try {
+    // We explicitly request ONLY the fields used in your hybrid search mapping.
+    // 'isbn' is crucial here because your hybrid search tries to access book.isbn?.[0]
+    const fields = [
+      "key",
+      "title",
+      "author_name",
+      "cover_i",
+      "isbn",
+      "number_of_pages_median",
+      "first_publish_year"
+    ].join(",");
+
     const response = await fetch(
-      `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=20`,
+      `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=20&fields=${fields}`,
       { next: { revalidate: 3600 } }, // Cache for 1 hour
     );
 
@@ -61,8 +73,18 @@ export async function getBookByISBN(
   isbn: string,
 ): Promise<OpenLibraryBook | null> {
   try {
+    const fields = [
+      "key",
+      "title",
+      "author_name",
+      "cover_i",
+      "isbn",
+      "number_of_pages_median",
+      "first_publish_year"
+    ].join(",");
+
     const response = await fetch(
-      `https://openlibrary.org/search.json?isbn=${encodeURIComponent(isbn)}&limit=1`,
+      `https://openlibrary.org/search.json?isbn=${encodeURIComponent(isbn)}&limit=1&fields=${fields}`,
       { next: { revalidate: 86400 } }, // Cache for 24 hours
     );
 
