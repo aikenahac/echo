@@ -3,13 +3,15 @@
 import { BookCard } from "@/components/book-card";
 import { useTranslations } from "next-intl";
 import { Card } from "./ui/card";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   Bookmark,
   BookOpen,
   CheckCircle,
   LayoutGrid,
   List,
+  Menu,
+  X,
 } from "lucide-react";
 
 import { useSearchParams } from "next/navigation";
@@ -46,6 +48,7 @@ export function LibraryIsland({
   const t = useTranslations("library");
   const { tab, collection } = useFilter();
   const { layout, setLayout, isLoaded } = useLibraryLayout();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const tabs = useMemo(
     () => ({
@@ -70,10 +73,18 @@ export function LibraryIsland({
 
   const activeTab = tab ?? "reading";
 
-  return (
-    <Card className="w-full h-[80vh] flex flex-row gap-4 px-4">
-      <div className="h-full rounded-md w-sm bg-card border border-gray-200 shadow flex flex-col gap-2 p-4">
-        <div className="w-full flex flex-row items-center justify-end gap-1 mb-2">
+  const SidebarContent = () => (
+    <>
+      <div className="w-full flex flex-row items-center justify-between gap-1 mb-2">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setIsSidebarOpen(false)}
+          className="md:hidden h-8 w-8"
+        >
+          <X className="h-4 w-4" />
+        </Button>
+        <div className="flex gap-1">
           <Button
             variant="ghost"
             size="icon"
@@ -101,35 +112,77 @@ export function LibraryIsland({
             <List className="h-4 w-4" />
           </Button>
         </div>
-        {Object.entries(tabs).map(([type, info]) => {
-          const Icon = info.icon;
-          return (
-            <Link
-              key={type}
-              href={`?tab=${type}`}
-              className={cn(
-                buttonVariants({ variant: "ghost" }),
-                "justify-start gap-2",
-                activeTab === type
-                  ? "bg-primary/60 text-accent-foreground"
-                  : "hover:bg-primary/80",
-              )}
-            >
-              <Icon className="h-4 w-4" />
-              {info.label}
-            </Link>
-          );
-        })}
       </div>
-      <div className="w-full h-full overflow-auto">
+      {Object.entries(tabs).map(([type, info]) => {
+        const Icon = info.icon;
+        return (
+          <Link
+            key={type}
+            href={`?tab=${type}`}
+            onClick={() => setIsSidebarOpen(false)}
+            className={cn(
+              buttonVariants({ variant: "ghost" }),
+              "justify-start gap-2",
+              activeTab === type
+                ? "bg-primary/60 text-accent-foreground"
+                : "hover:bg-primary/80",
+            )}
+          >
+            <Icon className="h-4 w-4" />
+            {info.label}
+          </Link>
+        );
+      })}
+    </>
+  );
+
+  return (
+    <div className="w-full h-[80vh] flex flex-col md:flex-row gap-4">
+      {/* Mobile menu button */}
+      <div className="md:hidden flex items-center gap-2 pb-2">
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => setIsSidebarOpen(true)}
+          className="h-10 w-10"
+        >
+          <Menu className="h-5 w-5" />
+        </Button>
+        <span className="text-lg font-semibold">
+          {tabs[activeTab].label}
+        </span>
+      </div>
+
+      {/* Mobile sidebar overlay */}
+      {isSidebarOpen && (
+        <div
+          className="md:hidden fixed inset-0 bg-black/50 z-40"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <Card
+        className={cn(
+          "rounded-md bg-card border border-gray-200 shadow flex flex-col gap-2 p-4",
+          "md:relative md:h-full md:w-64",
+          "fixed top-0 left-0 h-full w-64 z-50 transition-transform duration-300",
+          isSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+        )}
+      >
+        <SidebarContent />
+      </Card>
+
+      {/* Main content */}
+      <Card className="flex-1 h-full overflow-auto p-4">
         {isLoaded &&
           (layout === "grid" ? (
             <GridView books={tabs[activeTab].books} />
           ) : (
             <ListView books={tabs[activeTab].books} />
           ))}
-      </div>
-    </Card>
+      </Card>
+    </div>
   );
 }
 
@@ -145,7 +198,7 @@ const GridView = ({ books }: { books: UserBook[] }) => {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
       {books.map((userBook) => (
         <BookCard key={userBook.id} userBook={userBook} />
       ))}
@@ -165,12 +218,12 @@ const ListView = ({ books }: { books: UserBook[] }) => {
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3 md:gap-4">
       {books.map((userBook) => (
-        <Card key={userBook.id} className="flex flex-row gap-4 p-4">
+        <Card key={userBook.id} className="flex flex-row gap-3 md:gap-4 p-3 md:p-4">
           <Link
             href={`/books/${userBook.bookId}`}
-            className="relative w-24 h-36 shrink-0"
+            className="relative w-16 h-24 sm:w-20 sm:h-30 md:w-24 md:h-36 shrink-0"
           >
             {userBook.book.coverUrl ? (
               <Image
@@ -185,19 +238,19 @@ const ListView = ({ books }: { books: UserBook[] }) => {
               </div>
             )}
           </Link>
-          <div className="flex-1 flex flex-col gap-2">
+          <div className="flex-1 flex flex-col gap-1 md:gap-2 min-w-0">
             <div>
               <Link href={`/books/${userBook.bookId}`}>
-                <h3 className="font-semibold hover:underline">
+                <h3 className="font-semibold hover:underline text-sm md:text-base line-clamp-2">
                   {userBook.book.title}
                 </h3>
               </Link>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs md:text-sm text-muted-foreground truncate">
                 {userBook.book.author}
               </p>
             </div>
             {userBook.status === "reading" && userBook.book.pages && (
-              <div className="text-sm text-muted-foreground">
+              <div className="text-xs md:text-sm text-muted-foreground">
                 {userBook.currentPage || 0} / {userBook.book.pages} pages
               </div>
             )}
