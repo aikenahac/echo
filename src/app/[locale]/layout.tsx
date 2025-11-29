@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { EB_Garamond, IBM_Plex_Mono } from "next/font/google";
 import { Toaster } from "sonner";
 import { Navigation } from "@/components/navigation";
+import { Footer } from "@/components/footer";
 import { UsernameSetupDialog } from "@/components/username-setup-dialog";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
@@ -128,6 +129,7 @@ export default async function LocaleLayout({
           <NextIntlClientProvider messages={messages}>
             <Navigation hasAdminAccess={hasAdminAccess} />
             <main>{children}</main>
+            <Footer />
             <UsernameSetupDialog hasUsername={hasUsername} />
             <Toaster richColors />
           </NextIntlClientProvider>

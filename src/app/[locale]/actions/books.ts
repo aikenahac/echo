@@ -67,14 +67,6 @@ export async function addBookToLibrary(
       return { error: "Book already in your library" };
     }
 
-    console.log({
-        userId,
-        bookId: existingBook.id,
-        status,
-        startedAt: status === "reading" ? new Date() : null,
-        pageCount: existingBook.pages,
-      })
-
     // Add book to user's library
     const [userBook] = await db
       .insert(userBooks)
@@ -83,7 +75,9 @@ export async function addBookToLibrary(
         bookId: existingBook.id,
         status,
         startedAt: status === "reading" ? new Date() : null,
+        finishedAt: status === "finished" ? new Date() : null,
         pageCount: existingBook.pages,
+        currentPage: status === "finished" ? existingBook.pages || 0 : 0,
       })
       .returning();
 
@@ -128,8 +122,14 @@ export async function updateBookStatus(
       updateData.startedAt = new Date();
     }
 
-    if (status === "finished" && !userBook.finishedAt) {
-      updateData.finishedAt = new Date();
+    if (status === "finished") {
+      if (!userBook.finishedAt) {
+        updateData.finishedAt = new Date();
+      }
+      // Set currentPage to pageCount when marking as finished
+      if (userBook.pageCount) {
+        updateData.currentPage = userBook.pageCount;
+      }
     }
 
     await db

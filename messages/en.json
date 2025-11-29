@@ -236,5 +236,31 @@
       "cannotFollowSelf": "You cannot follow yourself",
       "failed": "Operation failed. Please try again."
     }
+  },
+  "documents": {
+    "title": "Legal Documents",
+    "subtitle": "Important information about your rights, our policies, and how we operate Echo Reads.",
+    "privacy": {
+      "title": "Privacy Policy",
+      "description": "Learn how we collect, use, and protect your personal information"
+    },
+    "terms": {
+      "title": "Terms of Service",
+      "description": "Understand the terms and conditions for using Echo Reads"
+    },
+    "lastUpdated": "Last updated: {date}",
+    "futureDocuments": {
+      "title": "Future Documents",
+      "description": "Additional legal documents, policies, and guidelines will be published here as Echo Reads grows and evolves. Check back periodically for updates."
+    },
+    "contact": {
+      "text": "Have questions about our policies?",
+      "link": "Contact us"
+    }
+  },
+  "footer": {
+    "privacyPolicy": "Privacy Policy",
+    "termsOfService": "Terms of Service",
+    "legalDocuments": "Legal Documents"
   }
 }
