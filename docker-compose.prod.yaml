@@ -61,6 +61,7 @@ services:
 
 volumes:
   echo_db_data:
+  drizzle_gateway:
 
 networks:
   echo-network:
