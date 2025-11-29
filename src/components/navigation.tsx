@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { usePathname } from "next/navigation";
 import { useState, useMemo } from "react";
 import { Button } from "./ui/button";
+import Image from "next/image";
 
 export function Navigation() {
   const t = useTranslations("navigation");
@@ -56,8 +57,15 @@ export function Navigation() {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href="/" className="text-2xl font-bold">
-            {t("home")}
+          <Link href="/" className="flex items-center">
+            <Image
+              src="/echo.svg"
+              alt="Echo"
+              width={93}
+              height={43}
+              className="h-8 w-auto"
+              priority
+            />
           </Link>
 
           {/* Desktop Navigation */}
