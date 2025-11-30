@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, useTransition } from "react";
@@ -14,14 +15,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { ImageUpload } from "@/components/image-upload";
+import { IconPickerModal } from "@/components/collections/icon-picker-modal";
+import { ColorPickerDialog } from "@/components/collections/color-picker-dialog";
 import {
   createCollection,
   updateCollection,
@@ -29,30 +25,9 @@ import {
 } from "@/app/[locale]/actions/collections";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
-
-// Predefined color options
-const COLOR_OPTIONS = [
-  { value: "blue", label: "Blue", color: "bg-blue-500" },
-  { value: "green", label: "Green", color: "bg-green-500" },
-  { value: "purple", label: "Purple", color: "bg-purple-500" },
-  { value: "red", label: "Red", color: "bg-red-500" },
-  { value: "yellow", label: "Yellow", color: "bg-yellow-500" },
-  { value: "pink", label: "Pink", color: "bg-pink-500" },
-  { value: "orange", label: "Orange", color: "bg-orange-500" },
-  { value: "teal", label: "Teal", color: "bg-teal-500" },
-];
-
-// Predefined icon options (using Lucide icon names)
-const ICON_OPTIONS = [
-  { value: "book", label: "Book" },
-  { value: "bookmark", label: "Bookmark" },
-  { value: "heart", label: "Heart" },
-  { value: "star", label: "Star" },
-  { value: "library", label: "Library" },
-  { value: "sparkles", label: "Sparkles" },
-  { value: "flame", label: "Flame" },
-  { value: "crown", label: "Crown" },
-];
+import { DynamicIcon } from "lucide-react/dynamic";
+import { COLORS, DEFAULT_COLOR, getColorClass, type ColorValue } from "@/lib/colors";
+import { cn } from "@/lib/utils";
 
 interface Collection {
   id: string;
@@ -84,7 +59,7 @@ export function CollectionDialog({
     name: collection?.name || "",
     description: collection?.description || "",
     isPublic: collection?.isPublic || false,
-    colorTag: collection?.colorTag || "blue",
+    colorTag: (collection?.colorTag as ColorValue) || DEFAULT_COLOR,
     iconName: collection?.iconName || "book",
   });
 
@@ -93,6 +68,8 @@ export function CollectionDialog({
   );
 
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isIconPickerOpen, setIsIconPickerOpen] = useState(false);
+  const [isColorPickerOpen, setIsColorPickerOpen] = useState(false);
 
   const handleImageUpload = async (previewUrl: string) => {
     if (!collection?.id && !isEditing) {
@@ -248,7 +225,7 @@ export function CollectionDialog({
           name: "",
           description: "",
           isPublic: false,
-          colorTag: "blue",
+          colorTag: DEFAULT_COLOR,
           iconName: "book",
         });
         setCoverImageUrl(null);
@@ -260,8 +237,9 @@ export function CollectionDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? "Edit Collection" : "Create Collection"}
@@ -302,52 +280,38 @@ export function CollectionDialog({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-4">
+            {/* Color Theme */}
             <div className="space-y-2">
-              <Label htmlFor="color">Color Theme</Label>
-              <Select
-                value={formData.colorTag}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, colorTag: value })
-                }
+              <Label>Color Theme</Label>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsColorPickerOpen(true)}
+                className="w-full justify-start gap-3 h-auto py-3"
               >
-                <SelectTrigger id="color">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {COLOR_OPTIONS.map((color) => (
-                    <SelectItem key={color.value} value={color.value}>
-                      <div className="flex items-center gap-2">
-                        <div
-                          className={`h-4 w-4 rounded-full ${color.color}`}
-                        />
-                        {color.label}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <div
+                  className={cn(
+                    "h-8 w-8 rounded-full",
+                    getColorClass(formData.colorTag, "bg")
+                  )}
+                />
+                <span>{COLORS.find((c) => c.value === formData.colorTag)?.name || "Select color"}</span>
+              </Button>
             </div>
 
+            {/* Icon */}
             <div className="space-y-2">
-              <Label htmlFor="icon">Icon</Label>
-              <Select
-                value={formData.iconName}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, iconName: value })
-                }
+              <Label>Icon</Label>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsIconPickerOpen(true)}
+                className="w-full justify-start gap-3 h-auto py-3"
               >
-                <SelectTrigger id="icon">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {ICON_OPTIONS.map((icon) => (
-                    <SelectItem key={icon.value} value={icon.value}>
-                      {icon.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                <DynamicIcon name={formData.iconName as any} className="h-6 w-6" />
+                <span className="capitalize">{formData.iconName.replace(/-/g, " ")}</span>
+              </Button>
             </div>
           </div>
 
@@ -401,5 +365,24 @@ export function CollectionDialog({
         </form>
       </DialogContent>
     </Dialog>
+
+    <ColorPickerDialog
+      open={isColorPickerOpen}
+      onOpenChange={setIsColorPickerOpen}
+      selectedColor={formData.colorTag}
+      onSelectColor={(colorTag) =>
+        setFormData({ ...formData, colorTag })
+      }
+    />
+
+    <IconPickerModal
+      open={isIconPickerOpen}
+      onOpenChange={setIsIconPickerOpen}
+      selectedIcon={formData.iconName}
+      onSelectIcon={(iconName) =>
+        setFormData({ ...formData, iconName })
+      }
+    />
+  </>
   );
 }

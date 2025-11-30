@@ -4,20 +4,13 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Book,
-  Bookmark,
-  Heart,
-  Star,
-  Library,
-  Sparkles,
-  Flame,
-  Crown,
   MoreVertical,
   Pencil,
   Trash2,
   Eye,
   EyeOff,
 } from "lucide-react";
+import { DynamicIcon } from "lucide-react/dynamic";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -30,28 +23,7 @@ import { cn } from "@/lib/utils";
 import { deleteCollection } from "@/app/[locale]/actions/collections";
 import { toast } from "sonner";
 import { CollectionDialog } from "./collection-dialog";
-
-const ICON_MAP = {
-  book: Book,
-  bookmark: Bookmark,
-  heart: Heart,
-  star: Star,
-  library: Library,
-  sparkles: Sparkles,
-  flame: Flame,
-  crown: Crown,
-};
-
-const COLOR_MAP = {
-  blue: "text-blue-500",
-  green: "text-green-500",
-  purple: "text-purple-500",
-  red: "text-red-500",
-  yellow: "text-yellow-500",
-  pink: "text-pink-500",
-  orange: "text-orange-500",
-  teal: "text-teal-500",
-};
+import { getColorClass } from "@/lib/colors";
 
 interface Collection {
   id: string;
@@ -78,11 +50,10 @@ export function CollectionSidebarItem({
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const Icon =
-    ICON_MAP[collection.iconName as keyof typeof ICON_MAP] || Book;
-  const colorClass =
-    COLOR_MAP[collection.colorTag as keyof typeof COLOR_MAP] ||
-    "text-blue-500";
+  const iconName = collection.iconName || "book";
+  const colorClass = collection.colorTag
+    ? getColorClass(collection.colorTag, "text")
+    : "text-blue-500";
 
   const isActive = pathname.includes(`/collections/${collection.slug}`);
 
@@ -125,7 +96,7 @@ export function CollectionSidebarItem({
           href={`/library/collections/${collection.slug}`}
           className="flex flex-1 items-center gap-2 overflow-hidden"
         >
-          <Icon className={cn("h-4 w-4 shrink-0", colorClass)} />
+          <DynamicIcon name={iconName as any} className={cn("h-4 w-4 shrink-0", colorClass)} />
           <span className="truncate">{collection.name}</span>
           {collection.bookCount !== undefined && (
             <span className="ml-auto shrink-0 text-xs text-muted-foreground">
