@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback, memo, useRef } from "react";
+import { useState, useMemo, useCallback, memo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -10,11 +10,47 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Check } from "lucide-react";
-import { DynamicIcon, iconNames } from "lucide-react/dynamic";
+import { Search, Book } from "lucide-react";
+import { DynamicIcon } from "lucide-react/dynamic";
 import { cn } from "@/lib/utils";
 import { useDebounce } from "@/hooks/use-debounce";
-import { useVirtualizer } from "@tanstack/react-virtual";
+
+// Curated list of 100 book-related icons
+const BOOK_ICONS = [
+  // Books & Reading
+  "book", "book-open", "book-marked", "bookmark", "bookmark-plus", "library", "newspaper",
+  "scroll", "file-text", "notebook-pen", "pencil", "feather",
+  // Collections & Organization
+  "folder", "folder-open", "archive", "inbox", "layers", "layout-grid",
+  // Ratings & Favorites
+  "star", "heart", "sparkles", "award", "medal", "trophy", "crown",
+  "thumbs-up", "smile", "frown",
+  // Genres - Fantasy & Magic
+  "wand", "castle", "flame", "ghost", "moon", "sun",
+  // Genres - Adventure & Mystery
+  "compass", "map", "map-pin", "search", "eye", "shield", "sword", "key",
+  // Genres - Sci-Fi & Tech
+  "rocket", "satellite", "cpu", "zap", "radio",
+  // Genres - Nature & Travel
+  "tree-pine", "mountain", "waves", "cloud", "umbrella", "plane", "ship", "tent",
+  // Genres - History & Culture
+  "landmark", "church", "globe", "flag", "graduation-cap",
+  // People & Characters
+  "user", "users", "handshake", "baby", "skull", "glasses",
+  // Time & Progress
+  "clock", "calendar", "timer", "hourglass", "history", "rotate-cw",
+  // Emotions & Themes
+  "coffee", "wine", "cake", "gift", "music", "headphones", "palette",
+  "flower-2", "leaf", "bird", "cat", "dog", "bug", "fish",
+  // Mystery & Suspense
+  "lock", "unlock", "fingerprint-pattern", "flashlight",
+  // Actions & Status
+  "check", "x", "plus", "minus", "circle", "square", "triangle",
+  "arrow-right", "arrow-up", "arrow-down", "chevron-right",
+  // Additional useful icons
+  "tags", "tag", "lightbulb", "image", "camera", "film",
+  "wallet", "gem", "dice-1", "dice-2", "dice-3", "dice-4", "dice-5", "dice-6"
+] as const;
 
 interface IconPickerModalProps {
   open: boolean;
@@ -26,7 +62,7 @@ interface IconPickerModalProps {
 /**
  * Individual icon button component (memoized for performance)
  */
-const IconButton = memo(({
+const IconButton = ({
   iconName,
   isSelected,
   onSelect,
@@ -40,20 +76,21 @@ const IconButton = memo(({
       type="button"
       onClick={() => onSelect(iconName)}
       className={cn(
-        "relative flex flex-col items-center justify-center gap-1 rounded-lg border p-3 transition-all hover:bg-accent hover:border-primary",
+        "flex items-center justify-center rounded-lg border p-5 transition-all hover:bg-accent hover:border-primary",
         isSelected && "bg-primary/10 border-primary ring-2 ring-primary"
       )}
       title={iconName}
     >
-      <DynamicIcon name={iconName as any} className="h-8 w-8" />
-      {isSelected && (
-        <div className="absolute top-1 right-1 rounded-full bg-primary p-0.5">
-          <Check className="h-3 w-3 text-primary-foreground" />
-        </div>
-      )}
+      <div className="w-10 h-10 flex items-center justify-center">
+        <DynamicIcon
+          name={iconName as any}
+          className="w-8 h-8 text-black dark:text-white"
+          absoluteStrokeWidth
+        />
+      </div>
     </button>
   );
-});
+};
 
 IconButton.displayName = "IconButton";
 
@@ -65,27 +102,18 @@ export function IconPickerModal({
 }: IconPickerModalProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearch = useDebounce(searchQuery, 300);
-  const parentRef = useRef<HTMLDivElement>(null);
 
   // Filter icons based on search query
   const filteredIcons = useMemo(() => {
     if (!debouncedSearch) {
-      return iconNames;
+      return BOOK_ICONS;
     }
 
     const query = debouncedSearch.toLowerCase();
-    return iconNames.filter((iconName) =>
+    return BOOK_ICONS.filter((iconName) =>
       iconName.toLowerCase().includes(query)
     );
   }, [debouncedSearch]);
-
-  // Virtualizer setup
-  const rowVirtualizer = useVirtualizer({
-    count: Math.ceil(filteredIcons.length / 10),
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 64,
-    overscan: 3,
-  });
 
   const handleSelect = useCallback((iconName: string) => {
     onSelectIcon(iconName);
@@ -102,7 +130,7 @@ export function IconPickerModal({
         <DialogHeader>
           <DialogTitle>Choose an Icon</DialogTitle>
           <DialogDescription>
-            Search from {iconNames.length.toLocaleString()} available Lucide icons
+            Select from {BOOK_ICONS.length} curated book-related icons
           </DialogDescription>
         </DialogHeader>
 
@@ -135,48 +163,18 @@ export function IconPickerModal({
           </div>
         )}
 
-        {/* Virtualized icon grid */}
+        {/* Icon grid */}
         {filteredIcons.length > 0 ? (
-          <div
-            ref={parentRef}
-            className="flex-1 overflow-auto border rounded-md p-2"
-          >
-            <div
-              style={{
-                height: `${rowVirtualizer.getTotalSize()}px`,
-                width: "100%",
-                position: "relative",
-              }}
-            >
-              {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-                const startIdx = virtualRow.index * 10;
-                const rowIcons = filteredIcons.slice(startIdx, startIdx + 10);
-
-                return (
-                  <div
-                    key={virtualRow.key}
-                    style={{
-                      position: "absolute",
-                      top: 0,
-                      left: 0,
-                      width: "100%",
-                      height: `${virtualRow.size}px`,
-                      transform: `translateY(${virtualRow.start}px)`,
-                    }}
-                  >
-                    <div className="grid grid-cols-10 gap-2">
-                      {rowIcons.map((iconName) => (
-                        <IconButton
-                          key={iconName}
-                          iconName={iconName}
-                          isSelected={iconName === selectedIcon}
-                          onSelect={handleSelect}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
+          <div className="flex-1 overflow-auto border rounded-md p-3">
+            <div className="grid grid-cols-6 sm:grid-cols-8 gap-3">
+              {filteredIcons.map((iconName) => (
+                <IconButton
+                  key={iconName}
+                  iconName={iconName}
+                  isSelected={iconName === selectedIcon}
+                  onSelect={handleSelect}
+                />
+              ))}
             </div>
           </div>
         ) : (
