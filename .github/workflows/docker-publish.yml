@@ -85,6 +85,7 @@ jobs:
             NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
             NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL=/
             NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL=/
+            RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}
 
       # Sign the resulting Docker image digest except on PRs.
       # This will only write to the public Rekor transparency log when the Docker
