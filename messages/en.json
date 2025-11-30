@@ -15,7 +15,7 @@
   },
   "navigation": {
     "home": "Echo",
-    "searchBooks": "Search Books",
+    "search": "Search",
     "library": "Library",
     "feed": "Feed",
     "findUsers": "Find Users",

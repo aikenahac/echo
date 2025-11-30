@@ -10,7 +10,7 @@ import { getMessages } from "next-intl/server";
 import { routing } from "@/i18n/routing";
 import { notFound } from "next/navigation";
 import { db } from "@/db";
-import { users } from "@/db/schema";
+import { users, userSubscriptions } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import "../globals.css";
 import { Metadata } from "next";
@@ -111,6 +111,7 @@ export default async function LocaleLayout({
   const { userId } = await auth();
   let hasUsername = true;
   let hasAdminAccess = false;
+  let hasPaidPlan = false;
 
   if (userId) {
     const user = await db.query.users.findFirst({
@@ -118,6 +119,14 @@ export default async function LocaleLayout({
     });
     hasUsername = !!user?.username;
     hasAdminAccess = user?.role === "moderator" || user?.role === "admin";
+
+    // Check if user has a non-free plan (paid or lifetime)
+    const subscription = await db.query.userSubscriptions.findFirst({
+      where: eq(userSubscriptions.userId, userId),
+      with: { plan: true },
+    });
+    // User has a paid plan if they have a subscription with a non-free plan (including free lifetime plans)
+    hasPaidPlan = subscription?.plan && (subscription.plan.price > 0 || subscription.plan.stripePriceId !== null || subscription.plan.interval === "lifetime");
   }
 
   return (
@@ -127,7 +136,7 @@ export default async function LocaleLayout({
           className={`${eb_garamond.variable} ${eb_garamond_body.variable} ${ibm_plex_mono.variable} antialiased`}
         >
           <NextIntlClientProvider messages={messages}>
-            <Navigation hasAdminAccess={hasAdminAccess} />
+            <Navigation hasAdminAccess={hasAdminAccess} hasPaidPlan={hasPaidPlan} />
             <main>{children}</main>
             <Footer />
             <UsernameSetupDialog hasUsername={hasUsername} />

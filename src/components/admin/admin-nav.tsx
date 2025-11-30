@@ -10,6 +10,7 @@ import {
   BookOpen,
   Code,
   Home,
+  CreditCard,
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
@@ -23,6 +24,11 @@ const navItems = [
     title: "Users",
     href: "/admin/users",
     icon: Users,
+  },
+  {
+    title: "Subscriptions",
+    href: "/admin/subscriptions",
+    icon: CreditCard,
   },
   {
     title: "Reviews",
