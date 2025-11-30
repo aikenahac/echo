@@ -38,35 +38,75 @@ export const metadata: Metadata = {
     process.env.NEXT_PUBLIC_BASE_URL || "https://echo.aiken.si",
   ),
   title: {
-    default: "Echo Reads - Better diary for your books",
+    default: "Echo Reads - Track Your Reading Journey, Share Book Reviews",
     template: "%s | Echo Reads",
   },
-  description: "Better diary for your books",
-  keywords: [],
-  authors: [{ name: "Echo" }],
-  creator: "Echo",
-  publisher: "Echo",
+  description:
+    "Track your reading progress, organize your book library, write reviews, and connect with fellow readers. Echo Reads is a social book tracking platform for passionate readers.",
+  keywords: [
+    "book tracker",
+    "reading tracker",
+    "book reviews",
+    "reading journal",
+    "book diary",
+    "book library",
+    "reading progress",
+    "book recommendations",
+    "social reading",
+    "goodreads alternative",
+    "book community",
+    "reading statistics",
+    "book catalog",
+    "reading list",
+  ],
+  authors: [{ name: "Echo Reads", url: "https://echo.aiken.si" }],
+  creator: "Echo Reads",
+  publisher: "Echo Reads",
+  applicationName: "Echo Reads",
+  category: "Books & Literature",
   formatDetection: {
     email: false,
     address: false,
     telephone: false,
   },
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon.svg", type: "image/svg+xml" },
+    ],
+    apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
+  },
+  manifest: "/manifest.json",
   openGraph: {
     type: "website",
     locale: "en_US",
     url: "/",
-    title: "Echo Reads - Better diary for your books",
-    description: "Better diary for your books",
-    siteName: "Mess with Humanity",
+    title: "Echo Reads - Track Your Reading Journey, Share Book Reviews",
+    description:
+      "Track your reading progress, organize your book library, write reviews, and connect with fellow readers. Echo Reads is a social book tracking platform for passionate readers.",
+    siteName: "Echo Reads",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Echo Reads - Track Your Reading Journey",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Echo Reads - Better diary for your books",
-    description: "Better diary for your books",
+    title: "Echo Reads - Track Your Reading Journey, Share Book Reviews",
+    description:
+      "Track your reading progress, organize your book library, write reviews, and connect with fellow readers.",
+    images: ["/og-image.png"],
+    creator: "@echoreads",
+    site: "@echoreads",
   },
   robots: {
     index: true,
     follow: true,
+    nocache: false,
     googleBot: {
       index: true,
       follow: true,
@@ -77,6 +117,9 @@ export const metadata: Metadata = {
   },
   alternates: {
     canonical: "/",
+    languages: {
+      "en-US": "/en",
+    },
   },
 };
 
