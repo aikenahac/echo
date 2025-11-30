@@ -22,8 +22,26 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { updateUserRole, deleteUserAsAdmin } from "@/app/[locale]/actions/admin";
 import { EditUserDialog } from "@/components/admin/edit-user-dialog";
+import { ManageUserSubscriptionDialog } from "@/components/admin/manage-user-subscription-dialog";
 import { toast } from "sonner";
-import { Trash2, Loader2, Pencil } from "lucide-react";
+import { Trash2, Loader2, Pencil, CreditCard } from "lucide-react";
+
+interface Plan {
+  id: string;
+  name: string;
+  price: number;
+  interval: string;
+}
+
+interface Subscription {
+  id: string;
+  status: string;
+  currentPeriodStart: Date | null;
+  currentPeriodEnd: Date | null;
+  cancelAtPeriodEnd: boolean;
+  stripeSubscriptionId: string | null;
+  plan: Plan;
+}
 
 interface User {
   id: string;
@@ -33,14 +51,16 @@ interface User {
   role: "user" | "moderator" | "admin";
   isPremium: boolean;
   createdAt: Date;
+  subscription?: Subscription | null;
 }
 
-export function UsersDataTable({ data }: { data: User[] }) {
+export function UsersDataTable({ data, plans }: { data: User[]; plans: Plan[] }) {
   const [filter, setFilter] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [loadingUserId, setLoadingUserId] = useState<string | null>(null);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [managingSubscriptionUser, setManagingSubscriptionUser] = useState<User | null>(null);
   const parentRef = useRef<HTMLDivElement>(null);
 
   const filteredData = data.filter((user) => {
@@ -62,11 +82,12 @@ export function UsersDataTable({ data }: { data: User[] }) {
 
   // Define column widths for alignment
   const columnWidths = {
-    email: "280px",
-    username: "180px",
+    email: "260px",
+    username: "160px",
+    subscription: "140px",
     role: "120px",
-    joined: "140px",
-    actions: "340px",
+    joined: "130px",
+    actions: "380px",
   };
 
   const totalWidth = Object.values(columnWidths).reduce((acc, width) => {
@@ -143,6 +164,7 @@ export function UsersDataTable({ data }: { data: User[] }) {
                 <TableRow>
                   <TableHead style={{ width: columnWidths.email }}>Email</TableHead>
                   <TableHead style={{ width: columnWidths.username }}>Username</TableHead>
+                  <TableHead style={{ width: columnWidths.subscription }}>Subscription</TableHead>
                   <TableHead style={{ width: columnWidths.role }}>Role</TableHead>
                   <TableHead style={{ width: columnWidths.joined }}>Joined</TableHead>
                   <TableHead style={{ width: columnWidths.actions }} className="text-right">Actions</TableHead>
@@ -187,6 +209,11 @@ export function UsersDataTable({ data }: { data: User[] }) {
                           <TableCell style={{ width: columnWidths.username }}>
                             <div className="truncate">{user.username || "—"}</div>
                           </TableCell>
+                          <TableCell style={{ width: columnWidths.subscription }}>
+                            <Badge variant={user.isPremium ? "default" : "secondary"}>
+                              {user.subscription?.plan.name || "Free"}
+                            </Badge>
+                          </TableCell>
                           <TableCell style={{ width: columnWidths.role }}>
                             <Badge
                               variant={
@@ -222,7 +249,16 @@ export function UsersDataTable({ data }: { data: User[] }) {
                               <Button
                                 variant="outline"
                                 size="icon"
+                                onClick={() => setManagingSubscriptionUser(user)}
+                                title="Manage Subscription"
+                              >
+                                <CreditCard className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="icon"
                                 onClick={() => setEditingUser(user)}
+                                title="Edit User"
                               >
                                 <Pencil className="h-4 w-4" />
                               </Button>
@@ -231,6 +267,7 @@ export function UsersDataTable({ data }: { data: User[] }) {
                                 size="icon"
                                 onClick={() => handleDeleteUser(user.id, user.email)}
                                 disabled={deletingUserId === user.id}
+                                title="Delete User"
                               >
                                 {deletingUserId === user.id ? (
                                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -260,6 +297,15 @@ export function UsersDataTable({ data }: { data: User[] }) {
           user={editingUser}
           open={!!editingUser}
           onOpenChange={(open) => !open && setEditingUser(null)}
+        />
+      )}
+
+      {managingSubscriptionUser && (
+        <ManageUserSubscriptionDialog
+          user={managingSubscriptionUser}
+          plans={plans}
+          open={!!managingSubscriptionUser}
+          onOpenChange={(open) => !open && setManagingSubscriptionUser(null)}
         />
       )}
     </div>

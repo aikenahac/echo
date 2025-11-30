@@ -6,6 +6,7 @@ import { books, userBooks, users } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import type { NormalizedBook } from "@/lib/books";
+import { canAddBook, incrementBookUsage } from "./subscriptions";
 
 export type ReadingStatus = "want" | "reading" | "finished";
 
@@ -20,6 +21,16 @@ export async function addBookToLibrary(
 
   if (!userId) {
     return { error: "Unauthorized" };
+  }
+
+  // Check if user can add more books (usage limits)
+  const canAdd = await canAddBook();
+  if (!canAdd.allowed) {
+    return {
+      error: canAdd.reason,
+      limitReached: true,
+      usage: canAdd.usage,
+    };
   }
 
   try {
@@ -80,6 +91,9 @@ export async function addBookToLibrary(
         currentPage: status === "finished" ? existingBook.pages || 0 : 0,
       })
       .returning();
+
+    // Increment usage counter (for limit tracking)
+    await incrementBookUsage();
 
     revalidatePath("/library");
     revalidatePath("/books/search");

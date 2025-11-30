@@ -2,9 +2,21 @@
 
 import { requireRole } from "@/lib/auth";
 import { db } from "@/db";
-import { users, reviews, auditLogs, books } from "@/db/schema";
-import { eq, desc } from "drizzle-orm";
+import {
+  users,
+  reviews,
+  auditLogs,
+  books,
+  subscriptionPlans,
+  userSubscriptions,
+} from "@/db/schema";
+import { eq, desc, asc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import Stripe from "stripe";
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: "2024-11-20.acacia" as any,
+});
 
 /**
  * Update a user's role (admin only)
@@ -244,5 +256,285 @@ export async function deleteUserAsAdmin(targetUserId: string) {
   } catch (error) {
     console.error("Error deleting user:", error);
     return { error: "Failed to delete user" };
+  }
+}
+
+/**
+ * Create a new subscription plan (admin only)
+ */
+export async function createSubscriptionPlan(data: {
+  name: string;
+  stripePriceId: string | null;
+  stripeProductId: string | null;
+  price: number;
+  interval: "month" | "year" | "lifetime" | "free";
+  features: string; // JSON string
+  isActive: boolean;
+  sortOrder: number;
+}) {
+  const currentUser = await requireRole(["admin"]);
+
+  try {
+    // Validate Stripe IDs if provided
+    if (data.stripePriceId) {
+      const price = await stripe.prices.retrieve(data.stripePriceId);
+      if (!price) {
+        return { error: "Invalid Stripe Price ID" };
+      }
+    }
+
+    const [plan] = await db
+      .insert(subscriptionPlans)
+      .values(data)
+      .returning();
+
+    await db.insert(auditLogs).values({
+      userId: currentUser.id,
+      action: "subscription_plan.create",
+      targetId: plan.id,
+      targetType: "subscription_plan",
+      metadata: JSON.stringify(data),
+    });
+
+    revalidatePath("/admin/subscriptions");
+
+    return { success: true, plan };
+  } catch (error) {
+    console.error("Error creating subscription plan:", error);
+    return { error: "Failed to create subscription plan" };
+  }
+}
+
+/**
+ * Update subscription plan (admin only)
+ */
+export async function updateSubscriptionPlan(
+  planId: string,
+  data: Partial<{
+    name: string;
+    stripePriceId: string | null;
+    stripeProductId: string | null;
+    price: number;
+    interval: "month" | "year" | "lifetime" | "free";
+    features: string;
+    isActive: boolean;
+    sortOrder: number;
+  }>,
+) {
+  const currentUser = await requireRole(["admin"]);
+
+  try {
+    // Validate Stripe IDs if provided
+    if (data.stripePriceId) {
+      const price = await stripe.prices.retrieve(data.stripePriceId);
+      if (!price) {
+        return { error: "Invalid Stripe Price ID" };
+      }
+    }
+
+    await db
+      .update(subscriptionPlans)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(subscriptionPlans.id, planId));
+
+    await db.insert(auditLogs).values({
+      userId: currentUser.id,
+      action: "subscription_plan.update",
+      targetId: planId,
+      targetType: "subscription_plan",
+      metadata: JSON.stringify(data),
+    });
+
+    revalidatePath("/admin/subscriptions");
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error updating subscription plan:", error);
+    return { error: "Failed to update subscription plan" };
+  }
+}
+
+/**
+ * Get all subscription plans (admin only)
+ */
+export async function getAllSubscriptionPlans() {
+  await requireRole(["admin"]);
+
+  try {
+    const plans = await db.query.subscriptionPlans.findMany({
+      orderBy: [asc(subscriptionPlans.sortOrder)],
+    });
+
+    return { plans };
+  } catch (error) {
+    console.error("Error fetching plans:", error);
+    return { error: "Failed to fetch plans" };
+  }
+}
+
+/**
+ * Manually grant premium subscription (admin only)
+ */
+export async function grantPremiumSubscription(
+  targetUserId: string,
+  planId: string,
+) {
+  const currentUser = await requireRole(["admin"]);
+
+  try {
+    // Check if user already has a subscription
+    const existing = await db.query.userSubscriptions.findFirst({
+      where: eq(userSubscriptions.userId, targetUserId),
+    });
+
+    if (existing) {
+      // Update existing subscription
+      await db
+        .update(userSubscriptions)
+        .set({
+          planId,
+          status: "active",
+          currentPeriodStart: new Date(),
+          currentPeriodEnd: null, // Manual grants don't expire
+          updatedAt: new Date(),
+        })
+        .where(eq(userSubscriptions.userId, targetUserId));
+    } else {
+      // Create new subscription
+      await db.insert(userSubscriptions).values({
+        userId: targetUserId,
+        planId,
+        status: "active",
+        currentPeriodStart: new Date(),
+      });
+    }
+
+    // Get the plan to check if it's premium
+    const plan = await db.query.subscriptionPlans.findFirst({
+      where: eq(subscriptionPlans.id, planId),
+    });
+
+    const isPremium = plan?.interval !== "free";
+
+    // Update user premium flag
+    await db
+      .update(users)
+      .set({
+        isPremium,
+        premiumSince: isPremium ? new Date() : null,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, targetUserId));
+
+    await db.insert(auditLogs).values({
+      userId: currentUser.id,
+      action: "subscription.grant",
+      targetId: targetUserId,
+      targetType: "user",
+      metadata: JSON.stringify({ planId }),
+    });
+
+    revalidatePath("/admin/users");
+    revalidatePath("/admin/subscriptions/users");
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error granting subscription:", error);
+    return { error: "Failed to grant subscription" };
+  }
+}
+
+/**
+ * Get all users with their subscription details (admin only)
+ */
+export async function getAllUsersWithSubscriptions() {
+  await requireRole(["admin"]);
+
+  try {
+    const allUsers = await db.query.users.findMany({
+      orderBy: [desc(users.createdAt)],
+      with: {
+        subscription: {
+          with: {
+            plan: true,
+          },
+        },
+      },
+    });
+
+    return { users: allUsers };
+  } catch (error) {
+    console.error("Error fetching users with subscriptions:", error);
+    return { error: "Failed to fetch users" };
+  }
+}
+
+/**
+ * Revoke user's subscription (downgrade to free tier) (admin only)
+ */
+export async function revokeUserSubscription(targetUserId: string) {
+  const currentUser = await requireRole(["admin"]);
+
+  try {
+    // Find the free plan
+    const freePlan = await db.query.subscriptionPlans.findFirst({
+      where: eq(subscriptionPlans.interval, "free"),
+    });
+
+    if (!freePlan) {
+      return { error: "Free plan not found" };
+    }
+
+    // Update user's subscription to free tier
+    const existing = await db.query.userSubscriptions.findFirst({
+      where: eq(userSubscriptions.userId, targetUserId),
+    });
+
+    if (existing) {
+      await db
+        .update(userSubscriptions)
+        .set({
+          planId: freePlan.id,
+          status: "canceled",
+          stripeSubscriptionId: null,
+          canceledAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(userSubscriptions.userId, targetUserId));
+    } else {
+      // Create free subscription
+      await db.insert(userSubscriptions).values({
+        userId: targetUserId,
+        planId: freePlan.id,
+        status: "active",
+        currentPeriodStart: new Date(),
+      });
+    }
+
+    // Update user premium flag
+    await db
+      .update(users)
+      .set({
+        isPremium: false,
+        premiumSince: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, targetUserId));
+
+    await db.insert(auditLogs).values({
+      userId: currentUser.id,
+      action: "subscription.revoke",
+      targetId: targetUserId,
+      targetType: "user",
+      metadata: JSON.stringify({ downgradedAt: new Date() }),
+    });
+
+    revalidatePath("/admin/users");
+    revalidatePath("/admin/subscriptions/users");
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error revoking subscription:", error);
+    return { error: "Failed to revoke subscription" };
   }
 }

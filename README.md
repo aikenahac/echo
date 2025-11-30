@@ -89,6 +89,90 @@ NEXT_PUBLIC_CLERK_SIGN_IN_URL="/"
 NEXT_PUBLIC_CLERK_SIGN_UP_URL="/"
 ```
 
+# Stripe (for payments)
+STRIPE_SECRET_KEY=sk_test_...
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+
+# Resend (for emails)
+RESEND_API_KEY=re_...
+RESEND_FROM_EMAIL=noreply@yourdomain.com
+
+# App URLs
+NEXT_PUBLIC_BASE_URL=http://localhost:3000
+
+Where to Get Each Variable
+
+1. Stripe Keys (STRIPE_SECRET_KEY & NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
+
+Steps:
+1. Go to https://stripe.com and create an account (or log in)
+2. You'll start in Test Mode (recommended for development)
+3. Go to Developers → API Keys
+4. Copy:
+  - Secret key → STRIPE_SECRET_KEY (starts with sk_test_)
+  - Publishable key → NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY (starts with pk_test_)
+
+2. Stripe Webhook Secret (STRIPE_WEBHOOK_SECRET)
+
+You'll set this up after creating your webhook endpoint. For now, you can skip it and add it
+later when testing webhooks locally.
+
+To get it later:
+1. In Stripe Dashboard → Developers → Webhooks
+2. Click Add endpoint
+3. For local testing, you'll use Stripe CLI (see below)
+
+3. Resend API Key (RESEND_API_KEY)
+
+Steps:
+1. Go to https://resend.com and sign up
+2. After signing in, go to API Keys
+3. Click Create API Key
+4. Give it a name (e.g., "Echo Development")
+5. Copy the key → RESEND_API_KEY (starts with re_)
+
+⚠️ Important: You can only see the key once, so copy it immediately!
+
+4. Resend From Email (RESEND_FROM_EMAIL)
+
+Steps:
+1. In Resend dashboard, go to Domains
+2. Add and verify your domain (e.g., yourdomain.com)
+3. Follow DNS verification steps
+4. Once verified, you can use emails like:
+  - noreply@yourdomain.com
+  - hello@yourdomain.com
+
+For testing without a domain:
+- Resend provides onboarding@resend.dev for testing
+- Use: RESEND_FROM_EMAIL=onboarding@resend.dev
+- ⚠️ This only works for sending to your own email address
+
+5. Base URL (NEXT_PUBLIC_BASE_URL)
+
+For local development:
+NEXT_PUBLIC_BASE_URL=http://localhost:3000
+
+For production:
+NEXT_PUBLIC_BASE_URL=https://yourdomain.com
+
+Testing Stripe Webhooks Locally
+
+To test webhooks during development, use the Stripe CLI:
+
+# Install Stripe CLI
+brew install stripe/stripe-cli/stripe
+
+# Login to Stripe
+stripe login
+
+# Forward webhooks to your local server
+stripe listen --forward-to localhost:3000/api/webhooks/stripe
+
+This command will output a webhook signing secret like whsec_... - use that for
+STRIPE_WEBHOOK_SECRET.
+
 4. Set up the database:
 ```bash
 # Generate migrations

@@ -20,6 +20,22 @@ export const readingStatusEnum = pgEnum("reading_status", [
 
 export const userRoleEnum = pgEnum("user_role", ["user", "moderator", "admin"]);
 
+export const billingIntervalEnum = pgEnum("billing_interval", [
+  "month",
+  "year",
+  "lifetime",
+  "free",
+]);
+
+export const subscriptionStatusEnum = pgEnum("subscription_status", [
+  "active",
+  "canceled",
+  "past_due",
+  "unpaid",
+  "trialing",
+  "incomplete",
+]);
+
 // Users table
 export const users = pgTable(
   "users",
@@ -31,6 +47,8 @@ export const users = pgTable(
     role: userRoleEnum("role").default("user").notNull(),
     isPremium: boolean("is_premium").default(false).notNull(),
     stripeCustomerId: text("stripe_customer_id"),
+    premiumSince: timestamp("premium_since"),
+    subscriptionAnniversary: timestamp("subscription_anniversary"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
@@ -155,13 +173,91 @@ export const auditLogs = pgTable(
   }),
 );
 
+// Subscription Plans table
+export const subscriptionPlans = pgTable(
+  "subscription_plans",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    name: text("name").notNull(),
+    stripePriceId: text("stripe_price_id").unique(),
+    stripeProductId: text("stripe_product_id"),
+    price: integer("price").notNull().default(0), // Price in cents
+    interval: billingIntervalEnum("interval").notNull().default("free"),
+    features: text("features"), // JSON string: {"maxBooksPerYear": 50}
+    isActive: boolean("is_active").default(true).notNull(),
+    sortOrder: integer("sort_order").default(0).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    activeIdx: index("subscription_plans_active_idx").on(table.isActive),
+    sortOrderIdx: index("subscription_plans_sort_order_idx").on(table.sortOrder),
+  }),
+);
+
+// User Subscriptions table
+export const userSubscriptions = pgTable(
+  "user_subscriptions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" })
+      .unique(),
+    planId: uuid("plan_id")
+      .notNull()
+      .references(() => subscriptionPlans.id),
+    stripeSubscriptionId: text("stripe_subscription_id").unique(),
+    stripeCustomerId: text("stripe_customer_id"),
+    status: subscriptionStatusEnum("status").notNull().default("active"),
+    currentPeriodStart: timestamp("current_period_start"),
+    currentPeriodEnd: timestamp("current_period_end"),
+    cancelAtPeriodEnd: boolean("cancel_at_period_end").default(false).notNull(),
+    canceledAt: timestamp("canceled_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdIdx: index("user_subscriptions_user_id_idx").on(table.userId),
+    statusIdx: index("user_subscriptions_status_idx").on(table.status),
+    stripeSubIdx: index("user_subscriptions_stripe_sub_idx").on(
+      table.stripeSubscriptionId,
+    ),
+  }),
+);
+
+// Subscription Usage table
+export const subscriptionUsage = pgTable(
+  "subscription_usage",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    periodStart: timestamp("period_start").notNull(),
+    periodEnd: timestamp("period_end").notNull(),
+    booksAdded: integer("books_added").default(0).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    userPeriodIdx: index("subscription_usage_user_period_idx").on(
+      table.userId,
+      table.periodStart,
+    ),
+    periodEndIdx: index("subscription_usage_period_end_idx").on(table.periodEnd),
+  }),
+);
+
 // Relations
-export const usersRelations = relations(users, ({ many }) => ({
+export const usersRelations = relations(users, ({ many, one }) => ({
   userBooks: many(userBooks),
   reviews: many(reviews),
   followers: many(follows, { relationName: "following" }),
   following: many(follows, { relationName: "follower" }),
   auditLogs: many(auditLogs),
+  subscription: one(userSubscriptions),
+  usageRecords: many(subscriptionUsage),
 }));
 
 export const booksRelations = relations(books, ({ many }) => ({
@@ -210,3 +306,34 @@ export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
     references: [users.id],
   }),
 }));
+
+export const subscriptionPlansRelations = relations(
+  subscriptionPlans,
+  ({ many }) => ({
+    subscriptions: many(userSubscriptions),
+  }),
+);
+
+export const userSubscriptionsRelations = relations(
+  userSubscriptions,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [userSubscriptions.userId],
+      references: [users.id],
+    }),
+    plan: one(subscriptionPlans, {
+      fields: [userSubscriptions.planId],
+      references: [subscriptionPlans.id],
+    }),
+  }),
+);
+
+export const subscriptionUsageRelations = relations(
+  subscriptionUsage,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [subscriptionUsage.userId],
+      references: [users.id],
+    }),
+  }),
+);

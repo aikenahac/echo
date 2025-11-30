@@ -2,7 +2,7 @@
 
 import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
 import { Link } from "@/i18n/routing";
-import { Search, Library, Activity, User, ChevronDown, ChevronUp, Shield } from "lucide-react";
+import { Search, Library, Activity, User, ChevronDown, ChevronUp, Shield, CreditCard } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { usePathname } from "next/navigation";
 import { useState, useMemo } from "react";
@@ -50,6 +50,12 @@ export function Navigation({ hasAdminAccess = false }: NavigationProps) {
           icon: User,
           label: t("profile"),
           match: (path: string) => path.includes("/profile"),
+        },
+        {
+          href: "/subscription",
+          icon: CreditCard,
+          label: "Subscription",
+          match: (path: string) => path.includes("/subscription"),
         },
       ];
 
