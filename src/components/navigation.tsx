@@ -2,7 +2,7 @@
 
 import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
 import { Link } from "@/i18n/routing";
-import { Search, Library, Activity, User, ChevronDown, ChevronUp, Shield, CreditCard, Settings, Users } from "lucide-react";
+import { Search, Library, Activity, User, ChevronDown, ChevronUp, Shield, CreditCard, Settings, Users, Tag } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { usePathname } from "next/navigation";
 import { useState, useMemo } from "react";
@@ -118,11 +118,20 @@ export function Navigation({ hasAdminAccess = false, hasPaidPlan = false }: Navi
           </SignedIn>
 
           <SignedOut>
-            <SignInButton mode="modal">
-              <button className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90">
-                {t("signIn")}
-              </button>
-            </SignInButton>
+            <div className="flex items-center gap-4">
+              <Link
+                href="/pricing"
+                className="flex items-center gap-2 text-sm hover:text-primary transition-colors"
+              >
+                <Tag className="h-4 w-4" />
+                Pricing
+              </Link>
+              <SignInButton mode="modal">
+                <button className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90">
+                  {t("signIn")}
+                </button>
+              </SignInButton>
+            </div>
           </SignedOut>
         </div>
 
