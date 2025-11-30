@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
@@ -21,14 +21,23 @@ export default async function ProfilePage() {
     redirect("/");
   }
 
-  // Ensure user exists in database
+  // Get email from Clerk
+  const clerkUser = await currentUser();
+  const email = clerkUser?.emailAddresses[0]?.emailAddress || "";
+
+  // Ensure user exists in database with email
   await db
     .insert(users)
     .values({
       id: userId,
-      email: "", // Will be updated from Clerk webhook
+      email: email,
     })
-    .onConflictDoNothing();
+    .onConflictDoUpdate({
+      target: users.id,
+      set: {
+        email: email,
+      },
+    });
 
   // Fetch user profile
   const user = await db.query.users.findFirst({

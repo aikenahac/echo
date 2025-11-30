@@ -71,8 +71,10 @@ export async function updateProfile(username: string, bio: string) {
       .onConflictDoUpdate({
         target: users.id,
         set: {
+          email: email, // Update email from Clerk
           username: username || null,
           bio: bio || null,
+          updatedAt: new Date(),
         },
       });
 

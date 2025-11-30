@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { toast } from "sonner";
 import { updateProfile } from "@/app/[locale]/actions/profile";
 import { useTranslations } from "next-intl";
@@ -26,6 +26,11 @@ export function UsernameSetupDialog({ hasUsername }: UsernameSetupDialogProps) {
   const [username, setUsername] = useState("");
   const [isPending, startTransition] = useTransition();
   const [isOpen, setIsOpen] = useState(!hasUsername);
+
+  // Update dialog state when hasUsername prop changes
+  useEffect(() => {
+    setIsOpen(!hasUsername);
+  }, [hasUsername]);
 
   const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;

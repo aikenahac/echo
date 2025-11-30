@@ -1,5 +1,5 @@
 import { ClerkProvider } from "@clerk/nextjs";
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { EB_Garamond, IBM_Plex_Mono } from "next/font/google";
 import { Toaster } from "sonner";
 import { Navigation } from "@/components/navigation";
@@ -158,14 +158,23 @@ export default async function LocaleLayout({
   let hasPaidPlan = false;
 
   if (userId) {
+    // Get email from Clerk
+    const clerkUser = await currentUser();
+    const email = clerkUser?.emailAddresses[0]?.emailAddress || "";
+
     // Ensure user exists in database and has a free plan assigned
     await db
       .insert(users)
       .values({
         id: userId,
-        email: "", // Will be updated from Clerk webhook
+        email: email,
       })
-      .onConflictDoNothing();
+      .onConflictDoUpdate({
+        target: users.id,
+        set: {
+          email: email, // Update email if it changed
+        },
+      });
 
     // Auto-assign free plan to new users
     await assignFreePlanToUser(userId);
