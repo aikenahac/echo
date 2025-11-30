@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { subscriptionPlans, userSubscriptions } from "@/db/schema";
-import { count, eq, ne } from "drizzle-orm";
+import { count, eq, ne, and } from "drizzle-orm";
 import { StatsCard } from "@/components/admin/stats-card";
 import { Users, DollarSign, TrendingUp } from "lucide-react";
 import { SubscriptionPlansTable } from "@/components/admin/subscription-plans-table";
@@ -25,9 +25,11 @@ export default async function SubscriptionsAdminPage() {
       eq(userSubscriptions.planId, subscriptionPlans.id),
     )
     .where(
-      eq(userSubscriptions.status, "active"),
-    )
-    .where(ne(subscriptionPlans.interval, "free"));
+      and(
+        eq(userSubscriptions.status, "active"),
+        ne(subscriptionPlans.interval, "free")
+      )
+    );
 
   return (
     <div className="space-y-6">

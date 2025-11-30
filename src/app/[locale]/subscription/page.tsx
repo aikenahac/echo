@@ -7,16 +7,18 @@ import { SubscriptionCard } from "@/components/subscription-card";
 import { PlanSelector } from "@/components/plan-selector";
 import { UsageDisplay } from "@/components/usage-display";
 
-export default async function SubscriptionPage() {
+export default async function SubscriptionPage({ params }: { params: { locale: string } }) {
   const { userId } = await auth();
-  if (!userId) redirect("/");
+  if (!userId) {
+    redirect({ href: "/", locale: params.locale });
+  }
 
   const user = await db.query.users.findFirst({
-    where: eq(users.id, userId),
+    where: eq(users.id, userId!),
   });
 
   const subscription = await db.query.userSubscriptions.findFirst({
-    where: eq(userSubscriptions.userId, userId),
+    where: eq(userSubscriptions.userId, userId!),
     with: { plan: true },
   });
 
@@ -37,7 +39,7 @@ export default async function SubscriptionPage() {
         <div>
           <h2 className="text-2xl font-semibold mb-4">Current Plan</h2>
           <SubscriptionCard subscription={subscription} />
-          <UsageDisplay userId={userId} />
+          <UsageDisplay userId={userId!} />
         </div>
 
         {/* Available Plans */}

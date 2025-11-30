@@ -10,8 +10,8 @@ import {
 } from "@/lib/email";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2024-11-20.acacia" as any,
-});
+  apiVersion: "2025-11-17.clover",
+} as Stripe.StripeConfig);
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
 }
 
 async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
-  const customerId = subscription.customer as string;
+  const customerId = typeof subscription.customer === "string" ? subscription.customer : subscription.customer?.id || "";
 
   // Try to get userId from subscription metadata first
   let userId = subscription.metadata.userId;
@@ -128,14 +128,14 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
         planId: plan.id,
         stripeSubscriptionId: subscription.id,
         stripeCustomerId: customerId,
-        status: subscription.status as any,
-        currentPeriodStart: subscription.current_period_start
+        status: subscription.status as "active" | "canceled" | "past_due" | "unpaid" | "trialing" | "incomplete",
+        currentPeriodStart: "current_period_start" in subscription && typeof subscription.current_period_start === "number"
           ? new Date(subscription.current_period_start * 1000)
           : null,
-        currentPeriodEnd: subscription.current_period_end
+        currentPeriodEnd: "current_period_end" in subscription && typeof subscription.current_period_end === "number"
           ? new Date(subscription.current_period_end * 1000)
           : null,
-        cancelAtPeriodEnd: subscription.cancel_at_period_end,
+        cancelAtPeriodEnd: "cancel_at_period_end" in subscription ? Boolean(subscription.cancel_at_period_end) : false,
         updatedAt: new Date(),
       })
       .where(eq(userSubscriptions.userId, userId));
@@ -145,14 +145,14 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
       planId: plan.id,
       stripeSubscriptionId: subscription.id,
       stripeCustomerId: customerId,
-      status: subscription.status as any,
-      currentPeriodStart: subscription.current_period_start
+      status: subscription.status as "active" | "canceled" | "past_due" | "unpaid" | "trialing" | "incomplete",
+      currentPeriodStart: "current_period_start" in subscription && typeof subscription.current_period_start === "number"
         ? new Date(subscription.current_period_start * 1000)
         : null,
-      currentPeriodEnd: subscription.current_period_end
+      currentPeriodEnd: "current_period_end" in subscription && typeof subscription.current_period_end === "number"
         ? new Date(subscription.current_period_end * 1000)
         : null,
-      cancelAtPeriodEnd: subscription.cancel_at_period_end,
+      cancelAtPeriodEnd: "cancel_at_period_end" in subscription ? Boolean(subscription.cancel_at_period_end) : false,
     });
   }
 
@@ -240,16 +240,16 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
 
 async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
   // Update subscription status if needed
-  if (invoice.subscription) {
+  if ("subscription" in invoice && typeof invoice.subscription === "string") {
     const subscription = await stripe.subscriptions.retrieve(
-      invoice.subscription as string,
+      invoice.subscription,
     );
     await handleSubscriptionUpdate(subscription);
   }
 }
 
 async function handlePaymentFailed(invoice: Stripe.Invoice) {
-  const customerId = invoice.customer as string;
+  const customerId = typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id || "";
 
   // Find user by customer ID
   const user = await db.query.users.findFirst({

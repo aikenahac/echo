@@ -2,7 +2,7 @@
 
 import { Link } from "@/i18n/routing";
 import { useState, useTransition } from "react";
-import { MoreVertical, Trash2, Star, Heart, Plus, Minus } from "lucide-react";
+import { MoreVertical, Trash2, Star, Heart, Plus, Minus, FolderPlus } from "lucide-react";
 import { toast } from "sonner";
 import {
   updateBookStatus,
@@ -31,6 +31,7 @@ import { Progress } from "@/components/ui/progress";
 import Image from "next/image";
 import { UserBook } from "@/types";
 import { PageEditPopover } from "./page-edit-popover";
+import { AddToCollectionPopover } from "./collections/add-to-collection-popover";
 
 interface BookCardProps {
   userBook: UserBook;
@@ -40,6 +41,7 @@ export function BookCard({ userBook }: BookCardProps) {
   const t = useTranslations("library");
   const tToast = useTranslations("toast");
   const [showMenu, setShowMenu] = useState(false);
+  const [showCollectionPopover, setShowCollectionPopover] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [currentPage, setCurrentPage] = useState(userBook.currentPage || 0);
 
@@ -174,6 +176,16 @@ export function BookCard({ userBook }: BookCardProps) {
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
+              onClick={() => {
+                setShowMenu(false);
+                setShowCollectionPopover(true);
+              }}
+            >
+              <FolderPlus className="h-4 w-4 mr-2" />
+              Add to Collection
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
               onClick={handleRemove}
               disabled={isPending}
               className="text-destructive"
@@ -287,6 +299,24 @@ export function BookCard({ userBook }: BookCardProps) {
           </div>
         )}
       </CardFooter>
+
+      {showCollectionPopover && (
+        <div className="absolute -bottom-2 left-2 z-50">
+          <AddToCollectionPopover
+            userBookId={userBook.id}
+            trigger={
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowCollectionPopover(false)}
+              >
+                <FolderPlus className="mr-2 h-4 w-4" />
+                Select Collections
+              </Button>
+            }
+          />
+        </div>
+      )}
     </Card>
   );
 }

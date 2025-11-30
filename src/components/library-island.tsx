@@ -23,6 +23,7 @@ import { buttonVariants } from "./ui/button";
 import { useLibraryLayout } from "@/hooks/use-library-layout";
 import { Button } from "./ui/button";
 import Image from "next/image";
+import { CollectionsList } from "./collections/collections-list";
 
 const useFilter = (): {
   tab: ReadingStatus | null;
@@ -118,6 +119,7 @@ function SidebarContent({
           </Link>
         );
       })}
+      <CollectionsList />
     </>
   );
 }

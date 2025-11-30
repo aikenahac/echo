@@ -249,6 +249,82 @@ export const subscriptionUsage = pgTable(
   }),
 );
 
+// Collections table (Premium feature)
+export const collections = pgTable(
+  "collections",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    description: text("description"),
+    slug: text("slug").notNull(),
+    colorTag: text("color_tag"),
+    iconName: text("icon_name"),
+    coverImageUrl: text("cover_image_url"),
+    isPublic: boolean("is_public").default(false).notNull(),
+    sortOrder: integer("sort_order").default(0).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdIdx: index("collections_user_id_idx").on(table.userId),
+    slugIdx: index("collections_slug_idx").on(table.slug),
+    userSlugIdx: index("collections_user_slug_idx").on(table.userId, table.slug),
+    isPublicIdx: index("collections_is_public_idx").on(table.isPublic),
+  }),
+);
+
+// Collection Books junction table (many-to-many)
+export const collectionBooks = pgTable(
+  "collection_books",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    collectionId: uuid("collection_id")
+      .notNull()
+      .references(() => collections.id, { onDelete: "cascade" }),
+    userBookId: uuid("user_book_id")
+      .notNull()
+      .references(() => userBooks.id, { onDelete: "cascade" }),
+    addedAt: timestamp("added_at").defaultNow().notNull(),
+    notes: text("notes"),
+  },
+  (table) => ({
+    collectionIdIdx: index("collection_books_collection_id_idx").on(
+      table.collectionId,
+    ),
+    userBookIdIdx: index("collection_books_user_book_id_idx").on(
+      table.userBookId,
+    ),
+    uniqueCollectionBook: index("collection_books_unique_idx").on(
+      table.collectionId,
+      table.userBookId,
+    ),
+  }),
+);
+
+// Collection Follows table (social feature)
+export const collectionFollows = pgTable(
+  "collection_follows",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    collectionId: uuid("collection_id")
+      .notNull()
+      .references(() => collections.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.userId, table.collectionId] }),
+    userIdIdx: index("collection_follows_user_id_idx").on(table.userId),
+    collectionIdIdx: index("collection_follows_collection_id_idx").on(
+      table.collectionId,
+    ),
+  }),
+);
+
 // Relations
 export const usersRelations = relations(users, ({ many, one }) => ({
   userBooks: many(userBooks),
@@ -258,6 +334,8 @@ export const usersRelations = relations(users, ({ many, one }) => ({
   auditLogs: many(auditLogs),
   subscription: one(userSubscriptions),
   usageRecords: many(subscriptionUsage),
+  collections: many(collections),
+  collectionFollows: many(collectionFollows),
 }));
 
 export const booksRelations = relations(books, ({ many }) => ({
@@ -265,7 +343,7 @@ export const booksRelations = relations(books, ({ many }) => ({
   reviews: many(reviews),
 }));
 
-export const userBooksRelations = relations(userBooks, ({ one }) => ({
+export const userBooksRelations = relations(userBooks, ({ one, many }) => ({
   user: one(users, {
     fields: [userBooks.userId],
     references: [users.id],
@@ -274,6 +352,7 @@ export const userBooksRelations = relations(userBooks, ({ one }) => ({
     fields: [userBooks.bookId],
     references: [books.id],
   }),
+  collectionBooks: many(collectionBooks),
 }));
 
 export const reviewsRelations = relations(reviews, ({ one }) => ({
@@ -334,6 +413,40 @@ export const subscriptionUsageRelations = relations(
     user: one(users, {
       fields: [subscriptionUsage.userId],
       references: [users.id],
+    }),
+  }),
+);
+
+export const collectionsRelations = relations(collections, ({ one, many }) => ({
+  user: one(users, {
+    fields: [collections.userId],
+    references: [users.id],
+  }),
+  books: many(collectionBooks),
+  follows: many(collectionFollows),
+}));
+
+export const collectionBooksRelations = relations(collectionBooks, ({ one }) => ({
+  collection: one(collections, {
+    fields: [collectionBooks.collectionId],
+    references: [collections.id],
+  }),
+  userBook: one(userBooks, {
+    fields: [collectionBooks.userBookId],
+    references: [userBooks.id],
+  }),
+}));
+
+export const collectionFollowsRelations = relations(
+  collectionFollows,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [collectionFollows.userId],
+      references: [users.id],
+    }),
+    collection: one(collections, {
+      fields: [collectionFollows.collectionId],
+      references: [collections.id],
     }),
   }),
 );
