@@ -14,6 +14,7 @@ import { users, userSubscriptions } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import "../globals.css";
 import { Metadata } from "next";
+import { assignFreePlanToUser } from "./actions/subscriptions";
 
 const eb_garamond = EB_Garamond({
   subsets: ["latin"],
@@ -157,6 +158,18 @@ export default async function LocaleLayout({
   let hasPaidPlan = false;
 
   if (userId) {
+    // Ensure user exists in database and has a free plan assigned
+    await db
+      .insert(users)
+      .values({
+        id: userId,
+        email: "", // Will be updated from Clerk webhook
+      })
+      .onConflictDoNothing();
+
+    // Auto-assign free plan to new users
+    await assignFreePlanToUser(userId);
+
     const user = await db.query.users.findFirst({
       where: eq(users.id, userId),
     });

@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { assignFreePlanToUser } from "./subscriptions";
 
 /**
  * Update user profile
@@ -74,6 +75,9 @@ export async function updateProfile(username: string, bio: string) {
           bio: bio || null,
         },
       });
+
+    // Assign free plan to new users
+    await assignFreePlanToUser(userId);
 
     revalidatePath("/profile");
 

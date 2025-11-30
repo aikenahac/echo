@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { reviews, users } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { assignFreePlanToUser } from "./subscriptions";
 
 /**
  * Create or update a review for a book
@@ -33,6 +34,9 @@ export async function createOrUpdateReview(
         email: "", // Will be updated from Clerk webhook
       })
       .onConflictDoNothing();
+
+    // Assign free plan to new users
+    await assignFreePlanToUser(userId);
 
     // Check if review already exists
     const existingReview = await db.query.reviews.findFirst({

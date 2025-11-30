@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { follows, users } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { assignFreePlanToUser } from "./subscriptions";
 
 /**
  * Follow a user
@@ -37,6 +38,10 @@ export async function followUser(followingId: string) {
         email: "",
       })
       .onConflictDoNothing();
+
+    // Assign free plan to new users
+    await assignFreePlanToUser(userId);
+    await assignFreePlanToUser(followingId);
 
     // Check if already following
     const existing = await db.query.follows.findFirst({

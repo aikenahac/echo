@@ -400,15 +400,17 @@ export async function upgradeToFreePlan(planId: string) {
 
 /**
  * Get the free plan (or create it if it doesn't exist)
+ * Finds plans by interval type "free", not by price
  */
 export async function getOrCreateFreePlan() {
   try {
-    // Try to find existing free plan
+    // Try to find existing free plan by interval type
     let freePlan = await db.query.subscriptionPlans.findFirst({
       where: and(
-        eq(subscriptionPlans.name, "Free"),
-        eq(subscriptionPlans.interval, "free")
+        eq(subscriptionPlans.interval, "free"),
+        eq(subscriptionPlans.isActive, true)
       ),
+      orderBy: (plans, { asc }) => [asc(plans.sortOrder)],
     });
 
     // Create free plan if it doesn't exist
