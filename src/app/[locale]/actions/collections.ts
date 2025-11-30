@@ -8,6 +8,7 @@ import {
   collectionFollows,
   users,
   userBooks,
+  userSubscriptions,
 } from "@/db/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -28,12 +29,59 @@ function generateSlug(name: string, userId: string): string {
   return `${baseSlug}-${randomStr}`;
 }
 
-// Helper function to check if user is premium
-async function checkPremiumStatus(userId: string): Promise<boolean> {
-  const user = await db.query.users.findFirst({
-    where: eq(users.id, userId),
+// Helper function to check if user has collection access (paid plan with customCollections feature)
+async function checkCollectionAccess(userId: string): Promise<boolean> {
+  const subscription = await db.query.userSubscriptions.findFirst({
+    where: eq(userSubscriptions.userId, userId),
+    with: { plan: true },
   });
-  return user?.isPremium || false;
+
+  if (!subscription?.plan) {
+    return false;
+  }
+
+  // Check if user has a paid plan (price > 0, has stripePriceId, or is lifetime)
+  const hasPaidPlan =
+    subscription.plan.price > 0 ||
+    subscription.plan.stripePriceId !== null ||
+    subscription.plan.interval === "lifetime";
+
+  if (!hasPaidPlan) {
+    return false;
+  }
+
+  // Parse features to check for customCollections
+  if (subscription.plan.features) {
+    try {
+      const features = JSON.parse(subscription.plan.features);
+      // If customCollections is explicitly set to false, deny access
+      if (features.customCollections === false) {
+        return false;
+      }
+      // If customCollections is explicitly set to true, or if maxCollections is set, allow access
+      if (features.customCollections === true || features.maxCollections !== undefined) {
+        return true;
+      }
+    } catch (error) {
+      console.error("Error parsing plan features:", error);
+    }
+  }
+
+  // Default: allow access for all paid plans (even if features are not set)
+  return true;
+}
+
+/**
+ * Check if current user has collection access
+ */
+export async function hasCollectionAccess() {
+  const { userId } = await auth();
+  if (!userId) {
+    return { hasAccess: false };
+  }
+
+  const hasAccess = await checkCollectionAccess(userId);
+  return { hasAccess };
 }
 
 /**
@@ -51,9 +99,9 @@ export async function createCollection(data: {
     return { error: "Unauthorized" };
   }
 
-  // Check premium status
-  const isPremium = await checkPremiumStatus(userId);
-  if (!isPremium) {
+  // Check collection access (requires paid plan)
+  const hasAccess = await checkCollectionAccess(userId);
+  if (!hasAccess) {
     return { error: "Premium subscription required to create collections" };
   }
 
@@ -132,7 +180,7 @@ export async function updateCollection(
       .returning();
 
     revalidatePath("/[locale]/library", "page");
-    revalidatePath(`/[locale]/collections/${collection.slug}`, "page");
+    revalidatePath(`/[locale]/library/collections/${collection.slug}`, "page");
 
     return { success: true, collection: updated };
   } catch (error) {
@@ -227,23 +275,30 @@ export async function getCollectionById(identifier: string) {
   const { userId } = await auth();
 
   try {
-    // Try to find by ID first, then by slug
-    let collection = await db.query.collections.findFirst({
-      where: eq(collections.id, identifier),
-      with: {
-        user: true,
-        books: {
-          with: {
-            userBook: {
-              with: {
-                book: true,
+    // Check if identifier is a valid UUID format
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identifier);
+
+    let collection;
+
+    // Try to find by ID if it's a UUID, otherwise by slug
+    if (isUUID) {
+      collection = await db.query.collections.findFirst({
+        where: eq(collections.id, identifier),
+        with: {
+          user: true,
+          books: {
+            with: {
+              userBook: {
+                with: {
+                  book: true,
+                },
               },
             },
           },
+          follows: true,
         },
-        follows: true,
-      },
-    });
+      });
+    }
 
     if (!collection) {
       collection = await db.query.collections.findFirst({
@@ -352,7 +407,7 @@ export async function addBookToCollection(
     });
 
     revalidatePath("/[locale]/library", "page");
-    revalidatePath(`/[locale]/collections/${collection.slug}`, "page");
+    revalidatePath(`/[locale]/library/collections/${collection.slug}`, "page");
 
     return { success: true };
   } catch (error) {
@@ -394,7 +449,7 @@ export async function removeBookFromCollection(
       );
 
     revalidatePath("/[locale]/library", "page");
-    revalidatePath(`/[locale]/collections/${collection.slug}`, "page");
+    revalidatePath(`/[locale]/library/collections/${collection.slug}`, "page");
 
     return { success: true };
   } catch (error) {
@@ -473,7 +528,7 @@ export async function followCollection(collectionId: string) {
       collectionId,
     });
 
-    revalidatePath(`/[locale]/collections/${collection.slug}`, "page");
+    revalidatePath(`/[locale]/library/collections/${collection.slug}`, "page");
     return { success: true };
   } catch (error) {
     console.error("Error following collection:", error);
@@ -505,7 +560,7 @@ export async function unfollowCollection(collectionId: string) {
     });
 
     if (collection) {
-      revalidatePath(`/[locale]/collections/${collection.slug}`, "page");
+      revalidatePath(`/[locale]/library/collections/${collection.slug}`, "page");
     }
 
     return { success: true };

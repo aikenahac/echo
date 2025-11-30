@@ -55,7 +55,7 @@ export function CollectionSidebarItem({
     ? getColorClass(collection.colorTag, "text")
     : "text-blue-500";
 
-  const isActive = pathname.includes(`/collections/${collection.slug}`);
+  const isActive = pathname.includes(`/library/collections/${collection.slug}`);
 
   const handleDelete = async () => {
     if (

@@ -49,6 +49,8 @@ export function CollectionsList() {
 
   return (
     <>
+      <Separator className="my-4" />
+
       <div className="space-y-2">
         <div className="flex items-center justify-between px-2">
           <h3 className="text-sm font-semibold text-muted-foreground">
@@ -95,8 +97,6 @@ export function CollectionsList() {
           </div>
         )}
       </div>
-
-      <Separator className="my-4" />
 
       <CollectionDialog
         open={showCreateDialog}

@@ -246,7 +246,7 @@ export function BookCard({ userBook }: BookCardProps) {
           {userBook.book.author}
         </p>
 
-        <div className="flex flex-row items-center gap-1">
+        <div className="flex flex-row items-center gap-1 mt-2">
           <Button
             type="button"
             variant="outline"
