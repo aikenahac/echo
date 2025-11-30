@@ -23,6 +23,7 @@ interface UsernameSetupDialogProps {
 export function UsernameSetupDialog({ hasUsername }: UsernameSetupDialogProps) {
   const t = useTranslations("profile");
   const tToast = useTranslations("toast");
+  const tValidation = useTranslations("validation");
   const [username, setUsername] = useState("");
   const [isPending, startTransition] = useTransition();
   const [isOpen, setIsOpen] = useState(!hasUsername);
@@ -48,12 +49,12 @@ export function UsernameSetupDialog({ hasUsername }: UsernameSetupDialogProps) {
     }
 
     if (username.length < 3) {
-      toast.error("Username must be at least 3 characters long");
+      toast.error(tValidation("usernameMin"));
       return;
     }
 
     if (username.length > 30) {
-      toast.error("Username must be at most 30 characters long");
+      toast.error(tValidation("usernameMax"));
       return;
     }
 
@@ -99,7 +100,7 @@ export function UsernameSetupDialog({ hasUsername }: UsernameSetupDialogProps) {
                 maxLength={30}
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Only letters, numbers, underscores (_), and dots (.) allowed. 3-30 characters.
+                {tValidation("usernameRules")}
               </p>
             </div>
           </div>

@@ -26,15 +26,15 @@ export default async function FeedPage() {
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-8">{t("title")}</h1>
         <div className="text-center py-12 text-muted-foreground">
-          <p>Your feed is empty!</p>
+          <p>{t("empty")}</p>
           <p className="text-sm mt-2">
-            Follow other users to see their reading activity here.
+            {t("emptyDescription")}
           </p>
           <a
             href="/users/search"
             className="inline-block mt-4 px-6 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
           >
-            Find Users to Follow
+            {t("findUsers")}
           </a>
         </div>
       </div>
@@ -88,7 +88,7 @@ export default async function FeedPage() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-2xl">
-      <h1 className="text-3xl font-bold mb-8">Activity Feed</h1>
+      <h1 className="text-3xl font-bold mb-8">{t("title")}</h1>
       <div className="space-y-6">
         {activities.map((activity, index) => (
           <div key={index} className="border rounded-lg p-6 space-y-3">
@@ -96,7 +96,7 @@ export default async function FeedPage() {
               <>
                 <div className="flex items-start gap-4">
                   {activity.data.book.coverUrl && (
-                    <div className="relative w-16 h-24 flex-shrink-0">
+                    <div className="relative w-16 h-24 shrink-0">
                       <Image
                         src={activity.data.book.coverUrl}
                         alt={activity.data.book.title}
@@ -111,8 +111,8 @@ export default async function FeedPage() {
                     </p>
                     <p className="font-medium">
                       {activity.data.status === "finished"
-                        ? "finished reading"
-                        : "started reading"}
+                        ? t("finished")
+                        : t("started")}
                     </p>
                     <a
                       href={`/books/${activity.data.bookId}`}
@@ -135,7 +135,7 @@ export default async function FeedPage() {
               <>
                 <div className="flex items-start gap-4">
                   {activity.data.book.coverUrl && (
-                    <div className="relative w-16 h-24 flex-shrink-0">
+                    <div className="relative w-16 h-24 shrink-0">
                       <Image
                         src={activity.data.book.coverUrl}
                         alt={activity.data.book.title}
@@ -148,7 +148,7 @@ export default async function FeedPage() {
                     <p className="text-sm text-muted-foreground mb-1">
                       {activity.data.user.username || activity.data.user.email}
                     </p>
-                    <p className="font-medium">reviewed</p>
+                    <p className="font-medium">{t("reviewed")}</p>
                     <a
                       href={`/books/${activity.data.bookId}`}
                       className="text-lg font-semibold hover:underline"

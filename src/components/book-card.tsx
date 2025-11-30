@@ -40,6 +40,7 @@ interface BookCardProps {
 export function BookCard({ userBook }: BookCardProps) {
   const t = useTranslations("library");
   const tToast = useTranslations("toast");
+  const tCard = useTranslations("bookCard");
   const [showMenu, setShowMenu] = useState(false);
   const [showCollectionPopover, setShowCollectionPopover] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -97,7 +98,7 @@ export function BookCard({ userBook }: BookCardProps) {
     const result = await updateBookCurrentPage(userBook.id, newValue);
 
     if (result.error) {
-      toast.error("There was an error updating the current page");
+      toast.error(tToast("pageUpdateError"));
       return;
     }
 
@@ -141,7 +142,7 @@ export function BookCard({ userBook }: BookCardProps) {
                 onClick={() => handleStatusChange("want")}
                 disabled={isPending}
               >
-                Want to Read
+                {tCard("status.want")}
               </DropdownMenuItem>
             )}
             {userBook.status !== "reading" && (
@@ -149,7 +150,7 @@ export function BookCard({ userBook }: BookCardProps) {
                 onClick={() => handleStatusChange("reading")}
                 disabled={isPending}
               >
-                Currently Reading
+                {tCard("status.reading")}
               </DropdownMenuItem>
             )}
             {userBook.status !== "finished" && (
@@ -157,7 +158,7 @@ export function BookCard({ userBook }: BookCardProps) {
                 onClick={() => handleStatusChange("finished")}
                 disabled={isPending}
               >
-                Finished
+                {tCard("status.finished")}
               </DropdownMenuItem>
             )}
             <DropdownMenuSeparator />
@@ -182,7 +183,7 @@ export function BookCard({ userBook }: BookCardProps) {
               }}
             >
               <FolderPlus className="h-4 w-4 mr-2" />
-              Add to Collection
+              {tCard("addToCollection")}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
@@ -211,7 +212,7 @@ export function BookCard({ userBook }: BookCardProps) {
             />
           ) : (
             <div className="w-full h-64 bg-muted rounded-t-lg flex items-center justify-center text-muted-foreground hover:opacity-90 transition-opacity">
-              No cover
+              {tCard("noCover")}
             </div>
           )}
         </Link>
@@ -276,7 +277,7 @@ export function BookCard({ userBook }: BookCardProps) {
           <div className="w-full space-y-1">
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>
-                {userBook.currentPage || 0} / {userBook.book.pages} pages
+                {userBook.currentPage || 0} / {userBook.book.pages} {tCard("pages")}
               </span>
               <span>{progressPercentage}%</span>
             </div>
@@ -311,7 +312,7 @@ export function BookCard({ userBook }: BookCardProps) {
                 onClick={() => setShowCollectionPopover(false)}
               >
                 <FolderPlus className="mr-2 h-4 w-4" />
-                Select Collections
+                {tCard("selectCollections")}
               </Button>
             }
           />

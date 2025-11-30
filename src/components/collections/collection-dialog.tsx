@@ -28,6 +28,7 @@ import { Loader2 } from "lucide-react";
 import { DynamicIcon } from "lucide-react/dynamic";
 import { COLORS, DEFAULT_COLOR, getColorClass, type ColorValue } from "@/lib/colors";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 
 interface Collection {
   id: string;
@@ -54,6 +55,8 @@ export function CollectionDialog({
 }: CollectionDialogProps) {
   const isEditing = !!collection;
   const [isPending, startTransition] = useTransition();
+  const t = useTranslations("collections.dialog");
+  const tToast = useTranslations("collections.toast");
 
   const [formData, setFormData] = useState({
     name: collection?.name || "",
@@ -120,13 +123,13 @@ export function CollectionDialog({
       }
 
       setCoverImageUrl(result.publicUrl);
-      toast.success("Cover image uploaded successfully");
+      toast.success(tToast("coverUploaded"));
 
       // Clean up
       delete (window as any).__pendingUploadFile;
     } catch (error) {
       console.error("Error uploading image:", error);
-      toast.error("Failed to upload cover image");
+      toast.error(tToast("coverUploadFailed"));
       setCoverImageUrl(null);
     } finally {
       setIsUploadingImage(false);
@@ -142,7 +145,7 @@ export function CollectionDialog({
     e.preventDefault();
 
     if (!formData.name.trim()) {
-      toast.error("Collection name is required");
+      toast.error(tToast("nameRequired"));
       return;
     }
 
@@ -163,7 +166,7 @@ export function CollectionDialog({
             return;
           }
 
-          toast.success("Collection updated successfully");
+          toast.success(tToast("updated"));
         } else {
           // Create new collection
           const result = await createCollection({
@@ -212,7 +215,7 @@ export function CollectionDialog({
             }
           }
 
-          toast.success("Collection created successfully");
+          toast.success(tToast("created"));
         }
 
         onOpenChange(false);
@@ -231,7 +234,7 @@ export function CollectionDialog({
         setCoverImageUrl(null);
       } catch (error) {
         console.error("Error saving collection:", error);
-        toast.error("Failed to save collection");
+        toast.error(tToast("saveFailed"));
       }
     });
   };
@@ -242,39 +245,39 @@ export function CollectionDialog({
         <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>
-            {isEditing ? "Edit Collection" : "Create Collection"}
+            {isEditing ? t("editTitle") : t("createTitle")}
           </DialogTitle>
           <DialogDescription>
             {isEditing
-              ? "Update your collection details"
-              : "Create a custom collection to organize your books"}
+              ? t("editDescription")
+              : t("createDescription")}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Name *</Label>
+            <Label htmlFor="name">{t("nameLabel")}</Label>
             <Input
               id="name"
               value={formData.name}
               onChange={(e) =>
                 setFormData({ ...formData, name: e.target.value })
               }
-              placeholder="e.g., Summer Reading List"
+              placeholder={t("namePlaceholder")}
               required
               maxLength={100}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description">{t("descriptionLabel")}</Label>
             <Textarea
               id="description"
               value={formData.description}
               onChange={(e) =>
                 setFormData({ ...formData, description: e.target.value })
               }
-              placeholder="Optional description for your collection"
+              placeholder={t("descriptionPlaceholder")}
               rows={3}
               maxLength={500}
             />
@@ -283,7 +286,7 @@ export function CollectionDialog({
           <div className="space-y-4">
             {/* Color Theme */}
             <div className="space-y-2">
-              <Label>Color Theme</Label>
+              <Label>{t("colorLabel")}</Label>
               <Button
                 type="button"
                 variant="outline"
@@ -302,7 +305,7 @@ export function CollectionDialog({
 
             {/* Icon */}
             <div className="space-y-2">
-              <Label>Icon</Label>
+              <Label>{t("iconLabel")}</Label>
               <Button
                 type="button"
                 variant="outline"
@@ -316,7 +319,7 @@ export function CollectionDialog({
           </div>
 
           <div className="space-y-2">
-            <Label>Cover Image</Label>
+            <Label>{t("coverLabel")}</Label>
             <ImageUpload
               onUpload={handleImageUpload}
               currentImageUrl={coverImageUrl || undefined}
@@ -326,9 +329,9 @@ export function CollectionDialog({
 
           <div className="flex items-center justify-between rounded-lg border p-4">
             <div className="space-y-0.5">
-              <Label htmlFor="public">Public Collection</Label>
+              <Label htmlFor="public">{t("publicLabel")}</Label>
               <p className="text-sm text-muted-foreground">
-                Allow others to discover and follow this collection
+                {t("publicDescription")}
               </p>
             </div>
             <Switch
@@ -347,18 +350,18 @@ export function CollectionDialog({
               onClick={() => onOpenChange(false)}
               disabled={isPending || isUploadingImage}
             >
-              Cancel
+              {t("cancel")}
             </Button>
             <Button type="submit" disabled={isPending || isUploadingImage}>
               {isPending || isUploadingImage ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {isUploadingImage ? "Uploading..." : "Saving..."}
+                  {isUploadingImage ? t("uploading") : t("saving")}
                 </>
               ) : isEditing ? (
-                "Update Collection"
+                t("updateButton")
               ) : (
-                "Create Collection"
+                t("createButton")
               )}
             </Button>
           </DialogFooter>

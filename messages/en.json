@@ -20,7 +20,12 @@
     "feed": "Feed",
     "findUsers": "Find Users",
     "profile": "Profile",
-    "signIn": "Sign In"
+    "signIn": "Sign In",
+    "premium": "Premium",
+    "admin": "Admin",
+    "pricing": "Pricing",
+    "mobile": "Navigation",
+    "settings": "Settings"
   },
   "home": {
     "welcome": "Welcome to Echo",
@@ -261,6 +266,469 @@
   "footer": {
     "privacyPolicy": "Privacy Policy",
     "termsOfService": "Terms of Service",
-    "legalDocuments": "Legal Documents"
+    "legalDocuments": "Legal Documents",
+    "copyright": "© {year} Aerio, Aiken Tine Ahac s.p."
+  },
+  "pricing": {
+    "title": "Simple, Transparent Pricing",
+    "subtitle": "Start free and upgrade anytime. All premium plans include the same features.",
+    "free": {
+      "name": "Free",
+      "tagline": "Perfect for casual readers",
+      "price": "€0",
+      "period": "forever",
+      "features": {
+        "books": "50 books per year",
+        "booksDesc": "Track your reading progress",
+        "stats": "Reading stats & progress",
+        "statsDesc": "Monitor your reading habits",
+        "reviews": "Book reviews",
+        "reviewsDesc": "Share your thoughts",
+        "social": "Follow other readers",
+        "socialDesc": "Connect with the community"
+      },
+      "cta": "Get Started Free"
+    },
+    "premium": {
+      "name": "Echo Premium",
+      "badge": "Most Popular",
+      "tagline": "For passionate readers",
+      "price": "€1.99",
+      "period": "/ month",
+      "lifetime": "€19.99 for life",
+      "plusFeatures": "Everything in Free, plus:",
+      "features": {
+        "unlimited": "Unlimited books",
+        "unlimitedDesc": "No yearly limits on your library",
+        "collections": "Custom collections",
+        "collectionsDesc": "Organize books by theme, genre, or mood",
+        "support": "Priority support",
+        "supportDesc": "Get help faster when you need it",
+        "early": "Early access",
+        "earlyDesc": "Be first to try new features"
+      },
+      "cta": "Start Premium Trial"
+    },
+    "comparison": {
+      "title": "Feature Comparison",
+      "headers": {
+        "feature": "Feature",
+        "free": "Free",
+        "premium": "Premium"
+      },
+      "rows": {
+        "booksPerYear": "Books per year",
+        "unlimited": "Unlimited",
+        "tracking": "Reading progress tracking",
+        "reviews": "Book reviews",
+        "social": "Social features (follow users)",
+        "collections": "Custom collections",
+        "support": "Priority support",
+        "earlyAccess": "Early access to features"
+      }
+    },
+    "faq": {
+      "title": "Frequently Asked Questions",
+      "questions": {
+        "upgrade": {
+          "title": "Can I upgrade or downgrade anytime?",
+          "answer": "Yes! You can upgrade to Premium at any time. If you downgrade, you'll keep Premium features until the end of your billing period."
+        },
+        "limit": {
+          "title": "What happens if I reach the 50 book limit on Free?",
+          "answer": "You'll receive notifications as you approach the limit. Once reached, you can upgrade to Premium for unlimited books or wait until next year when your limit resets."
+        },
+        "refunds": {
+          "title": "Do you offer refunds?",
+          "answer": "We offer a 14-day money-back guarantee on all Premium plans. If you're not satisfied, contact our support team for a full refund."
+        },
+        "payment": {
+          "title": "What payment methods do you accept?",
+          "answer": "We accept all major credit cards (Visa, Mastercard, American Express) through our secure payment processor, Stripe."
+        }
+      }
+    },
+    "cta": {
+      "title": "Ready to start your reading journey?",
+      "subtitle": "Join thousands of readers tracking their favorite books",
+      "free": "Start Free",
+      "premium": "Try Premium"
+    }
+  },
+  "premium": {
+    "paywall": {
+      "title": "Upgrade to Premium for {feature}",
+      "features": {
+        "unlimited": "Unlimited Books",
+        "unlimitedDesc": "Add as many books as you want to your library",
+        "collections": "Custom Collections",
+        "collectionsDesc": "Organize your books into personalized collections",
+        "support": "Priority Support",
+        "supportDesc": "Get help faster when you need it"
+      },
+      "cta": "View Premium Plans",
+      "later": "Maybe Later"
+    },
+    "limit": {
+      "reached": "Limit Reached",
+      "approaching": "Approaching Limit",
+      "message": "You've used {booksAdded} of {limit} books this year.",
+      "upgrade": "Upgrade to add more books!"
+    }
+  },
+  "collections": {
+    "title": "Collections",
+    "dialog": {
+      "create": "Create Collection",
+      "edit": "Edit Collection",
+      "createDesc": "Create a custom collection to organize your books",
+      "editDesc": "Update your collection details",
+      "nameLabel": "Name *",
+      "namePlaceholder": "e.g., Summer Reading List",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Optional description for your collection",
+      "colorTheme": "Color Theme",
+      "selectColor": "Select color",
+      "icon": "Icon",
+      "coverImage": "Cover Image",
+      "publicLabel": "Public Collection",
+      "publicDesc": "Allow others to discover and follow this collection",
+      "cancel": "Cancel",
+      "create": "Create Collection",
+      "update": "Update Collection",
+      "uploading": "Uploading...",
+      "saving": "Saving..."
+    },
+    "addTo": {
+      "title": "Add to Collection",
+      "new": "New",
+      "empty": "No collections yet",
+      "emptyPremium": "Collections are a premium feature",
+      "createFirst": "Create your first collection",
+      "upgradePremium": "Upgrade to Premium"
+    },
+    "toast": {
+      "created": "Collection created successfully",
+      "updated": "Collection updated successfully",
+      "failed": "Failed to save collection",
+      "imageUploaded": "Cover image uploaded successfully",
+      "imageFailed": "Failed to upload cover image",
+      "nameRequired": "Collection name is required",
+      "addedTo": "Added to collection",
+      "removedFrom": "Removed from collection"
+    }
+  },
+  "subscription": {
+    "title": "Subscription",
+    "subtitle": "Manage your subscription and usage",
+    "currentPlan": "Current Plan",
+    "upgrade": "Upgrade",
+    "manageBilling": "Manage Billing",
+    "loading": "Loading...",
+    "error": "Failed to open billing portal",
+    "plan": {
+      "free": "Free",
+      "current": "Current Plan",
+      "processing": "Processing...",
+      "claim": "Claim This Plan",
+      "upgradeTo": "Upgrade to This Plan"
+    },
+    "features": {
+      "booksPerYear": "{count} books per year",
+      "unlimited": "Unlimited books",
+      "collections": "custom collections",
+      "collectionsCount": "{count} custom collections",
+      "earlyAccess": "Early access to new features",
+      "prioritySupport": "Priority support"
+    },
+    "success": {
+      "title": "Welcome to Premium!",
+      "subtitle": "Your subscription has been activated successfully",
+      "whatsNext": "What's next?",
+      "feature1": "You now have unlimited book tracking",
+      "feature2": "Add as many books as you want to your library",
+      "feature3": "Access to all future premium features",
+      "goToLibrary": "Go to Library",
+      "manageSubscription": "Manage Subscription"
+    },
+    "canceled": {
+      "title": "Checkout Canceled",
+      "subtitle": "You canceled the checkout process",
+      "message": "No worries! You can upgrade to Premium anytime to unlock unlimited book tracking and future premium features.",
+      "viewPlans": "View Plans",
+      "backToLibrary": "Back to Library"
+    },
+    "toast": {
+      "upgraded": "Successfully upgraded to the plan!",
+      "failed": "Failed to upgrade plan"
+    }
+  },
+  "usage": {
+    "title": "Usage This Year",
+    "booksAdded": "Books Added",
+    "books": "books",
+    "period": "Period:",
+    "limitReached": "You've reached your limit! Upgrade to add more books.",
+    "approaching": "You're approaching your limit. Consider upgrading to Premium!",
+    "loading": "Loading..."
+  },
+  "bookCard": {
+    "noCover": "No cover",
+    "pages": "pages",
+    "status": {
+      "want": "Want to Read",
+      "reading": "Currently Reading",
+      "finished": "Finished"
+    },
+    "addToCollection": "Add to Collection",
+    "selectCollections": "Select Collections",
+    "error": "There was an error updating the current page"
+  },
+  "pageEdit": {
+    "currentPage": "Current Page",
+    "pageCount": "Page Count",
+    "error": "There was an error updating the page count"
+  },
+  "admin": {
+    "table": {
+      "name": "Name",
+      "price": "Price",
+      "interval": "Interval",
+      "features": "Features",
+      "status": "Status",
+      "visibility": "Visibility",
+      "stripePriceId": "Stripe Price ID",
+      "actions": "Actions",
+      "active": "Active",
+      "inactive": "Inactive",
+      "internal": "Internal",
+      "public": "Public",
+      "free": "Free",
+      "unlimited": "Unlimited"
+    }
+  },
+  "validation": {
+    "usernameMin": "Username must be at least 3 characters long",
+    "usernameMax": "Username must be at most 30 characters long",
+    "usernameFormat": "Only letters, numbers, underscores (_), and dots (.) allowed. 3-30 characters.",
+    "usernameRules": "Only letters, numbers, underscores (_), and dots (.) allowed. 3-30 characters."
+  },
+  "booksSearch": {
+    "title": "Search Books"
+  },
+  "usersSearch": {
+    "title": "Search Users"
+  },
+  "feed": {
+    "title": "Activity Feed",
+    "empty": "Your feed is empty!",
+    "emptyDescription": "Follow other users to see their reading activity here.",
+    "findUsers": "Find Users to Follow",
+    "finished": "finished reading",
+    "started": "started reading",
+    "reviewed": "reviewed"
+  },
+  "settings": {
+    "title": "Settings",
+    "description": "Manage your account settings and preferences",
+    "account": "Account Information",
+    "email": "Email",
+    "username": "Username",
+    "subscription": "Subscription",
+    "currentPlan": "Current Plan",
+    "price": "Price",
+    "free": "Free",
+    "expires": "Expires",
+    "renews": "Renews",
+    "lifetime": "You have lifetime access! No renewal required.",
+    "features": "Features",
+    "booksPerYear": "{count} books per year",
+    "unlimitedBooks": "Unlimited books",
+    "earlyAccess": "Early access to new features",
+    "prioritySupport": "Priority support",
+    "notAvailable": "Not available",
+    "notSet": "Not set"
+  },
+  "subscriptionPage": {
+    "title": "Subscription",
+    "description": "Manage your subscription and usage",
+    "currentPlan": "Current Plan",
+    "upgrade": "Upgrade"
+  },
+  "subscriptionSuccess": {
+    "title": "Welcome to Premium!",
+    "subtitle": "Your subscription has been activated successfully",
+    "whatsNext": "What's next?",
+    "feature1": "You now have unlimited book tracking",
+    "feature1Desc": "Add as many books as you want to your library",
+    "feature2": "Access to all future premium features",
+    "goToLibrary": "Go to Library",
+    "manageSubscription": "Manage Subscription"
+  },
+  "searchBooks": {
+    "loadingMore": "Loading more...",
+    "loadMore": "Load More Results",
+    "showing": "Showing {count} result",
+    "showingPlural": "Showing {count} results"
+  },
+  "bookDetails": {
+    "addedToFavorites": "Added to favorites",
+    "removedFromFavorites": "Removed from favorites",
+    "removed": "Removed \"{title}\" from library",
+    "published": "Published:",
+    "pages": "Pages:",
+    "isbn": "ISBN:",
+    "started": "Started: {date}",
+    "finished": "Finished: {date}",
+    "removeFromFavorites": "Remove from Favorites",
+    "addToFavorites": "Add to Favorites",
+    "removeFromLibrary": "Remove from library",
+    "private": "Private",
+    "public": "Public",
+    "noReview": "You haven't written a review yet.",
+    "reviewsFromFollowing": "Reviews from People You Follow"
+  },
+  "profileStats": {
+    "booksThisYear": "Books This Year",
+    "pagesRead": "Pages Read",
+    "dayStreak": "Day Streak"
+  },
+  "userSearch": {
+    "searchPlaceholder": "Search by username or email...",
+    "searchButton": "Search",
+    "following": "Following",
+    "follow": "Follow",
+    "noResults": "No users found. Try a different search term.",
+    "enterSearch": "Enter a username or email to search for users."
+  },
+  "editProfile": {
+    "usernameMin": "Username must be at least 3 characters long",
+    "usernameMax": "Username must be at most 30 characters long",
+    "usernameRules": "Only letters, numbers, underscores (_), and dots (.) allowed. 3-30 characters."
+  },
+  "imageUpload": {
+    "invalidFile": "Please select a valid image file (JPEG, PNG, or WebP)",
+    "fileTooLarge": "Image size must be less than {maxSize}MB",
+    "processingError": "Failed to process image. Please try again.",
+    "processing": "Processing image...",
+    "clickToUpload": "Click to upload cover image",
+    "formatInfo": "JPEG, PNG, or WebP (max {maxSize}MB)",
+    "coverPreview": "Collection cover preview"
+  },
+  "bookListItem": {
+    "pageUpdateError": "There was an error updating the current page",
+    "noCover": "No cover"
+  },
+  "pageEditPopover": {
+    "error": "There was an error updating the page count",
+    "currentPage": "Current Page",
+    "pageCount": "Page Count"
+  },
+  "subscriptionCard": {
+    "noSubscription": "No active subscription",
+    "manageBilling": "Manage Billing",
+    "loading": "Loading..."
+  },
+  "adminDashboard": {
+    "title": "Admin Dashboard",
+    "description": "Overview of your application statistics",
+    "totalUsers": "Total Users",
+    "newUsers": "{count} new in last 30 days",
+    "totalBooks": "Total Books",
+    "booksInCatalog": "Books in catalog",
+    "totalReviews": "Total Reviews",
+    "userReviews": "User-generated reviews",
+    "booksInLibraries": "Books in Libraries",
+    "userBookRelationships": "Total user-book relationships",
+    "mostPopular": "Most Popular Books",
+    "mostPopularDesc": "Books added to the most user libraries",
+    "recentUsers": "Recent Users",
+    "recentUsersDesc": "Newest registered users",
+    "title_header": "Title",
+    "author": "Author",
+    "users": "Users",
+    "email": "Email",
+    "username": "Username",
+    "role": "Role"
+  },
+  "adminTables": {
+    "cover": "Cover",
+    "title": "Title",
+    "author": "Author",
+    "isbn": "ISBN",
+    "pages": "Pages",
+    "year": "Year",
+    "users": "Users",
+    "noBooksFound": "No books found",
+    "totalBooks": "Total books in catalog: {count}",
+    "searchUsers": "Search users...",
+    "filterByRole": "Filter by role",
+    "allRoles": "All Roles",
+    "user": "User",
+    "moderator": "Moderator",
+    "admin": "Admin",
+    "email": "Email",
+    "username": "Username",
+    "subscription": "Subscription",
+    "role": "Role",
+    "joined": "Joined",
+    "actions": "Actions",
+    "noUsersFound": "No users found",
+    "roleUpdated": "User role updated successfully",
+    "roleUpdateFailed": "Failed to update user role",
+    "deleteConfirm": "Are you sure you want to delete user {email}? This action cannot be undone.",
+    "userDeleted": "User deleted successfully",
+    "userDeleteFailed": "Failed to delete user",
+    "showingUsers": "Showing {filtered} of {total} users"
+  },
+  "adminReview": {
+    "deleteConfirm": "Are you sure you want to delete this review? This action cannot be undone.",
+    "deleted": "Review deleted successfully",
+    "deleteFailed": "Failed to delete review",
+    "delete": "Delete"
+  },
+  "adminApi": {
+    "invalidJson": "Invalid JSON in request body",
+    "pathCopied": "Path copied to clipboard",
+    "title": "API Endpoints",
+    "queryParams": "Query Parameters",
+    "requestBody": "Enter JSON request body",
+    "sending": "Sending Request...",
+    "send": "Send Request",
+    "response": "Response ({status} {statusText})",
+    "documentation": "Documentation",
+    "requestSchema": "Request Schema",
+    "responses": "Responses"
+  },
+  "adminStats": {
+    "increase": "↑",
+    "decrease": "↓",
+    "fromLastMonth": "from last month"
+  },
+  "colorPicker": {
+    "title": "Choose a Color",
+    "description": "Select a color theme for your collection"
+  },
+  "iconPicker": {
+    "title": "Choose an Icon",
+    "description": "Select from {count} curated book-related icons",
+    "searchPlaceholder": "Search icons...",
+    "clear": "Clear",
+    "found": "Found {count} icon",
+    "foundPlural": "Found {count} icons",
+    "noResults": "No icons found",
+    "tryDifferent": "Try a different search term"
+  },
+  "collectionIsland": {
+    "bookCount": "{count} book",
+    "bookCountPlural": "{count} books",
+    "empty": "No books in this collection yet",
+    "emptyDescription": "Add books from your library to get started"
+  },
+  "progressTracker": {
+    "title": "Progress"
+  },
+  "footer": {
+    "followTwitter": "Follow on X (Twitter)"
   }
 }

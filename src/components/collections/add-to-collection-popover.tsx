@@ -19,6 +19,7 @@ import {
 import { toast } from "sonner";
 import { CollectionDialog } from "./collection-dialog";
 import { PremiumPaywallDialog } from "@/components/premium-paywall-dialog";
+import { useTranslations } from "next-intl";
 
 interface Collection {
   id: string;
@@ -38,6 +39,8 @@ export function AddToCollectionPopover({
   userBookId,
   trigger,
 }: AddToCollectionPopoverProps) {
+  const t = useTranslations("collections.addTo");
+  const tToast = useTranslations("collections.toast");
   const [open, setOpen] = useState(false);
   const [collections, setCollections] = useState<Collection[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -68,7 +71,7 @@ export function AddToCollectionPopover({
         setCollections(result.collections);
       }
     } catch (error) {
-      toast.error("Failed to load collections");
+      toast.error(tToast("loadFailed"));
     } finally {
       setIsLoading(false);
     }
@@ -90,7 +93,7 @@ export function AddToCollectionPopover({
         if (result.error) {
           toast.error(result.error);
         } else {
-          toast.success("Removed from collection");
+          toast.success(tToast("removed"));
           await loadCollections();
         }
       } else {
@@ -99,12 +102,12 @@ export function AddToCollectionPopover({
         if (result.error) {
           toast.error(result.error);
         } else {
-          toast.success("Added to collection");
+          toast.success(tToast("added"));
           await loadCollections();
         }
       }
     } catch (error) {
-      toast.error("Failed to update collection");
+      toast.error(tToast("updateFailed"));
     } finally {
       setProcessingIds((prev) => {
         const next = new Set(prev);
@@ -135,7 +138,7 @@ export function AddToCollectionPopover({
           {trigger || (
             <Button variant="outline" size="sm">
               <Plus className="mr-2 h-4 w-4" />
-              Add to Collection
+              {t("button")}
             </Button>
           )}
         </PopoverTrigger>
@@ -143,7 +146,7 @@ export function AddToCollectionPopover({
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <h4 className="font-semibold">Add to Collection</h4>
+                <h4 className="font-semibold">{t("title")}</h4>
                 {!hasPremium && (
                   <Crown className="h-3 w-3 text-yellow-600" />
                 )}
@@ -152,10 +155,10 @@ export function AddToCollectionPopover({
                 variant="ghost"
                 size="sm"
                 onClick={handleCreateClick}
-                title={hasPremium ? "Create new collection" : "Premium feature"}
+                title={hasPremium ? t("createTooltip") : t("premiumTooltip")}
               >
                 <FolderPlus className="mr-2 h-4 w-4" />
-                New
+                {t("new")}
               </Button>
             </div>
 
@@ -166,7 +169,7 @@ export function AddToCollectionPopover({
             ) : collections.length === 0 ? (
               <div className="py-8 text-center">
                 <p className="text-sm text-muted-foreground">
-                  {hasPremium ? "No collections yet" : "Collections are a premium feature"}
+                  {hasPremium ? t("noCollections") : t("premiumFeature")}
                 </p>
                 <Button
                   variant="link"
@@ -174,7 +177,7 @@ export function AddToCollectionPopover({
                   onClick={handleCreateClick}
                   className="mt-2"
                 >
-                  {hasPremium ? "Create your first collection" : "Upgrade to Premium"}
+                  {hasPremium ? t("createFirst") : t("upgradeToPremium")}
                 </Button>
               </div>
             ) : (

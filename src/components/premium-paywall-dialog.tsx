@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Crown, Sparkles } from "lucide-react";
 import { useRouter } from "@/i18n/routing";
+import { useTranslations } from "next-intl";
 
 interface PremiumPaywallDialogProps {
   open: boolean;
@@ -26,6 +27,7 @@ export function PremiumPaywallDialog({
   description = "Create and organize custom collections to group your books by theme, genre, or any category you choose.",
 }: PremiumPaywallDialogProps) {
   const router = useRouter();
+  const t = useTranslations("premium.paywall");
 
   const handleUpgrade = () => {
     onOpenChange(false);
@@ -40,7 +42,7 @@ export function PremiumPaywallDialog({
             <Crown className="h-6 w-6 text-primary" />
           </div>
           <DialogTitle className="text-center">
-            Upgrade to Premium for {feature}
+            {t("title", { feature })}
           </DialogTitle>
           <DialogDescription className="text-center pt-2">
             {description}
@@ -51,27 +53,27 @@ export function PremiumPaywallDialog({
           <div className="flex items-start gap-3">
             <Sparkles className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
             <div>
-              <p className="font-semibold text-sm">Unlimited Books</p>
+              <p className="font-semibold text-sm">{t("benefits.unlimited.title")}</p>
               <p className="text-sm text-muted-foreground">
-                Add as many books as you want to your library
+                {t("benefits.unlimited.description")}
               </p>
             </div>
           </div>
           <div className="flex items-start gap-3">
             <Sparkles className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
             <div>
-              <p className="font-semibold text-sm">Custom Collections</p>
+              <p className="font-semibold text-sm">{t("benefits.collections.title")}</p>
               <p className="text-sm text-muted-foreground">
-                Organize your books into personalized collections
+                {t("benefits.collections.description")}
               </p>
             </div>
           </div>
           <div className="flex items-start gap-3">
             <Sparkles className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
             <div>
-              <p className="font-semibold text-sm">Priority Support</p>
+              <p className="font-semibold text-sm">{t("benefits.support.title")}</p>
               <p className="text-sm text-muted-foreground">
-                Get help faster when you need it
+                {t("benefits.support.description")}
               </p>
             </div>
           </div>
@@ -83,11 +85,11 @@ export function PremiumPaywallDialog({
             onClick={() => onOpenChange(false)}
             className="w-full sm:w-auto"
           >
-            Maybe Later
+            {t("maybeLater")}
           </Button>
           <Button onClick={handleUpgrade} className="w-full sm:w-auto">
             <Crown className="mr-2 h-4 w-4" />
-            View Premium Plans
+            {t("viewPlans")}
           </Button>
         </DialogFooter>
       </DialogContent>
