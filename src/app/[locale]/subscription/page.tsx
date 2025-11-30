@@ -7,10 +7,11 @@ import { SubscriptionCard } from "@/components/subscription-card";
 import { PlanSelector } from "@/components/plan-selector";
 import { UsageDisplay } from "@/components/usage-display";
 
-export default async function SubscriptionPage({ params }: { params: { locale: string } }) {
+export default async function SubscriptionPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
   const { userId } = await auth();
   if (!userId) {
-    redirect({ href: "/", locale: params.locale });
+    redirect({ href: "/", locale });
   }
 
   const user = await db.query.users.findFirst({
@@ -25,7 +26,7 @@ export default async function SubscriptionPage({ params }: { params: { locale: s
   // Redirect users with paid plans to settings page (including free lifetime plans)
   const hasPaidPlan = subscription?.plan && (subscription.plan.price > 0 || subscription.plan.stripePriceId !== null || subscription.plan.interval === "lifetime");
   if (hasPaidPlan) {
-    redirect({ href: "/settings", locale: params.locale });
+    redirect({ href: "/settings", locale });
   }
 
   const availablePlans = await db.query.subscriptionPlans.findMany({

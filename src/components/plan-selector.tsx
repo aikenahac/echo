@@ -95,10 +95,22 @@ export function PlanSelector({
               <ul className="space-y-2">
                 <li className="flex items-center gap-2 text-sm">
                   <Check className="h-4 w-4 text-primary" />
-                  {features.maxBooksPerYear
-                    ? `${features.maxBooksPerYear} books per year`
-                    : "Unlimited books"}
+                  <span className={!features.maxBooksPerYear ? "font-semibold" : ""}>
+                    {features.maxBooksPerYear
+                      ? `${features.maxBooksPerYear} books per year`
+                      : "Unlimited books"}
+                  </span>
                 </li>
+                {(features.customCollections || features.maxCollections) && (
+                  <li className="flex items-center gap-2 text-sm">
+                    <Check className="h-4 w-4 text-primary" />
+                    <span className="font-semibold">
+                      {features.maxCollections
+                        ? `${features.maxCollections} custom collections`
+                        : "Custom collections"}
+                    </span>
+                  </li>
+                )}
                 {features.earlyAccess && (
                   <li className="flex items-center gap-2 text-sm">
                     <Check className="h-4 w-4 text-primary" />

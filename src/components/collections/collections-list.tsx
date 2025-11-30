@@ -3,10 +3,11 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus, Loader2, Crown } from "lucide-react";
 import { CollectionSidebarItem } from "./collection-sidebar-item";
 import { CollectionDialog } from "./collection-dialog";
-import { getUserCollections } from "@/app/[locale]/actions/collections";
+import { PremiumPaywallDialog } from "@/components/premium-paywall-dialog";
+import { getUserCollections, hasCollectionAccess } from "@/app/[locale]/actions/collections";
 
 interface Collection {
   id: string;
@@ -24,6 +25,8 @@ export function CollectionsList() {
   const [collections, setCollections] = useState<Collection[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
+  const [hasPremium, setHasPremium] = useState(false);
 
   const loadCollections = async () => {
     setIsLoading(true);
@@ -39,12 +42,26 @@ export function CollectionsList() {
     }
   };
 
+  const checkPremiumAccess = async () => {
+    const result = await hasCollectionAccess();
+    setHasPremium(result.hasAccess || false);
+  };
+
   useEffect(() => {
     loadCollections();
+    checkPremiumAccess();
   }, []);
 
   const handleUpdate = () => {
     loadCollections();
+  };
+
+  const handleCreateClick = () => {
+    if (!hasPremium) {
+      setShowPaywall(true);
+    } else {
+      setShowCreateDialog(true);
+    }
   };
 
   return (
@@ -53,15 +70,20 @@ export function CollectionsList() {
 
       <div className="space-y-2">
         <div className="flex items-center justify-between px-2">
-          <h3 className="text-sm font-semibold text-muted-foreground">
-            Collections
-          </h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-semibold text-muted-foreground">
+              Collections
+            </h3>
+            {!hasPremium && (
+              <Crown className="h-3 w-3 text-yellow-600" />
+            )}
+          </div>
           <Button
             variant="ghost"
             size="icon"
             className="h-6 w-6"
-            onClick={() => setShowCreateDialog(true)}
-            title="Create collection"
+            onClick={handleCreateClick}
+            title={hasPremium ? "Create collection" : "Premium feature"}
           >
             <Plus className="h-4 w-4" />
           </Button>
@@ -79,10 +101,10 @@ export function CollectionsList() {
             <Button
               variant="link"
               size="sm"
-              onClick={() => setShowCreateDialog(true)}
+              onClick={handleCreateClick}
               className="mt-1"
             >
-              Create your first
+              {hasPremium ? "Create your first" : "Upgrade to create"}
             </Button>
           </div>
         ) : (
@@ -102,6 +124,13 @@ export function CollectionsList() {
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
         onSuccess={handleUpdate}
+      />
+
+      <PremiumPaywallDialog
+        open={showPaywall}
+        onOpenChange={setShowPaywall}
+        feature="Custom Collections"
+        description="Create and organize custom collections to group your books by theme, genre, or any category you choose."
       />
     </>
   );

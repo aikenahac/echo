@@ -9,14 +9,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Loader2, FolderPlus } from "lucide-react";
+import { Plus, Loader2, FolderPlus, Crown } from "lucide-react";
 import {
   getUserCollections,
   addBookToCollection,
   removeBookFromCollection,
+  hasCollectionAccess,
 } from "@/app/[locale]/actions/collections";
 import { toast } from "sonner";
 import { CollectionDialog } from "./collection-dialog";
+import { PremiumPaywallDialog } from "@/components/premium-paywall-dialog";
 
 interface Collection {
   id: string;
@@ -41,12 +43,20 @@ export function AddToCollectionPopover({
   const [isLoading, setIsLoading] = useState(false);
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
+  const [hasPremium, setHasPremium] = useState(false);
 
   useEffect(() => {
     if (open) {
       loadCollections();
+      checkPremiumAccess();
     }
   }, [open]);
+
+  const checkPremiumAccess = async () => {
+    const result = await hasCollectionAccess();
+    setHasPremium(result.hasAccess || false);
+  };
 
   const loadCollections = async () => {
     setIsLoading(true);
@@ -109,6 +119,15 @@ export function AddToCollectionPopover({
     loadCollections();
   };
 
+  const handleCreateClick = () => {
+    if (!hasPremium) {
+      setShowPaywall(true);
+      setOpen(false);
+    } else {
+      setShowCreateDialog(true);
+    }
+  };
+
   return (
     <>
       <Popover open={open} onOpenChange={setOpen}>
@@ -123,11 +142,17 @@ export function AddToCollectionPopover({
         <PopoverContent className="w-80" align="start">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h4 className="font-semibold">Add to Collection</h4>
+              <div className="flex items-center gap-2">
+                <h4 className="font-semibold">Add to Collection</h4>
+                {!hasPremium && (
+                  <Crown className="h-3 w-3 text-yellow-600" />
+                )}
+              </div>
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setShowCreateDialog(true)}
+                onClick={handleCreateClick}
+                title={hasPremium ? "Create new collection" : "Premium feature"}
               >
                 <FolderPlus className="mr-2 h-4 w-4" />
                 New
@@ -141,15 +166,15 @@ export function AddToCollectionPopover({
             ) : collections.length === 0 ? (
               <div className="py-8 text-center">
                 <p className="text-sm text-muted-foreground">
-                  No collections yet
+                  {hasPremium ? "No collections yet" : "Collections are a premium feature"}
                 </p>
                 <Button
                   variant="link"
                   size="sm"
-                  onClick={() => setShowCreateDialog(true)}
+                  onClick={handleCreateClick}
                   className="mt-2"
                 >
-                  Create your first collection
+                  {hasPremium ? "Create your first collection" : "Upgrade to Premium"}
                 </Button>
               </div>
             ) : (
@@ -201,6 +226,13 @@ export function AddToCollectionPopover({
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
         onSuccess={handleCreateSuccess}
+      />
+
+      <PremiumPaywallDialog
+        open={showPaywall}
+        onOpenChange={setShowPaywall}
+        feature="Custom Collections"
+        description="Create and organize custom collections to group your books by theme, genre, or any category you choose."
       />
     </>
   );
