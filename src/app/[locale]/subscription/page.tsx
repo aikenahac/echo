@@ -2,7 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "@/i18n/routing";
 import { db } from "@/db";
 import { users, userSubscriptions, subscriptionPlans } from "@/db/schema";
-import { eq, asc } from "drizzle-orm";
+import { eq, asc, and } from "drizzle-orm";
 import { SubscriptionCard } from "@/components/subscription-card";
 import { PlanSelector } from "@/components/plan-selector";
 import { UsageDisplay } from "@/components/usage-display";
@@ -22,8 +22,17 @@ export default async function SubscriptionPage({ params }: { params: { locale: s
     with: { plan: true },
   });
 
+  // Redirect users with paid plans to settings page (including free lifetime plans)
+  const hasPaidPlan = subscription?.plan && (subscription.plan.price > 0 || subscription.plan.stripePriceId !== null || subscription.plan.interval === "lifetime");
+  if (hasPaidPlan) {
+    redirect({ href: "/settings", locale: params.locale });
+  }
+
   const availablePlans = await db.query.subscriptionPlans.findMany({
-    where: eq(subscriptionPlans.isActive, true),
+    where: and(
+      eq(subscriptionPlans.isActive, true),
+      eq(subscriptionPlans.isInternal, false)
+    ),
     orderBy: [asc(subscriptionPlans.sortOrder)],
   });
 

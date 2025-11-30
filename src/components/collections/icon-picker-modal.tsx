@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, Book } from "lucide-react";
+import { Search } from "lucide-react";
 import { DynamicIcon } from "lucide-react/dynamic";
 import { cn } from "@/lib/utils";
 import { useDebounce } from "@/hooks/use-debounce";

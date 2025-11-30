@@ -21,6 +21,7 @@ interface Plan {
   interval: string;
   features: string | null;
   isActive: boolean;
+  isInternal: boolean;
   stripePriceId: string | null;
   stripeProductId: string | null;
   sortOrder: number;
@@ -40,6 +41,7 @@ export function SubscriptionPlansTable({ plans }: { plans: Plan[] }) {
               <TableHead>Interval</TableHead>
               <TableHead>Features</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Visibility</TableHead>
               <TableHead>Stripe Price ID</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -70,6 +72,11 @@ export function SubscriptionPlansTable({ plans }: { plans: Plan[] }) {
                   <TableCell>
                     <Badge variant={plan.isActive ? "default" : "secondary"}>
                       {plan.isActive ? "Active" : "Inactive"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={plan.isInternal ? "outline" : "default"}>
+                      {plan.isInternal ? "Internal" : "Public"}
                     </Badge>
                   </TableCell>
                   <TableCell className="font-mono text-xs">

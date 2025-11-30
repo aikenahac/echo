@@ -45,10 +45,6 @@ export const users = pgTable(
     username: text("username").unique(),
     bio: text("bio"),
     role: userRoleEnum("role").default("user").notNull(),
-    isPremium: boolean("is_premium").default(false).notNull(),
-    stripeCustomerId: text("stripe_customer_id"),
-    premiumSince: timestamp("premium_since"),
-    subscriptionAnniversary: timestamp("subscription_anniversary"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
@@ -179,12 +175,13 @@ export const subscriptionPlans = pgTable(
   {
     id: uuid("id").defaultRandom().primaryKey(),
     name: text("name").notNull(),
-    stripePriceId: text("stripe_price_id").unique(),
+    stripePriceId: text("stripe_price_id").unique(), // Nullable for free/internal plans
     stripeProductId: text("stripe_product_id"),
     price: integer("price").notNull().default(0), // Price in cents
     interval: billingIntervalEnum("interval").notNull().default("free"),
     features: text("features"), // JSON string: {"maxBooksPerYear": 50}
     isActive: boolean("is_active").default(true).notNull(),
+    isInternal: boolean("is_internal").default(false).notNull(), // Internal plans not shown on subscription page
     sortOrder: integer("sort_order").default(0).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),

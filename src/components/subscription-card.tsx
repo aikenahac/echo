@@ -73,14 +73,20 @@ export function SubscriptionCard({
       <CardContent className="space-y-4">
         <div>
           <p className="text-2xl font-bold">
-            €{(plan.price / 100).toFixed(2)}
-            <span className="text-sm text-muted-foreground font-normal">
-              /{plan.interval}
-            </span>
+            {plan.price === 0 ? (
+              "Free"
+            ) : (
+              <>
+                €{(plan.price / 100).toFixed(2)}
+                <span className="text-sm text-muted-foreground font-normal">
+                  /{plan.interval === "lifetime" ? "lifetime" : plan.interval}
+                </span>
+              </>
+            )}
           </p>
         </div>
 
-        {currentPeriodEnd && (
+        {currentPeriodEnd && plan.interval !== "lifetime" && (
           <div className="text-sm">
             <p className="text-muted-foreground">
               {cancelAtPeriodEnd ? "Expires" : "Renews"} on{" "}

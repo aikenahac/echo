@@ -318,6 +318,7 @@ export async function updateSubscriptionPlan(
     interval: "month" | "year" | "lifetime" | "free";
     features: string;
     isActive: boolean;
+    isInternal: boolean;
     sortOrder: number;
   }>,
 ) {

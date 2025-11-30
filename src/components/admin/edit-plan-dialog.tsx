@@ -24,6 +24,7 @@ interface Plan {
   interval: string;
   features: string | null;
   isActive: boolean;
+  isInternal: boolean;
   stripePriceId: string | null;
   stripeProductId: string | null;
   sortOrder: number;
@@ -47,6 +48,7 @@ export function EditPlanDialog({
     stripeProductId: plan.stripeProductId || "",
     features: plan.features || "{}",
     isActive: plan.isActive,
+    isInternal: plan.isInternal,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -61,6 +63,7 @@ export function EditPlanDialog({
         stripeProductId: formData.stripeProductId || null,
         features: formData.features,
         isActive: formData.isActive,
+        isInternal: formData.isInternal,
       });
 
       if (result.error) {
@@ -161,12 +164,33 @@ export function EditPlanDialog({
             </div>
 
             <div className="flex items-center justify-between">
-              <Label htmlFor="isActive">Active</Label>
+              <div className="space-y-0.5">
+                <Label htmlFor="isActive">Active</Label>
+                <p className="text-xs text-muted-foreground">
+                  Inactive plans cannot be purchased
+                </p>
+              </div>
               <Switch
                 id="isActive"
                 checked={formData.isActive}
                 onCheckedChange={(checked) =>
                   setFormData({ ...formData, isActive: checked })
+                }
+              />
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label htmlFor="isInternal">Internal Only</Label>
+                <p className="text-xs text-muted-foreground">
+                  Internal plans are not shown on the subscription page
+                </p>
+              </div>
+              <Switch
+                id="isInternal"
+                checked={formData.isInternal}
+                onCheckedChange={(checked) =>
+                  setFormData({ ...formData, isInternal: checked })
                 }
               />
             </div>

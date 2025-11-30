@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Check, Loader2 } from "lucide-react";
-import { createCheckoutSession } from "@/app/[locale]/actions/subscriptions";
+import { createCheckoutSession, upgradeToFreePlan } from "@/app/[locale]/actions/subscriptions";
 import { toast } from "sonner";
 
 interface Plan {
@@ -14,6 +14,7 @@ interface Plan {
   interval: string;
   features: string | null;
   isActive: boolean;
+  stripePriceId: string | null;
 }
 
 export function PlanSelector({
@@ -25,18 +26,29 @@ export function PlanSelector({
 }) {
   const [loading, setLoading] = useState<string | null>(null);
 
-  const handleUpgrade = async (planId: string) => {
+  const handleUpgrade = async (planId: string, isFree: boolean) => {
     setLoading(planId);
     try {
-      const result = await createCheckoutSession(planId);
-
-      if (result.error) {
-        toast.error(result.error);
-      } else if (result.url) {
-        window.location.href = result.url;
+      if (isFree) {
+        // Direct upgrade to free plan
+        const result = await upgradeToFreePlan(planId);
+        if (result.error) {
+          toast.error(result.error);
+        } else {
+          toast.success("Successfully upgraded to the plan!");
+          window.location.reload();
+        }
+      } else {
+        // Stripe checkout for paid plans
+        const result = await createCheckoutSession(planId);
+        if (result.error) {
+          toast.error(result.error);
+        } else if (result.url) {
+          window.location.href = result.url;
+        }
       }
     } catch (error) {
-      toast.error("Failed to start checkout");
+      toast.error("Failed to upgrade plan");
     } finally {
       setLoading(null);
     }
@@ -47,7 +59,7 @@ export function PlanSelector({
       {plans.map((plan) => {
         const features = plan.features ? JSON.parse(plan.features) : {};
         const isCurrent = plan.id === currentPlanId;
-        const isFree = plan.interval === "free";
+        const isFree = !plan.stripePriceId; // Free plans don't have Stripe price ID
 
         return (
           <Card
@@ -67,10 +79,16 @@ export function PlanSelector({
             <CardContent className="space-y-4">
               <div>
                 <p className="text-3xl font-bold">
-                  €{(plan.price / 100).toFixed(2)}
-                  <span className="text-sm text-muted-foreground font-normal">
-                    /{plan.interval}
-                  </span>
+                  {plan.price === 0 ? (
+                    "Free"
+                  ) : (
+                    <>
+                      €{(plan.price / 100).toFixed(2)}
+                      <span className="text-sm text-muted-foreground font-normal">
+                        /{plan.interval}
+                      </span>
+                    </>
+                  )}
                 </p>
               </div>
 
@@ -95,17 +113,20 @@ export function PlanSelector({
                 )}
               </ul>
 
-              {!isCurrent && !isFree && (
+              {!isCurrent && (
                 <Button
                   className="w-full"
-                  onClick={() => handleUpgrade(plan.id)}
+                  onClick={() => handleUpgrade(plan.id, isFree)}
                   disabled={loading === plan.id}
+                  variant={isFree ? "default" : "default"}
                 >
                   {loading === plan.id ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Processing...
                     </>
+                  ) : isFree ? (
+                    "Claim This Plan"
                   ) : (
                     "Upgrade to This Plan"
                   )}

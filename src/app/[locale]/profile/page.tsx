@@ -4,12 +4,14 @@ import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
 import { db } from "@/db";
-import { users, userBooks } from "@/db/schema";
+import { users, userBooks, userSubscriptions } from "@/db/schema";
 import { eq, and, gte } from "drizzle-orm";
 import { sql } from "drizzle-orm";
-import { Heart } from "lucide-react";
+import { Heart, Settings } from "lucide-react";
 import { ProfileStats } from "@/components/profile-stats";
 import { EditProfileForm } from "@/components/edit-profile-form";
+import { Link } from "@/i18n/routing";
+import { Button } from "@/components/ui/button";
 
 export default async function ProfilePage() {
   const t = await getTranslations("profile");
@@ -36,6 +38,13 @@ export default async function ProfilePage() {
   if (!user) {
     redirect("/");
   }
+
+  // Check if user has a paid plan to show settings link
+  const subscription = await db.query.userSubscriptions.findFirst({
+    where: eq(userSubscriptions.userId, userId),
+    with: { plan: true },
+  });
+  const hasPaidPlan = subscription?.plan && (subscription.plan.price > 0 || subscription.plan.stripePriceId !== null || subscription.plan.interval === "lifetime");
 
   // Get current year start date
   const currentYearStart = new Date(new Date().getFullYear(), 0, 1);
@@ -88,9 +97,19 @@ export default async function ProfilePage() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
       <div className="space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold mb-2">{t("title")}</h1>
-          <p className="text-muted-foreground">{user.email}</p>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">{t("title")}</h1>
+            <p className="text-muted-foreground">{user.email}</p>
+          </div>
+          {hasPaidPlan && (
+            <Link href="/settings">
+              <Button variant="outline" size="sm">
+                <Settings className="h-4 w-4 mr-2" />
+                Settings
+              </Button>
+            </Link>
+          )}
         </div>
 
         <ProfileStats

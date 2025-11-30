@@ -6,7 +6,7 @@ import { books, userBooks, users } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import type { NormalizedBook } from "@/lib/books";
-import { canAddBook, incrementBookUsage } from "./subscriptions";
+import { canAddBook, incrementBookUsage, assignFreePlanToUser } from "./subscriptions";
 
 export type ReadingStatus = "want" | "reading" | "finished";
 
@@ -42,6 +42,9 @@ export async function addBookToLibrary(
         email: "", // Will be updated from Clerk webhook
       })
       .onConflictDoNothing();
+
+    // Assign free plan to new users
+    await assignFreePlanToUser(userId);
 
     // Check if book already exists in our database
     let existingBook = bookData.isbn

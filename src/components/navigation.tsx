@@ -2,7 +2,7 @@
 
 import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
 import { Link } from "@/i18n/routing";
-import { Search, Library, Activity, User, ChevronDown, ChevronUp, Shield, CreditCard } from "lucide-react";
+import { Search, Library, Activity, User, ChevronDown, ChevronUp, Shield, CreditCard, Settings, Users } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { usePathname } from "next/navigation";
 import { useState, useMemo } from "react";
@@ -11,9 +11,10 @@ import Image from "next/image";
 
 interface NavigationProps {
   hasAdminAccess?: boolean;
+  hasPaidPlan?: boolean;
 }
 
-export function Navigation({ hasAdminAccess = false }: NavigationProps) {
+export function Navigation({ hasAdminAccess = false, hasPaidPlan = false }: NavigationProps) {
   const t = useTranslations("navigation");
   const pathname = usePathname();
   const [isMobileNavExpanded, setIsMobileNavExpanded] = useState(false);
@@ -24,7 +25,7 @@ export function Navigation({ hasAdminAccess = false }: NavigationProps) {
         {
           href: "/books/search",
           icon: Search,
-          label: t("searchBooks"),
+          label: t("search"),
           match: (path: string) => path.includes("/books/search"),
         },
         {
@@ -41,7 +42,7 @@ export function Navigation({ hasAdminAccess = false }: NavigationProps) {
         },
         {
           href: "/users/search",
-          icon: User,
+          icon: Users,
           label: t("findUsers"),
           match: (path: string) => path.includes("/users/search"),
         },
@@ -51,13 +52,17 @@ export function Navigation({ hasAdminAccess = false }: NavigationProps) {
           label: t("profile"),
           match: (path: string) => path.includes("/profile"),
         },
-        {
+      ];
+
+      // Show Settings for paid users, Premium for others
+      if (!hasPaidPlan)  {
+        items.push({
           href: "/subscription",
           icon: CreditCard,
           label: "Premium",
           match: (path: string) => path.includes("/subscription"),
-        },
-      ];
+        });
+      }
 
       // Add admin link if user has admin access
       if (hasAdminAccess) {
@@ -71,7 +76,7 @@ export function Navigation({ hasAdminAccess = false }: NavigationProps) {
 
       return items;
     },
-    [t, hasAdminAccess]
+    [t, hasAdminAccess, hasPaidPlan]
   );
 
   const activeNav = navItems.find((item) => item.match(pathname));
