@@ -19,7 +19,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { updateUserAsAdmin } from "@/app/[locale]/actions/admin";
 import { toast } from "sonner";
@@ -31,7 +30,6 @@ interface User {
   username: string | null;
   bio: string | null;
   role: "user" | "moderator" | "admin";
-  isPremium: boolean;
 }
 
 interface EditUserDialogProps {
@@ -51,7 +49,6 @@ export function EditUserDialog({
     username: user.username || "",
     bio: user.bio || "",
     role: user.role,
-    isPremium: user.isPremium,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -64,7 +61,6 @@ export function EditUserDialog({
         username?: string;
         bio?: string;
         role?: "user" | "moderator" | "admin";
-        isPremium?: boolean;
       } = {};
 
       if (formData.email !== user.email) {
@@ -81,10 +77,6 @@ export function EditUserDialog({
 
       if (formData.role !== user.role) {
         updateData.role = formData.role;
-      }
-
-      if (formData.isPremium !== user.isPremium) {
-        updateData.isPremium = formData.isPremium;
       }
 
       const result = await updateUserAsAdmin(user.id, updateData);
@@ -172,22 +164,9 @@ export function EditUserDialog({
                   <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="isPremium">Premium Status</Label>
-                <p className="text-xs text-muted-foreground">
-                  Grant premium features to this user
-                </p>
-              </div>
-              <Switch
-                id="isPremium"
-                checked={formData.isPremium}
-                onCheckedChange={(checked) =>
-                  setFormData({ ...formData, isPremium: checked })
-                }
-              />
+              <p className="text-xs text-muted-foreground">
+                To manage premium status, use the subscription management dialog
+              </p>
             </div>
           </div>
 

@@ -45,19 +45,20 @@ export async function createCheckoutSession(planId: string) {
       return { error: "This plan does not require checkout" };
     }
 
-    // Ensure user has Stripe customer ID
-    let customerId = user?.stripeCustomerId;
+    // Get or create Stripe customer ID
+    // Check if user has existing subscription with customer ID
+    const existingSubscription = await db.query.userSubscriptions.findFirst({
+      where: eq(userSubscriptions.userId, userId),
+    });
+
+    let customerId = existingSubscription?.stripeCustomerId;
     if (!customerId) {
+      // Create new Stripe customer (will be saved to userSubscriptions by webhook)
       const customer = await stripe.customers.create({
         email: user?.email,
         metadata: { userId },
       });
       customerId = customer.id;
-
-      await db
-        .update(users)
-        .set({ stripeCustomerId: customerId })
-        .where(eq(users.id, userId));
     }
 
     // Create checkout session
@@ -94,16 +95,17 @@ export async function createPortalSession() {
   if (!userId) return { error: "Unauthorized" };
 
   try {
-    const user = await db.query.users.findFirst({
-      where: eq(users.id, userId),
+    // Get user's subscription to find Stripe customer ID
+    const subscription = await db.query.userSubscriptions.findFirst({
+      where: eq(userSubscriptions.userId, userId),
     });
 
-    if (!user?.stripeCustomerId) {
+    if (!subscription?.stripeCustomerId) {
       return { error: "No Stripe customer found" };
     }
 
     const session = await stripe.billingPortal.sessions.create({
-      customer: user.stripeCustomerId,
+      customer: subscription.stripeCustomerId,
       return_url: `${process.env.NEXT_PUBLIC_BASE_URL}/subscription`,
     });
 
@@ -150,9 +152,15 @@ export async function getUserUsageStats() {
 
     if (!user) return { error: "User not found" };
 
-    // Calculate current period based on subscription anniversary
+    // Get user's subscription to determine period anniversary and limits
+    const subscription = await db.query.userSubscriptions.findFirst({
+      where: eq(userSubscriptions.userId, userId),
+      with: { plan: true },
+    });
+
+    // Calculate current period based on subscription start or user creation
     const now = new Date();
-    const anniversary = user.subscriptionAnniversary || user.createdAt;
+    const anniversary = subscription?.currentPeriodStart || user.createdAt;
     const periodStart = calculatePeriodStart(anniversary, now);
     const periodEnd = calculatePeriodEnd(periodStart);
 
@@ -175,12 +183,6 @@ export async function getUserUsageStats() {
         })
         .returning();
     }
-
-    // Get subscription to determine limits
-    const subscription = await db.query.userSubscriptions.findFirst({
-      where: eq(userSubscriptions.userId, userId),
-      with: { plan: true },
-    });
 
     const features = subscription?.plan.features
       ? JSON.parse(subscription.plan.features)
@@ -248,8 +250,13 @@ export async function incrementBookUsage() {
 
     if (!user) return { error: "User not found" };
 
+    // Get user's subscription to determine period anniversary
+    const subscription = await db.query.userSubscriptions.findFirst({
+      where: eq(userSubscriptions.userId, userId),
+    });
+
     const now = new Date();
-    const anniversary = user.subscriptionAnniversary || user.createdAt;
+    const anniversary = subscription?.currentPeriodStart || user.createdAt;
     const periodStart = calculatePeriodStart(anniversary, now);
 
     await db

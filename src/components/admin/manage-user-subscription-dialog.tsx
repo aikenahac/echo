@@ -48,7 +48,6 @@ interface User {
   id: string;
   email: string;
   username: string | null;
-  isPremium: boolean;
   subscription?: Subscription | null;
 }
 
@@ -68,6 +67,9 @@ export function ManageUserSubscriptionDialog({
   const [selectedPlanId, setSelectedPlanId] = useState(
     user.subscription?.plan.id || ""
   );
+
+  // Derive premium status from subscription
+  const isPremium = user.subscription?.status === "active" || user.subscription?.status === "trialing";
 
   const handleGrantSubscription = async () => {
     if (!selectedPlanId) {
@@ -133,8 +135,8 @@ export function ManageUserSubscriptionDialog({
           <div className="space-y-2">
             <Label>Current Status</Label>
             <div className="flex items-center gap-2">
-              <Badge variant={user.isPremium ? "default" : "secondary"}>
-                {user.isPremium ? "Premium" : "Free"}
+              <Badge variant={isPremium ? "default" : "secondary"}>
+                {isPremium ? "Premium" : "Free"}
               </Badge>
               {user.subscription && (
                 <Badge variant="outline">{user.subscription.status}</Badge>
@@ -208,7 +210,7 @@ export function ManageUserSubscriptionDialog({
         </div>
 
         <DialogFooter className="flex-col sm:flex-row gap-2">
-          {user.isPremium && (
+          {isPremium && (
             <Button
               type="button"
               variant="destructive"

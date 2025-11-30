@@ -78,16 +78,16 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
   // If no userId in metadata, look it up by customer ID
   if (!userId) {
     console.log("No userId in subscription metadata, looking up by customerId:", customerId);
-    const user = await db.query.users.findFirst({
-      where: eq(users.stripeCustomerId, customerId),
+    const existingSub = await db.query.userSubscriptions.findFirst({
+      where: eq(userSubscriptions.stripeCustomerId, customerId),
     });
 
-    if (!user) {
-      console.error("No user found for Stripe customer:", customerId);
+    if (!existingSub) {
+      console.error("No subscription found for Stripe customer:", customerId);
       return;
     }
 
-    userId = user.id;
+    userId = existingSub.userId;
     console.log("Found userId from customer lookup:", userId);
   }
 
@@ -106,15 +106,6 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
   }
 
   console.log("Found plan:", plan.name);
-
-  const isPremium =
-    subscription.status === "active" || subscription.status === "trialing";
-
-  // Get user's existing premium status
-  const user = await db.query.users.findFirst({
-    where: eq(users.id, userId),
-  });
-  const wasAlreadyPremium = user?.isPremium || false;
 
   // Upsert subscription
   const existingSubscription = await db.query.userSubscriptions.findFirst({
@@ -156,25 +147,21 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
     });
   }
 
-  // Update user premium status
-  await db
-    .update(users)
-    .set({
-      isPremium,
-      premiumSince: isPremium ? new Date() : null,
-      stripeCustomerId: customerId,
-      updatedAt: new Date(),
-    })
-    .where(eq(users.id, userId));
-
   console.log("✅ Subscription synced successfully for user:", userId, "- Plan:", plan.name, "- Status:", subscription.status);
 
-  // Send welcome email for new premium users
-  if (isPremium && !wasAlreadyPremium && user) {
-    try {
-      await sendWelcomeToPremiumEmail(user.email, user.username || "there");
-    } catch (emailError) {
-      console.error("Failed to send welcome email:", emailError);
+  // Send welcome email for new premium users (only if this is a new subscription with active/trialing status)
+  const isPremium = subscription.status === "active" || subscription.status === "trialing";
+  if (isPremium && !existingSubscription) {
+    const user = await db.query.users.findFirst({
+      where: eq(users.id, userId),
+    });
+
+    if (user) {
+      try {
+        await sendWelcomeToPremiumEmail(user.email, user.username || "there");
+      } catch (emailError) {
+        console.error("Failed to send welcome email:", emailError);
+      }
     }
   }
 }
@@ -211,15 +198,6 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
       .where(eq(userSubscriptions.userId, userId));
   }
 
-  // Update user premium status
-  await db
-    .update(users)
-    .set({
-      isPremium: false,
-      updatedAt: new Date(),
-    })
-    .where(eq(users.id, userId));
-
   // Send cancellation email
   const user = await db.query.users.findFirst({
     where: eq(users.id, userId),
@@ -251,12 +229,12 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
 async function handlePaymentFailed(invoice: Stripe.Invoice) {
   const customerId = typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id || "";
 
-  // Find user by customer ID
-  const user = await db.query.users.findFirst({
-    where: eq(users.stripeCustomerId, customerId),
+  // Find subscription by customer ID
+  const subscription = await db.query.userSubscriptions.findFirst({
+    where: eq(userSubscriptions.stripeCustomerId, customerId),
   });
 
-  if (!user) return;
+  if (!subscription) return;
 
   // Update subscription status to past_due
   await db
@@ -265,7 +243,14 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
       status: "past_due",
       updatedAt: new Date(),
     })
-    .where(eq(userSubscriptions.userId, user.id));
+    .where(eq(userSubscriptions.userId, subscription.userId));
+
+  // Get user for email
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, subscription.userId),
+  });
+
+  if (!user) return;
 
   // Send payment failed email
   try {

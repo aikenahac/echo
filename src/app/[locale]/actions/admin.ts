@@ -155,7 +155,6 @@ export async function updateUserAsAdmin(
     username?: string;
     bio?: string;
     role?: "user" | "moderator" | "admin";
-    isPremium?: boolean;
   },
 ) {
   const currentUser = await requireRole(["admin"]);
@@ -410,23 +409,6 @@ export async function grantPremiumSubscription(
       });
     }
 
-    // Get the plan to check if it's premium
-    const plan = await db.query.subscriptionPlans.findFirst({
-      where: eq(subscriptionPlans.id, planId),
-    });
-
-    const isPremium = plan?.interval !== "free";
-
-    // Update user premium flag
-    await db
-      .update(users)
-      .set({
-        isPremium,
-        premiumSince: isPremium ? new Date() : null,
-        updatedAt: new Date(),
-      })
-      .where(eq(users.id, targetUserId));
-
     await db.insert(auditLogs).values({
       userId: currentUser.id,
       action: "subscription.grant",
@@ -511,16 +493,6 @@ export async function revokeUserSubscription(targetUserId: string) {
         currentPeriodStart: new Date(),
       });
     }
-
-    // Update user premium flag
-    await db
-      .update(users)
-      .set({
-        isPremium: false,
-        premiumSince: null,
-        updatedAt: new Date(),
-      })
-      .where(eq(users.id, targetUserId));
 
     await db.insert(auditLogs).values({
       userId: currentUser.id,

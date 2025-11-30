@@ -126,7 +126,7 @@ export default async function LocaleLayout({
       with: { plan: true },
     });
     // User has a paid plan if they have a subscription with a non-free plan (including free lifetime plans)
-    hasPaidPlan = subscription?.plan && (subscription.plan.price > 0 || subscription.plan.stripePriceId !== null || subscription.plan.interval === "lifetime");
+    hasPaidPlan = !!(subscription?.plan && (subscription.plan.price > 0 || subscription.plan.stripePriceId !== null || subscription.plan.interval === "lifetime"));
   }
 
   return (

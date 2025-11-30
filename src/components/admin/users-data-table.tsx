@@ -49,7 +49,6 @@ interface User {
   username: string | null;
   bio: string | null;
   role: "user" | "moderator" | "admin";
-  isPremium: boolean;
   createdAt: Date;
   subscription?: Subscription | null;
 }
@@ -210,7 +209,11 @@ export function UsersDataTable({ data, plans }: { data: User[]; plans: Plan[] })
                             <div className="truncate">{user.username || "—"}</div>
                           </TableCell>
                           <TableCell style={{ width: columnWidths.subscription }}>
-                            <Badge variant={user.isPremium ? "default" : "secondary"}>
+                            <Badge variant={
+                              user.subscription?.status === "active" || user.subscription?.status === "trialing"
+                                ? "default"
+                                : "secondary"
+                            }>
                               {user.subscription?.plan.name || "Free"}
                             </Badge>
                           </TableCell>
