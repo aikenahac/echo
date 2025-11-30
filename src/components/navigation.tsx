@@ -54,7 +54,7 @@ export function Navigation({ hasAdminAccess = false }: NavigationProps) {
         {
           href: "/subscription",
           icon: CreditCard,
-          label: "Subscription",
+          label: "Premium",
           match: (path: string) => path.includes("/subscription"),
         },
       ];
