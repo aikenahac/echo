@@ -168,41 +168,41 @@ export default async function PricingPage({
                 <table className="w-full">
                   <thead>
                     <tr className="border-b">
-                      <th className="text-left p-4 font-semibold">{t("comparison.feature")}</th>
-                      <th className="text-center p-4 font-semibold">{t("comparison.free")}</th>
+                      <th className="text-left p-4 font-semibold">{t("comparison.headers.feature")}</th>
+                      <th className="text-center p-4 font-semibold">{t("comparison.headers.free")}</th>
                       <th className="text-center p-4 font-semibold bg-primary/5">
                         <div className="flex items-center justify-center gap-2">
                           <Crown className="h-4 w-4 text-primary" />
-                          {t("comparison.premium")}
+                          {t("comparison.headers.premium")}
                         </div>
                       </th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr className="border-b">
-                      <td className="p-4">{t("comparison.booksPerYear")}</td>
+                      <td className="p-4">{t("comparison.rows.booksPerYear")}</td>
                       <td className="text-center p-4">50</td>
-                      <td className="text-center p-4 bg-primary/5 font-semibold text-primary">{t("comparison.unlimited")}</td>
+                      <td className="text-center p-4 bg-primary/5 font-semibold text-primary">{t("comparison.rows.unlimited")}</td>
                     </tr>
                     <tr className="border-b">
-                      <td className="p-4">{t("comparison.progress")}</td>
+                      <td className="p-4">{t("comparison.rows.tracking")}</td>
                       <td className="text-center p-4"><Check className="h-5 w-5 mx-auto text-primary" /></td>
                       <td className="text-center p-4 bg-primary/5"><Check className="h-5 w-5 mx-auto text-primary" /></td>
                     </tr>
                     <tr className="border-b">
-                      <td className="p-4">{t("comparison.reviews")}</td>
+                      <td className="p-4">{t("comparison.rows.reviews")}</td>
                       <td className="text-center p-4"><Check className="h-5 w-5 mx-auto text-primary" /></td>
                       <td className="text-center p-4 bg-primary/5"><Check className="h-5 w-5 mx-auto text-primary" /></td>
                     </tr>
                     <tr className="border-b">
-                      <td className="p-4">{t("comparison.social")}</td>
+                      <td className="p-4">{t("comparison.rows.social")}</td>
                       <td className="text-center p-4"><Check className="h-5 w-5 mx-auto text-primary" /></td>
                       <td className="text-center p-4 bg-primary/5"><Check className="h-5 w-5 mx-auto text-primary" /></td>
                     </tr>
                     <tr className="border-b">
                       <td className="p-4 flex items-center gap-2">
                         <Palette className="h-4 w-4 text-muted-foreground" />
-                        {t("comparison.collections")}
+                        {t("comparison.rows.collections")}
                       </td>
                       <td className="text-center p-4 text-muted-foreground">-</td>
                       <td className="text-center p-4 bg-primary/5"><Check className="h-5 w-5 mx-auto text-primary" /></td>
@@ -210,7 +210,7 @@ export default async function PricingPage({
                     <tr className="border-b">
                       <td className="p-4 flex items-center gap-2">
                         <Users className="h-4 w-4 text-muted-foreground" />
-                        {t("comparison.support")}
+                        {t("comparison.rows.support")}
                       </td>
                       <td className="text-center p-4 text-muted-foreground">-</td>
                       <td className="text-center p-4 bg-primary/5"><Check className="h-5 w-5 mx-auto text-primary" /></td>
@@ -218,7 +218,7 @@ export default async function PricingPage({
                     <tr>
                       <td className="p-4 flex items-center gap-2">
                         <Sparkles className="h-4 w-4 text-muted-foreground" />
-                        {t("comparison.earlyAccess")}
+                        {t("comparison.rows.earlyAccess")}
                       </td>
                       <td className="text-center p-4 text-muted-foreground">-</td>
                       <td className="text-center p-4 bg-primary/5"><Check className="h-5 w-5 mx-auto text-primary" /></td>
@@ -236,44 +236,44 @@ export default async function PricingPage({
           <div className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">{t("faq.upgrade.question")}</CardTitle>
+                <CardTitle className="text-lg">{t("faq.questions.upgrade.title")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
-                  {t("faq.upgrade.answer")}
+                  {t("faq.questions.upgrade.answer")}
                 </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">{t("faq.limit.question")}</CardTitle>
+                <CardTitle className="text-lg">{t("faq.questions.limit.title")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
-                  {t("faq.limit.answer")}
+                  {t("faq.questions.limit.answer")}
                 </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">{t("faq.refunds.question")}</CardTitle>
+                <CardTitle className="text-lg">{t("faq.questions.refunds.title")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
-                  {t("faq.refunds.answer")}
+                  {t("faq.questions.refunds.answer")}
                 </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">{t("faq.payment.question")}</CardTitle>
+                <CardTitle className="text-lg">{t("faq.questions.payment.title")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">
-                  {t("faq.payment.answer")}
+                  {t("faq.questions.payment.answer")}
                 </p>
               </CardContent>
             </Card>

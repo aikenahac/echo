@@ -41,7 +41,7 @@ export function Footer() {
               target="_blank"
               rel="noopener noreferrer"
               className="text-muted-foreground hover:text-foreground transition-colors"
-              aria-label="Follow on X (Twitter)"
+              aria-label={t("followTwitter")}
             >
               <Twitter className="h-4 w-4" />
             </a>

@@ -267,7 +267,8 @@
     "privacyPolicy": "Privacy Policy",
     "termsOfService": "Terms of Service",
     "legalDocuments": "Legal Documents",
-    "copyright": "© {year} Aerio, Aiken Tine Ahac s.p."
+    "copyright": "© {year} Aerio, Aiken Tine Ahac s.p.",
+    "followTwitter": "Follow on X (Twitter)"
   },
   "pricing": {
     "title": "Simple, Transparent Pricing",
@@ -296,7 +297,7 @@
       "price": "€1.99",
       "period": "/ month",
       "lifetime": "€19.99 for life",
-      "plusFeatures": "Everything in Free, plus:",
+      "includes": "Everything in Free, plus:",
       "features": {
         "unlimited": "Unlimited books",
         "unlimitedDesc": "No yearly limits on your library",
@@ -304,8 +305,8 @@
         "collectionsDesc": "Organize books by theme, genre, or mood",
         "support": "Priority support",
         "supportDesc": "Get help faster when you need it",
-        "early": "Early access",
-        "earlyDesc": "Be first to try new features"
+        "earlyAccess": "Early access",
+        "earlyAccessDesc": "Be first to try new features"
       },
       "cta": "Start Premium Trial"
     },
@@ -358,16 +359,22 @@
   "premium": {
     "paywall": {
       "title": "Upgrade to Premium for {feature}",
-      "features": {
-        "unlimited": "Unlimited Books",
-        "unlimitedDesc": "Add as many books as you want to your library",
-        "collections": "Custom Collections",
-        "collectionsDesc": "Organize your books into personalized collections",
-        "support": "Priority Support",
-        "supportDesc": "Get help faster when you need it"
+      "benefits": {
+        "unlimited": {
+          "title": "Unlimited Books",
+          "description": "Add as many books as you want to your library"
+        },
+        "collections": {
+          "title": "Custom Collections",
+          "description": "Organize your books into personalized collections"
+        },
+        "support": {
+          "title": "Priority Support",
+          "description": "Get help faster when you need it"
+        }
       },
-      "cta": "View Premium Plans",
-      "later": "Maybe Later"
+      "viewPlans": "View Premium Plans",
+      "maybeLater": "Maybe Later"
     },
     "limit": {
       "reached": "Limit Reached",
@@ -727,8 +734,5 @@
   },
   "progressTracker": {
     "title": "Progress"
-  },
-  "footer": {
-    "followTwitter": "Follow on X (Twitter)"
   }
 }
