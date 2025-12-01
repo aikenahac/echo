@@ -33,9 +33,7 @@ export const GET = withAuth(async (request, { user }) => {
   // Check if subscription is active
   const isActive =
     subscription.status === "active" ||
-    subscription.status === "trialing" ||
-    (subscription.plan.interval === "lifetime" &&
-      subscription.status === "lifetime");
+    subscription.status === "trialing";
 
   return createApiResponse({
     subscription: {
