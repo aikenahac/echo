@@ -33,21 +33,31 @@ export const POST = withAuth(async (request, { user }) => {
  * Get user's books, optionally filtered by status
  * Query params:
  *  - status: "want" | "reading" | "finished" (optional)
+ *  - favorite: "true" | "false" (optional)
  */
 export const GET = withAuth(async (request, { user }) => {
   const { searchParams } = new URL(request.url);
   const status = searchParams.get("status");
+  const favoriteFilter = searchParams.get("favorite");
 
-  let query = db.query.userBooks.findMany({
-    where: eq(userBooks.userId, user.id),
+  const { and } = await import("drizzle-orm");
+
+  // Build where conditions
+  const conditions = [eq(userBooks.userId, user.id)];
+
+  if (status && ["want", "reading", "finished"].includes(status)) {
+    conditions.push(eq(userBooks.status, status as any));
+  }
+
+  if (favoriteFilter === "true") {
+    conditions.push(eq(userBooks.isFavorite, true));
+  }
+
+  const results = await db.query.userBooks.findMany({
+    where: and(...conditions),
     with: { book: true },
+    orderBy: (userBooks, { desc }) => [desc(userBooks.updatedAt)],
   });
-
-  // Note: Status filtering would need to be added to the where clause
-  // For now, we'll return all books and filter can be done client-side
-  // or you can add status filtering logic here
-
-  const results = await query;
 
   return createApiResponse(results);
 });

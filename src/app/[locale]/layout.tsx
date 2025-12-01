@@ -36,14 +36,14 @@ const ibm_plex_mono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_BASE_URL || "https://echo.aiken.si",
+    process.env.NEXT_PUBLIC_BASE_URL || "https://echobook.club",
   ),
   title: {
-    default: "Echo Reads - Track Your Reading Journey, Share Book Reviews",
+    default: "Echo - Track Your Reading Journey, Share Book Reviews",
     template: "%s | Echo Reads",
   },
   description:
-    "Track your reading progress, organize your book library, write reviews, and connect with fellow readers. Echo Reads is a social book tracking platform for passionate readers.",
+    "Track your reading progress, organize your book library, write reviews, and connect with fellow readers. Echo is a social book tracking platform for passionate readers.",
   keywords: [
     "book tracker",
     "reading tracker",
@@ -60,10 +60,10 @@ export const metadata: Metadata = {
     "book catalog",
     "reading list",
   ],
-  authors: [{ name: "Echo Reads", url: "https://echo.aiken.si" }],
-  creator: "Echo Reads",
-  publisher: "Echo Reads",
-  applicationName: "Echo Reads",
+  authors: [{ name: "Echo", url: "https://echo.aiken.si" }],
+  creator: "Echo",
+  publisher: "Echo",
+  applicationName: "Echo",
   category: "Books & Literature",
   formatDetection: {
     email: false,
@@ -82,27 +82,27 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     url: "/",
-    title: "Echo Reads - Track Your Reading Journey, Share Book Reviews",
+    title: "Echo - Track Your Reading Journey, Share Book Reviews",
     description:
-      "Track your reading progress, organize your book library, write reviews, and connect with fellow readers. Echo Reads is a social book tracking platform for passionate readers.",
-    siteName: "Echo Reads",
+      "Track your reading progress, organize your book library, write reviews, and connect with fellow readers. Echo is a social book tracking platform for passionate readers.",
+    siteName: "Echo",
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Echo Reads - Track Your Reading Journey",
+        alt: "Echo - Track Your Reading Journey",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Echo Reads - Track Your Reading Journey, Share Book Reviews",
+    title: "Echo - Track Your Reading Journey, Share Book Reviews",
     description:
       "Track your reading progress, organize your book library, write reviews, and connect with fellow readers.",
     images: ["/og-image.png"],
-    creator: "@echoreads",
-    site: "@echoreads",
+    creator: "@aikenahac",
+    site: "@aikenahac",
   },
   robots: {
     index: true,

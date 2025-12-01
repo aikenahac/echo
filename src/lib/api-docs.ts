@@ -1,7 +1,7 @@
 export interface ApiEndpoint {
   method: "GET" | "POST" | "PUT" | "DELETE";
   path: string;
-  category: "Books" | "Reviews" | "Social" | "Profile";
+  category: "Books" | "Reviews" | "Social" | "Profile" | "Collections" | "Subscriptions" | "Feed";
   description: string;
   requiresAuth: boolean;
   requestBody?: {
@@ -21,6 +21,127 @@ export interface ApiEndpoint {
     example: any;
   }>;
 }
+
+export const integrationGuide = {
+  title: "Mobile App Integration Guide",
+  sections: [
+    {
+      title: "Authentication with Clerk",
+      content: `All API endpoints require authentication via Clerk. The API uses session-based authentication where Clerk manages the JWT tokens automatically.`,
+      steps: [
+        {
+          title: "Setup Clerk in Your Mobile App",
+          code: `// React Native
+import { ClerkProvider } from '@clerk/clerk-expo';
+
+export default function App() {
+  return (
+    <ClerkProvider publishableKey={process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY}>
+      {/* Your app */}
+    </ClerkProvider>
+  );
+}
+
+// iOS (Swift)
+// Add Clerk SDK via SPM: https://github.com/clerk/clerk-ios
+import Clerk
+
+@main
+struct MyApp: App {
+  init() {
+    Clerk.configure(publishableKey: "pk_...")
+  }
+}
+
+// Android (Kotlin)
+// Add Clerk SDK via Gradle
+// implementation 'com.clerk:clerk-android:latest.version'
+import com.clerk.android.Clerk
+
+class MyApplication : Application() {
+  override fun onCreate() {
+    super.onCreate()
+    Clerk.init(this, publishableKey = "pk_...")
+  }
+}`,
+        },
+        {
+          title: "Making Authenticated Requests",
+          code: `// React Native with fetch
+import { useAuth } from '@clerk/clerk-expo';
+
+function useApi() {
+  const { getToken } = useAuth();
+
+  const apiCall = async (endpoint: string, options: RequestInit = {}) => {
+    const token = await getToken();
+
+    const response = await fetch(\`https://your-domain.com\${endpoint}\`, {
+      ...options,
+      headers: {
+        ...options.headers,
+        'Authorization': \`Bearer \${token}\`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(\`API Error: \${response.status}\`);
+    }
+
+    return response.json();
+  };
+
+  return { apiCall };
+}
+
+// Example usage
+const { apiCall } = useApi();
+const books = await apiCall('/api/v1/books?status=reading');`,
+        },
+        {
+          title: "Error Handling",
+          code: `// All API errors return this format:
+{
+  "error": "Error message here",
+  "status": 400
+}
+
+// Success responses are wrapped in:
+{
+  "success": true,
+  "data": { /* your data */ }
+}
+
+// Example error handler
+try {
+  const result = await apiCall('/api/v1/books', {
+    method: 'POST',
+    body: JSON.stringify({ bookData, status }),
+  });
+  console.log('Success:', result.data);
+} catch (error) {
+  if (error.status === 401) {
+    // Unauthorized - redirect to login
+  } else if (error.status === 400) {
+    // Validation error - show to user
+  }
+}`,
+        },
+      ],
+    },
+    {
+      title: "Important Notes",
+      content: `
+• **Session Management**: Clerk automatically handles token refresh. The session token is valid for the duration of the user's session.
+• **CORS**: API routes accept requests from any origin. Ensure you're using HTTPS in production.
+• **Rate Limiting**: Currently no rate limiting is enforced, but this may change in the future.
+• **Pagination**: Endpoints that return lists (feed, user search) support \`limit\` and \`offset\` query parameters.
+• **Date Formats**: All dates are returned in ISO 8601 format (e.g., "2025-01-15T10:00:00Z").
+      `.trim(),
+    },
+  ],
+};
 
 export const apiEndpoints: ApiEndpoint[] = [
   // Books API
@@ -80,6 +201,12 @@ export const apiEndpoints: ApiEndpoint[] = [
         required: false,
         description: 'Filter by status: "want", "reading", or "finished"',
       },
+      {
+        name: "favorite",
+        type: "string",
+        required: false,
+        description: 'Filter by favorite status: "true" to show only favorites',
+      },
     ],
     responses: [
       {
@@ -93,6 +220,7 @@ export const apiEndpoints: ApiEndpoint[] = [
             status: "reading",
             currentPage: 100,
             pageCount: 300,
+            isFavorite: false,
             book: {
               id: "uuid...",
               title: "Example Book",
@@ -398,6 +526,479 @@ export const apiEndpoints: ApiEndpoint[] = [
         status: 200,
         description: "Profile updated",
         example: { success: true },
+      },
+    ],
+  },
+
+  // Collections API
+  {
+    method: "GET",
+    path: "/api/v1/collections",
+    category: "Collections",
+    description: "Get all your collections",
+    requiresAuth: true,
+    responses: [
+      {
+        status: 200,
+        description: "List of collections",
+        example: [
+          {
+            id: "uuid...",
+            userId: "user_123",
+            name: "Summer Reading",
+            description: "Books to read this summer",
+            isPublic: false,
+            colorTag: "#3B82F6",
+            iconName: "sun",
+            bookCount: 5,
+            createdAt: "2025-01-15T10:00:00Z",
+            updatedAt: "2025-01-20T15:30:00Z",
+            books: [
+              {
+                id: "uuid...",
+                status: "want",
+                book: {
+                  title: "The Great Gatsby",
+                  author: "F. Scott Fitzgerald",
+                },
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    method: "POST",
+    path: "/api/v1/collections",
+    category: "Collections",
+    description: "Create a new collection",
+    requiresAuth: true,
+    requestBody: {
+      contentType: "application/json",
+      schema: {
+        name: "string (required)",
+        description: "string (optional)",
+        isPublic: "boolean (optional, default: false)",
+        colorTag: "string (optional, hex color)",
+        iconName: "string (optional)",
+      },
+      example: {
+        name: "Sci-Fi Favorites",
+        description: "My favorite science fiction novels",
+        isPublic: true,
+        colorTag: "#10B981",
+        iconName: "rocket",
+      },
+    },
+    responses: [
+      {
+        status: 201,
+        description: "Collection created",
+        example: {
+          id: "uuid...",
+          userId: "user_123",
+          name: "Sci-Fi Favorites",
+          description: "My favorite science fiction novels",
+          isPublic: true,
+          colorTag: "#10B981",
+          iconName: "rocket",
+          createdAt: "2025-01-15T10:00:00Z",
+          updatedAt: "2025-01-15T10:00:00Z",
+        },
+      },
+      {
+        status: 400,
+        description: "Validation error",
+        example: { error: "Collection name is required" },
+      },
+    ],
+  },
+  {
+    method: "GET",
+    path: "/api/v1/collections/{id}",
+    category: "Collections",
+    description: "Get a specific collection",
+    requiresAuth: true,
+    responses: [
+      {
+        status: 200,
+        description: "Collection details",
+        example: {
+          id: "uuid...",
+          userId: "user_123",
+          name: "Summer Reading",
+          description: "Books to read this summer",
+          isPublic: false,
+          colorTag: "#3B82F6",
+          iconName: "sun",
+          bookCount: 5,
+          books: [
+            {
+              id: "uuid...",
+              status: "reading",
+              currentPage: 150,
+              book: {
+                id: "uuid...",
+                title: "The Great Gatsby",
+                author: "F. Scott Fitzgerald",
+                coverUrl: "https://...",
+              },
+            },
+          ],
+        },
+      },
+      {
+        status: 404,
+        description: "Collection not found",
+        example: { error: "Collection not found" },
+      },
+    ],
+  },
+  {
+    method: "PUT",
+    path: "/api/v1/collections/{id}",
+    category: "Collections",
+    description: "Update a collection",
+    requiresAuth: true,
+    requestBody: {
+      contentType: "application/json",
+      schema: {
+        name: "string (optional)",
+        description: "string (optional)",
+        isPublic: "boolean (optional)",
+        colorTag: "string (optional)",
+        iconName: "string (optional)",
+      },
+      example: {
+        name: "Updated Collection Name",
+        isPublic: true,
+      },
+    },
+    responses: [
+      {
+        status: 200,
+        description: "Collection updated",
+        example: { success: true },
+      },
+      {
+        status: 404,
+        description: "Collection not found",
+        example: { error: "Collection not found" },
+      },
+    ],
+  },
+  {
+    method: "DELETE",
+    path: "/api/v1/collections/{id}",
+    category: "Collections",
+    description: "Delete a collection",
+    requiresAuth: true,
+    responses: [
+      {
+        status: 200,
+        description: "Collection deleted",
+        example: { success: true },
+      },
+      {
+        status: 404,
+        description: "Collection not found",
+        example: { error: "Collection not found" },
+      },
+    ],
+  },
+  {
+    method: "POST",
+    path: "/api/v1/collections/{id}/books",
+    category: "Collections",
+    description: "Add a book to a collection",
+    requiresAuth: true,
+    requestBody: {
+      contentType: "application/json",
+      schema: {
+        userBookId: "string (required)",
+      },
+      example: {
+        userBookId: "uuid...",
+      },
+    },
+    responses: [
+      {
+        status: 201,
+        description: "Book added to collection",
+        example: {
+          collectionId: "uuid...",
+          userBookId: "uuid...",
+          createdAt: "2025-01-15T10:00:00Z",
+        },
+      },
+      {
+        status: 400,
+        description: "Validation error",
+        example: { error: "Book already in this collection" },
+      },
+      {
+        status: 404,
+        description: "Collection or book not found",
+        example: { error: "Collection not found" },
+      },
+    ],
+  },
+  {
+    method: "DELETE",
+    path: "/api/v1/collections/{id}/books",
+    category: "Collections",
+    description: "Remove a book from a collection",
+    requiresAuth: true,
+    queryParams: [
+      {
+        name: "userBookId",
+        type: "string",
+        required: true,
+        description: "The ID of the user book to remove",
+      },
+    ],
+    responses: [
+      {
+        status: 200,
+        description: "Book removed from collection",
+        example: { success: true },
+      },
+      {
+        status: 404,
+        description: "Collection not found",
+        example: { error: "Collection not found" },
+      },
+    ],
+  },
+
+  // Subscriptions API
+  {
+    method: "GET",
+    path: "/api/v1/subscriptions",
+    category: "Subscriptions",
+    description: "Get your current subscription and plan details",
+    requiresAuth: true,
+    responses: [
+      {
+        status: 200,
+        description: "Subscription details (active subscription)",
+        example: {
+          subscription: {
+            id: "uuid...",
+            status: "active",
+            currentPeriodStart: "2025-01-01T00:00:00Z",
+            currentPeriodEnd: "2025-02-01T00:00:00Z",
+            cancelAtPeriodEnd: false,
+          },
+          plan: {
+            id: "uuid...",
+            name: "Premium Monthly",
+            price: 999,
+            interval: "month",
+            maxBooksPerYear: null,
+            features: {
+              unlimited: true,
+              collections: true,
+              prioritySupport: true,
+            },
+          },
+          isActive: true,
+          isFree: false,
+        },
+      },
+      {
+        status: 200,
+        description: "No subscription (free plan)",
+        example: {
+          subscription: null,
+          plan: {
+            id: "uuid...",
+            name: "Free",
+            price: 0,
+            interval: "free",
+            maxBooksPerYear: 50,
+          },
+          isActive: false,
+          isFree: true,
+        },
+      },
+    ],
+  },
+  {
+    method: "GET",
+    path: "/api/v1/subscriptions/usage",
+    category: "Subscriptions",
+    description: "Get usage statistics for the current period",
+    requiresAuth: true,
+    responses: [
+      {
+        status: 200,
+        description: "Usage statistics",
+        example: {
+          booksAdded: 23,
+          limit: 50,
+          hasUnlimited: false,
+          period: {
+            start: "2025-01-01T00:00:00Z",
+            end: "2025-12-31T23:59:59Z",
+          },
+          percentageUsed: 46,
+          remainingBooks: 27,
+        },
+      },
+      {
+        status: 200,
+        description: "Usage statistics (unlimited plan)",
+        example: {
+          booksAdded: 156,
+          limit: null,
+          hasUnlimited: true,
+          period: {
+            start: "2025-01-01T00:00:00Z",
+            end: "2025-12-31T23:59:59Z",
+          },
+          percentageUsed: 0,
+          remainingBooks: null,
+        },
+      },
+    ],
+  },
+
+  // Feed API
+  {
+    method: "GET",
+    path: "/api/v1/feed",
+    category: "Feed",
+    description: "Get activity feed from users you follow",
+    requiresAuth: true,
+    queryParams: [
+      {
+        name: "limit",
+        type: "number",
+        required: false,
+        description: "Number of activities to return (default: 20, max: 100)",
+      },
+      {
+        name: "offset",
+        type: "number",
+        required: false,
+        description: "Number of activities to skip (default: 0)",
+      },
+    ],
+    responses: [
+      {
+        status: 200,
+        description: "Activity feed",
+        example: {
+          activities: [
+            {
+              type: "book",
+              date: "2025-01-20T15:30:00Z",
+              user: {
+                id: "user_456",
+                username: "bookworm",
+                email: "user@example.com",
+              },
+              book: {
+                id: "uuid...",
+                title: "1984",
+                author: "George Orwell",
+                coverUrl: "https://...",
+              },
+              data: {
+                status: "finished",
+                rating: 5,
+                finishedAt: "2025-01-20T15:30:00Z",
+              },
+            },
+            {
+              type: "review",
+              date: "2025-01-19T10:00:00Z",
+              user: {
+                id: "user_789",
+                username: "reader123",
+                email: "reader@example.com",
+              },
+              book: {
+                id: "uuid...",
+                title: "The Great Gatsby",
+                author: "F. Scott Fitzgerald",
+              },
+              data: {
+                content: "A masterpiece of American literature!",
+                isPrivate: false,
+              },
+            },
+          ],
+          hasMore: true,
+          limit: 20,
+          offset: 0,
+        },
+      },
+      {
+        status: 200,
+        description: "Empty feed (not following anyone)",
+        example: {
+          activities: [],
+          hasMore: false,
+          total: 0,
+        },
+      },
+    ],
+  },
+
+  // User Search API
+  {
+    method: "GET",
+    path: "/api/v1/users/search",
+    category: "Social",
+    description: "Search for users by username or email",
+    requiresAuth: true,
+    queryParams: [
+      {
+        name: "q",
+        type: "string",
+        required: true,
+        description: "Search query (min 2 characters)",
+      },
+      {
+        name: "limit",
+        type: "number",
+        required: false,
+        description: "Number of results to return (default: 20, max: 50)",
+      },
+    ],
+    responses: [
+      {
+        status: 200,
+        description: "Search results",
+        example: {
+          results: [
+            {
+              id: "user_456",
+              username: "bookworm",
+              email: "user@example.com",
+              bio: "I love reading!",
+              isFollowing: true,
+            },
+            {
+              id: "user_789",
+              username: "reader123",
+              email: "reader@example.com",
+              bio: null,
+              isFollowing: false,
+            },
+          ],
+          hasMore: false,
+          total: 2,
+          query: "book",
+        },
+      },
+      {
+        status: 400,
+        description: "Validation error",
+        example: { error: "Search query must be at least 2 characters" },
       },
     ],
   },

@@ -12,8 +12,16 @@ const isProtectedRoute = createRouteMatcher([
   "/:locale/users/search(.*)",
 ]);
 
+const isApiRoute = createRouteMatcher(["/api(.*)"]);
+
 export default clerkMiddleware(async (auth, req) => {
-  // Run next-intl middleware first
+  // Skip intl middleware for API routes
+  if (isApiRoute(req)) {
+    // API routes still get Clerk auth but no locale handling
+    return;
+  }
+
+  // Run next-intl middleware for non-API routes
   const intlResponse = intlMiddleware(req);
 
   if (isProtectedRoute(req)) {
@@ -26,6 +34,7 @@ export default clerkMiddleware(async (auth, req) => {
 export const config = {
   matcher: [
     // Skip Next.js internals, static files, and webhook routes
+    // BUT include API routes (except webhooks) for Clerk authentication
     "/((?!_next|api/webhooks|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
   ],
 };

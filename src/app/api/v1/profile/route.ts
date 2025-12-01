@@ -11,6 +11,7 @@ import { eq } from "drizzle-orm";
  * Get current user's profile
  */
 export const GET = withAuth(async (request, { user }) => {
+  console.log({user})
   const profile = await db.query.users.findFirst({
     where: eq(users.id, user.id),
   });

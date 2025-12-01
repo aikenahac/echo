@@ -135,13 +135,15 @@ export function ApiPlayground({ endpoints }: ApiPlaygroundProps) {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue={categories[0]} className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              {categories.slice(0, 4).map((cat) => (
-                <TabsTrigger key={cat} value={cat} className="text-xs">
-                  {cat}
-                </TabsTrigger>
-              ))}
-            </TabsList>
+            <ScrollArea className="w-full">
+              <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${Math.min(categories.length, 3)}, minmax(0, 1fr))` }}>
+                {categories.map((cat) => (
+                  <TabsTrigger key={cat} value={cat} className="text-xs whitespace-nowrap">
+                    {cat}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </ScrollArea>
             {categories.map((category) => (
               <TabsContent key={category} value={category} className="mt-4">
                 <ScrollArea className="h-[500px]">
