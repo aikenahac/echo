@@ -61,15 +61,6 @@ export function SubscriptionPlansTable({ plans }: { plans: Plan[] }) {
                   </TableCell>
                   <TableCell className="capitalize">{plan.interval}</TableCell>
                   <TableCell>
-                    <div className="text-sm">
-                      {features.maxBooksPerYear ? (
-                        <span>{features.maxBooksPerYear} books/year</span>
-                      ) : (
-                        <span>Unlimited</span>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
                     <Badge variant={plan.isActive ? "default" : "secondary"}>
                       {plan.isActive ? "Active" : "Inactive"}
                     </Badge>

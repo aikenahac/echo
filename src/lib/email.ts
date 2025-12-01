@@ -3,40 +3,7 @@ import { Resend } from "resend";
 const resend = new Resend(process.env.RESEND_API_KEY);
 const fromEmail = process.env.RESEND_FROM_EMAIL!;
 
-export async function sendLimitReachedEmail(
-  userEmail: string,
-  userName: string,
-) {
-  await resend.emails.send({
-    from: fromEmail,
-    to: userEmail,
-    subject: "You've reached your book limit",
-    html: `
-      <h2>Hi ${userName},</h2>
-      <p>You've added 50 books this year and reached your free tier limit.</p>
-      <p>Upgrade to Premium for unlimited books at just €1.99/month!</p>
-      <a href="${process.env.NEXT_PUBLIC_BASE_URL}/subscription">Upgrade Now</a>
-    `,
-  });
-}
-
-export async function sendLimitWarningEmail(
-  userEmail: string,
-  userName: string,
-  booksAdded: number,
-) {
-  await resend.emails.send({
-    from: fromEmail,
-    to: userEmail,
-    subject: "Approaching your book limit",
-    html: `
-      <h2>Hi ${userName},</h2>
-      <p>You've added ${booksAdded} of 50 books this year.</p>
-      <p>Consider upgrading to Premium for unlimited books!</p>
-      <a href="${process.env.NEXT_PUBLIC_BASE_URL}/subscription">View Plans</a>
-    `,
-  });
-}
+// Limit-related notification emails removed — unlimited books are available to all users.
 
 export async function sendPaymentFailedEmail(
   userEmail: string,

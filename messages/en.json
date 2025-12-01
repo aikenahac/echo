@@ -279,7 +279,7 @@
       "price": "€0",
       "period": "forever",
       "features": {
-        "books": "50 books per year",
+        "books": "Unlimited books",
         "booksDesc": "Track your reading progress",
         "stats": "Reading stats & progress",
         "statsDesc": "Monitor your reading habits",
@@ -336,8 +336,8 @@
           "answer": "Yes! You can upgrade to Premium at any time. If you downgrade, you'll keep Premium features until the end of your billing period."
         },
         "limit": {
-          "title": "What happens if I reach the 50 book limit on Free?",
-          "answer": "You'll receive notifications as you approach the limit. Once reached, you can upgrade to Premium for unlimited books or wait until next year when your limit resets."
+          "title": "Are there annual limits on books?",
+          "answer": "There are no annual limits — all users can add as many books as they want to their library."
         },
         "refunds": {
           "title": "Do you offer refunds?",
@@ -360,10 +360,6 @@
     "paywall": {
       "title": "Upgrade to Premium for {feature}",
       "benefits": {
-        "unlimited": {
-          "title": "Unlimited Books",
-          "description": "Add as many books as you want to your library"
-        },
         "collections": {
           "title": "Custom Collections",
           "description": "Organize your books into personalized collections"
@@ -371,16 +367,20 @@
         "support": {
           "title": "Priority Support",
           "description": "Get help faster when you need it"
+        },
+        "earlyAccess": {
+          "title": "Early Access",
+          "description": "Early access to new features"
         }
       },
       "viewPlans": "View Premium Plans",
       "maybeLater": "Maybe Later"
     },
-    "limit": {
+      "limit": {
       "reached": "Limit Reached",
       "approaching": "Approaching Limit",
-      "message": "You've used {booksAdded} of {limit} books this year.",
-      "upgrade": "Upgrade to add more books!"
+      "message": "You've added books to your library.",
+      "upgrade": "Explore Premium for more features"
     }
   },
   "collections": {
@@ -429,7 +429,7 @@
   },
   "subscription": {
     "title": "Subscription",
-    "subtitle": "Manage your subscription and usage",
+    "subtitle": "Manage your subscription",
     "currentPlan": "Current Plan",
     "upgrade": "Upgrade",
     "manageBilling": "Manage Billing",
@@ -454,7 +454,7 @@
       "title": "Welcome to Premium!",
       "subtitle": "Your subscription has been activated successfully",
       "whatsNext": "What's next?",
-      "feature1": "You now have unlimited book tracking",
+      "feature1": "You now have enhanced premium features",
       "feature2": "Add as many books as you want to your library",
       "feature3": "Access to all future premium features",
       "goToLibrary": "Go to Library",
@@ -463,7 +463,7 @@
     "canceled": {
       "title": "Checkout Canceled",
       "subtitle": "You canceled the checkout process",
-      "message": "No worries! You can upgrade to Premium anytime to unlock unlimited book tracking and future premium features.",
+      "message": "No worries! You can upgrade to Premium anytime to unlock extra premium features.",
       "viewPlans": "View Plans",
       "backToLibrary": "Back to Library"
     },
@@ -472,15 +472,7 @@
       "failed": "Failed to upgrade plan"
     }
   },
-  "usage": {
-    "title": "Usage This Year",
-    "booksAdded": "Books Added",
-    "books": "books",
-    "period": "Period:",
-    "limitReached": "You've reached your limit! Upgrade to add more books.",
-    "approaching": "You're approaching your limit. Consider upgrading to Premium!",
-    "loading": "Loading..."
-  },
+  
   "bookCard": {
     "noCover": "No cover",
     "pages": "pages",
@@ -528,15 +520,7 @@
   "usersSearch": {
     "title": "Search Users"
   },
-  "feed": {
-    "title": "Activity Feed",
-    "empty": "Your feed is empty!",
-    "emptyDescription": "Follow other users to see their reading activity here.",
-    "findUsers": "Find Users to Follow",
-    "finished": "finished reading",
-    "started": "started reading",
-    "reviewed": "reviewed"
-  },
+  
   "settings": {
     "title": "Settings",
     "description": "Manage your account settings and preferences",
@@ -560,7 +544,7 @@
   },
   "subscriptionPage": {
     "title": "Subscription",
-    "description": "Manage your subscription and usage",
+    "description": "Manage your subscription",
     "currentPlan": "Current Plan",
     "upgrade": "Upgrade"
   },

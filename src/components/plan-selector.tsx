@@ -47,7 +47,7 @@ export function PlanSelector({
           window.location.href = result.url;
         }
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to upgrade plan");
     } finally {
       setLoading(null);
@@ -95,11 +95,7 @@ export function PlanSelector({
               <ul className="space-y-2">
                 <li className="flex items-center gap-2 text-sm">
                   <Check className="h-4 w-4 text-primary" />
-                  <span className={!features.maxBooksPerYear ? "font-semibold" : ""}>
-                    {features.maxBooksPerYear
-                      ? `${features.maxBooksPerYear} books per year`
-                      : "Unlimited books"}
-                  </span>
+                  <span className="font-semibold">Unlimited books</span>
                 </li>
                 {(features.customCollections || features.maxCollections) && (
                   <li className="flex items-center gap-2 text-sm">

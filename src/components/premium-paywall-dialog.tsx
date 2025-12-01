@@ -51,16 +51,7 @@ export function PremiumPaywallDialog({
 
         <div className="space-y-3 py-4">
           <div className="flex items-start gap-3">
-            <Sparkles className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="font-semibold text-sm">{t("benefits.unlimited.title")}</p>
-              <p className="text-sm text-muted-foreground">
-                {t("benefits.unlimited.description")}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-start gap-3">
-            <Sparkles className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+            <Sparkles className="h-5 w-5 text-primary shrink-0 mt-0.5" />
             <div>
               <p className="font-semibold text-sm">{t("benefits.collections.title")}</p>
               <p className="text-sm text-muted-foreground">
@@ -69,7 +60,16 @@ export function PremiumPaywallDialog({
             </div>
           </div>
           <div className="flex items-start gap-3">
-            <Sparkles className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+            <Sparkles className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-sm">{t("benefits.earlyAccess.title")}</p>
+              <p className="text-sm text-muted-foreground">
+                {t("benefits.earlyAccess.description")}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-start gap-3">
+            <Sparkles className="h-5 w-5 text-primary shrink-0 mt-0.5" />
             <div>
               <p className="font-semibold text-sm">{t("benefits.support.title")}</p>
               <p className="text-sm text-muted-foreground">

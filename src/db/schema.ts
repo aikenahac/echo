@@ -179,7 +179,7 @@ export const subscriptionPlans = pgTable(
     stripeProductId: text("stripe_product_id"),
     price: integer("price").notNull().default(0), // Price in cents
     interval: billingIntervalEnum("interval").notNull().default("free"),
-    features: text("features"), // JSON string: {"maxBooksPerYear": 50}
+    features: text("features"), // JSON string: arbitrary plan features (e.g. {"customCollections": true})
     isActive: boolean("is_active").default(true).notNull(),
     isInternal: boolean("is_internal").default(false).notNull(), // Internal plans not shown on subscription page
     sortOrder: integer("sort_order").default(0).notNull(),
@@ -223,28 +223,6 @@ export const userSubscriptions = pgTable(
   }),
 );
 
-// Subscription Usage table
-export const subscriptionUsage = pgTable(
-  "subscription_usage",
-  {
-    id: uuid("id").defaultRandom().primaryKey(),
-    userId: text("user_id")
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    periodStart: timestamp("period_start").notNull(),
-    periodEnd: timestamp("period_end").notNull(),
-    booksAdded: integer("books_added").default(0).notNull(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow().notNull(),
-  },
-  (table) => ({
-    userPeriodIdx: index("subscription_usage_user_period_idx").on(
-      table.userId,
-      table.periodStart,
-    ),
-    periodEndIdx: index("subscription_usage_period_end_idx").on(table.periodEnd),
-  }),
-);
 
 // Collections table (Premium feature)
 export const collections = pgTable(
@@ -330,7 +308,6 @@ export const usersRelations = relations(users, ({ many, one }) => ({
   following: many(follows, { relationName: "follower" }),
   auditLogs: many(auditLogs),
   subscription: one(userSubscriptions),
-  usageRecords: many(subscriptionUsage),
   collections: many(collections),
   collectionFollows: many(collectionFollows),
 }));
@@ -404,15 +381,6 @@ export const userSubscriptionsRelations = relations(
   }),
 );
 
-export const subscriptionUsageRelations = relations(
-  subscriptionUsage,
-  ({ one }) => ({
-    user: one(users, {
-      fields: [subscriptionUsage.userId],
-      references: [users.id],
-    }),
-  }),
-);
 
 export const collectionsRelations = relations(collections, ({ one, many }) => ({
   user: one(users, {

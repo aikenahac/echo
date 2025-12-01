@@ -796,7 +796,7 @@ export const apiEndpoints: ApiEndpoint[] = [
             name: "Premium Monthly",
             price: 999,
             interval: "month",
-            maxBooksPerYear: null,
+            // no per-year book limits; unlimited available
             features: {
               unlimited: true,
               collections: true,
@@ -817,7 +817,7 @@ export const apiEndpoints: ApiEndpoint[] = [
             name: "Free",
             price: 0,
             interval: "free",
-            maxBooksPerYear: 50,
+            // free plan also supports unlimited books now
           },
           isActive: false,
           isFree: true,
@@ -825,45 +825,7 @@ export const apiEndpoints: ApiEndpoint[] = [
       },
     ],
   },
-  {
-    method: "GET",
-    path: "/api/v1/subscriptions/usage",
-    category: "Subscriptions",
-    description: "Get usage statistics for the current period",
-    requiresAuth: true,
-    responses: [
-      {
-        status: 200,
-        description: "Usage statistics",
-        example: {
-          booksAdded: 23,
-          limit: 50,
-          hasUnlimited: false,
-          period: {
-            start: "2025-01-01T00:00:00Z",
-            end: "2025-12-31T23:59:59Z",
-          },
-          percentageUsed: 46,
-          remainingBooks: 27,
-        },
-      },
-      {
-        status: 200,
-        description: "Usage statistics (unlimited plan)",
-        example: {
-          booksAdded: 156,
-          limit: null,
-          hasUnlimited: true,
-          period: {
-            start: "2025-01-01T00:00:00Z",
-            end: "2025-12-31T23:59:59Z",
-          },
-          percentageUsed: 0,
-          remainingBooks: null,
-        },
-      },
-    ],
-  },
+  
 
   // Feed API
   {

@@ -156,10 +156,10 @@ export function EditPlanDialog({
                 onChange={(e) =>
                   setFormData({ ...formData, features: e.target.value })
                 }
-                placeholder='{"maxBooksPerYear": null}'
+                placeholder='{}'
               />
               <p className="text-xs text-muted-foreground">
-                Use null for unlimited books. Example: {`{"maxBooksPerYear": 50}`}
+                Enter a JSON object describing plan features, e.g. {`{"customCollections": true}`}
               </p>
             </div>
 

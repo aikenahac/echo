@@ -5,7 +5,6 @@ import { users, userSubscriptions, subscriptionPlans } from "@/db/schema";
 import { eq, asc, and } from "drizzle-orm";
 import { SubscriptionCard } from "@/components/subscription-card";
 import { PlanSelector } from "@/components/plan-selector";
-import { UsageDisplay } from "@/components/usage-display";
 
 export default async function SubscriptionPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -41,7 +40,7 @@ export default async function SubscriptionPage({ params }: { params: Promise<{ l
     <div className="container mx-auto px-4 py-12 max-w-6xl">
       <h1 className="text-4xl font-bold mb-2">Subscription</h1>
       <p className="text-muted-foreground mb-8">
-        Manage your subscription and usage
+        Manage your subscription
       </p>
 
       <div className="grid gap-8 md:grid-cols-2">
@@ -49,7 +48,6 @@ export default async function SubscriptionPage({ params }: { params: Promise<{ l
         <div>
           <h2 className="text-2xl font-semibold mb-4">Current Plan</h2>
           <SubscriptionCard subscription={subscription} />
-          <UsageDisplay userId={userId!} />
         </div>
 
         {/* Available Plans */}

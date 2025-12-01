@@ -6,7 +6,7 @@ import { books, userBooks, users } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import type { NormalizedBook } from "@/lib/books";
-import { canAddBook, incrementBookUsage, assignFreePlanToUser } from "./subscriptions";
+import { assignFreePlanToUser } from "./subscriptions";
 
 export type ReadingStatus = "want" | "reading" | "finished";
 
@@ -23,15 +23,6 @@ export async function addBookToLibrary(
     return { error: "Unauthorized" };
   }
 
-  // Check if user can add more books (usage limits)
-  const canAdd = await canAddBook();
-  if (!canAdd.allowed) {
-    return {
-      error: canAdd.reason,
-      limitReached: true,
-      usage: canAdd.usage,
-    };
-  }
 
   try {
     // Ensure user exists in our database
@@ -95,8 +86,7 @@ export async function addBookToLibrary(
       })
       .returning();
 
-    // Increment usage counter (for limit tracking)
-    await incrementBookUsage();
+    // Usage tracking removed — nothing to increment
 
     revalidatePath("/library");
     revalidatePath("/books/search");

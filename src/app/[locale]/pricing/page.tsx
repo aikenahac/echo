@@ -8,7 +8,7 @@ import { getTranslations } from "next-intl/server";
 
 export const metadata = {
   title: "Pricing - Echo Reads",
-  description: "Choose the perfect plan for your reading journey. Start free or upgrade to Premium for unlimited books and custom collections.",
+  description: "Choose the perfect plan for your reading journey. Start free — unlimited books for everyone, or upgrade for additional features and support.",
 };
 
 export default async function PricingPage({
@@ -129,13 +129,6 @@ export default async function PricingPage({
                 <li className="flex items-start gap-3">
                   <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                   <span>
-                    <strong className="text-primary">{t("premium.features.unlimited")}</strong>
-                    <p className="text-sm text-muted-foreground">{t("premium.features.unlimitedDesc")}</p>
-                  </span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                  <span>
                     <strong className="text-primary">{t("premium.features.collections")}</strong>
                     <p className="text-sm text-muted-foreground">{t("premium.features.collectionsDesc")}</p>
                   </span>
@@ -181,7 +174,7 @@ export default async function PricingPage({
                   <tbody>
                     <tr className="border-b">
                       <td className="p-4">{t("comparison.rows.booksPerYear")}</td>
-                      <td className="text-center p-4">50</td>
+                      <td className="text-center p-4">{t("comparison.rows.unlimited")}</td>
                       <td className="text-center p-4 bg-primary/5 font-semibold text-primary">{t("comparison.rows.unlimited")}</td>
                     </tr>
                     <tr className="border-b">

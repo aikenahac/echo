@@ -35,7 +35,7 @@ export function CreatePlanDialog() {
     stripeProductId: "",
     price: 0,
     interval: "month" as "month" | "year" | "lifetime" | "free",
-    features: '{"maxBooksPerYear": null}',
+    features: "{}",
     sortOrder: 10,
   });
 
@@ -61,13 +61,13 @@ export function CreatePlanDialog() {
         toast.success("Plan created successfully");
         setOpen(false);
         // Reset form
-        setFormData({
+          setFormData({
           name: "",
           stripePriceId: "",
           stripeProductId: "",
           price: 0,
           interval: "month",
-          features: '{"maxBooksPerYear": null}',
+          features: "{}",
           sortOrder: 10,
         });
         router.refresh();
@@ -192,10 +192,10 @@ export function CreatePlanDialog() {
                 onChange={(e) =>
                   setFormData({ ...formData, features: e.target.value })
                 }
-                placeholder='{"maxBooksPerYear": null}'
+                placeholder='{}'
               />
               <p className="text-xs text-muted-foreground">
-                Use null for unlimited books
+                Enter a JSON object describing plan features, e.g. {`{"customCollections": true}`}.
               </p>
             </div>
 

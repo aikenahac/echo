@@ -2,22 +2,13 @@
 
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/db";
-import {
-  users,
-  userSubscriptions,
-  subscriptionPlans,
-  subscriptionUsage,
-} from "@/db/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { users, userSubscriptions, subscriptionPlans } from "@/db/schema";
+import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import Stripe from "stripe";
-import {
-  sendLimitReachedEmail,
-  sendLimitWarningEmail,
-} from "@/lib/email";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2024-11-20.acacia" as any,
+  apiVersion: "2025-11-17.clover" as any,
 });
 
 /**
@@ -138,184 +129,14 @@ export async function getUserSubscription() {
   }
 }
 
-/**
- * Get user's current usage stats
- */
-export async function getUserUsageStats() {
-  const { userId } = await auth();
-  if (!userId) return { error: "Unauthorized" };
-
-  try {
-    const user = await db.query.users.findFirst({
-      where: eq(users.id, userId),
-    });
-
-    if (!user) return { error: "User not found" };
-
-    // Get user's subscription to determine period anniversary and limits
-    const subscription = await db.query.userSubscriptions.findFirst({
-      where: eq(userSubscriptions.userId, userId),
-      with: { plan: true },
-    });
-
-    // Calculate current period based on subscription start or user creation
-    const now = new Date();
-    const anniversary = subscription?.currentPeriodStart || user.createdAt;
-    const periodStart = calculatePeriodStart(anniversary, now);
-    const periodEnd = calculatePeriodEnd(periodStart);
-
-    // Get or create usage record
-    let usage = await db.query.subscriptionUsage.findFirst({
-      where: and(
-        eq(subscriptionUsage.userId, userId),
-        eq(subscriptionUsage.periodStart, periodStart),
-      ),
-    });
-
-    if (!usage) {
-      [usage] = await db
-        .insert(subscriptionUsage)
-        .values({
-          userId,
-          periodStart,
-          periodEnd,
-          booksAdded: 0,
-        })
-        .returning();
-    }
-
-    const features = subscription?.plan.features
-      ? JSON.parse(subscription.plan.features)
-      : { maxBooksPerYear: 50 };
-
-    const limit = features.maxBooksPerYear; // null = unlimited
-
-    return {
-      booksAdded: usage.booksAdded,
-      limit,
-      periodStart,
-      periodEnd,
-      hasUnlimited: limit === null,
-    };
-  } catch (error) {
-    console.error("Error fetching usage stats:", error);
-    return { error: "Failed to fetch usage stats" };
-  }
-}
 
 /**
  * Check if user can add more books
  */
-export async function canAddBook(): Promise<{
-  allowed: boolean;
-  reason?: string;
-  usage?: any;
-}> {
-  const { userId } = await auth();
-  if (!userId) return { allowed: false, reason: "Unauthorized" };
-
-  const usageResult = await getUserUsageStats();
-  if ("error" in usageResult) {
-    return { allowed: false, reason: usageResult.error };
-  }
-
-  const { booksAdded, limit, hasUnlimited } = usageResult;
-
-  if (hasUnlimited) {
-    return { allowed: true, usage: usageResult };
-  }
-
-  if (limit !== null && booksAdded >= limit) {
-    return {
-      allowed: false,
-      reason: `You've reached your limit of ${limit} books this year. Upgrade to Premium for unlimited books!`,
-      usage: usageResult,
-    };
-  }
-
-  return { allowed: true, usage: usageResult };
-}
 
 /**
  * Increment book usage counter
  */
-export async function incrementBookUsage() {
-  const { userId } = await auth();
-  if (!userId) return { error: "Unauthorized" };
-
-  try {
-    const user = await db.query.users.findFirst({
-      where: eq(users.id, userId),
-    });
-
-    if (!user) return { error: "User not found" };
-
-    // Get user's subscription to determine period anniversary
-    const subscription = await db.query.userSubscriptions.findFirst({
-      where: eq(userSubscriptions.userId, userId),
-    });
-
-    const now = new Date();
-    const anniversary = subscription?.currentPeriodStart || user.createdAt;
-    const periodStart = calculatePeriodStart(anniversary, now);
-
-    await db
-      .update(subscriptionUsage)
-      .set({
-        booksAdded: sql`${subscriptionUsage.booksAdded} + 1`,
-        updatedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(subscriptionUsage.userId, userId),
-          eq(subscriptionUsage.periodStart, periodStart),
-        ),
-      );
-
-    // Get updated usage for email notifications
-    const usageResult = await getUserUsageStats();
-    if ("error" in usageResult) {
-      return { success: true }; // Continue even if email fails
-    }
-
-    const { booksAdded, limit } = usageResult;
-
-    // Send email notifications at specific thresholds
-    if (limit === 50) {
-      // Warning at 40 books (80%)
-      if (booksAdded === 40) {
-        try {
-          await sendLimitWarningEmail(user.email, user.username || "there", 40);
-        } catch (emailError) {
-          console.error("Failed to send limit warning email:", emailError);
-        }
-      }
-
-      // Final warning at 48 books (96%)
-      if (booksAdded === 48) {
-        try {
-          await sendLimitWarningEmail(user.email, user.username || "there", 48);
-        } catch (emailError) {
-          console.error("Failed to send limit warning email:", emailError);
-        }
-      }
-
-      // Limit reached email
-      if (booksAdded === 50) {
-        try {
-          await sendLimitReachedEmail(user.email, user.username || "there");
-        } catch (emailError) {
-          console.error("Failed to send limit reached email:", emailError);
-        }
-      }
-    }
-
-    return { success: true };
-  } catch (error) {
-    console.error("Error incrementing book usage:", error);
-    return { error: "Failed to update usage" };
-  }
-}
 
 /**
  * Get all active subscription plans for display (excluding internal plans)
@@ -421,7 +242,7 @@ export async function getOrCreateFreePlan() {
           name: "Free",
           price: 0,
           interval: "free",
-          features: JSON.stringify({ maxBooksPerYear: 50 }),
+          features: JSON.stringify({}),
           isActive: true,
           isInternal: false,
           sortOrder: 0,
@@ -477,21 +298,4 @@ export async function assignFreePlanToUser(userId: string) {
 }
 
 // Helper functions
-function calculatePeriodStart(anniversary: Date, now: Date): Date {
-  const periodStart = new Date(anniversary);
-  periodStart.setFullYear(now.getFullYear());
-
-  // If anniversary hasn't occurred this year, use last year
-  if (periodStart > now) {
-    periodStart.setFullYear(now.getFullYear() - 1);
-  }
-
-  return periodStart;
-}
-
-function calculatePeriodEnd(periodStart: Date): Date {
-  const periodEnd = new Date(periodStart);
-  periodEnd.setFullYear(periodStart.getFullYear() + 1);
-  periodEnd.setDate(periodEnd.getDate() - 1); // Day before anniversary
-  return periodEnd;
-}
+// Period helpers removed — no longer used by subscription usage tracking.
