@@ -18,11 +18,19 @@ export const GET = withAuth(async (request, { user }) => {
     },
   });
 
-  // Determine if user has unlimited books
-  const hasUnlimited =
-    subscription?.plan &&
-    (subscription.plan.maxBooksPerYear === null ||
-      subscription.plan.maxBooksPerYear === -1);
+  // Parse features JSON to get maxBooksPerYear
+  let maxBooksPerYear = 50; // Default free plan limit
+  if (subscription?.plan?.features) {
+    try {
+      const features = JSON.parse(subscription.plan.features);
+      maxBooksPerYear = features.maxBooksPerYear ?? 50;
+    } catch {
+      maxBooksPerYear = 50;
+    }
+  }
+
+  // Determine if user has unlimited books (null or -1 means unlimited)
+  const hasUnlimited = maxBooksPerYear === null || maxBooksPerYear === -1;
 
   // Get current year start date
   const currentYearStart = new Date(new Date().getFullYear(), 0, 1);
@@ -36,7 +44,7 @@ export const GET = withAuth(async (request, { user }) => {
     );
 
   const booksAdded = Number(booksThisYear[0]?.count || 0);
-  const limit = subscription?.plan?.maxBooksPerYear || 50; // Default free plan limit
+  const limit = maxBooksPerYear;
 
   return createApiResponse({
     booksAdded,
