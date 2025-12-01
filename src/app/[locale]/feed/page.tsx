@@ -111,8 +111,8 @@ export default async function FeedPage() {
                     </p>
                     <p className="font-medium">
                       {activity.data.status === "finished"
-                        ? t("finished")
-                        : t("started")}
+                        ? t("activities.finishedReading")
+                        : t("activities.startedReading")}
                     </p>
                     <a
                       href={`/books/${activity.data.bookId}`}
