@@ -197,6 +197,9 @@ export default async function LocaleLayout({
   return (
     <ClerkProvider>
       <html lang={locale}>
+        <head>
+          <script defer data-domain="echo.aiken.si" src="https://plausible.aerio.cloud/js/script.outbound-links.pageview-props.tagged-events.js"></script>
+        </head>
         <body
           className={`${eb_garamond.variable} ${eb_garamond_body.variable} ${ibm_plex_mono.variable} antialiased`}
         >
