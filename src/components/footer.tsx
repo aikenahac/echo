@@ -12,7 +12,7 @@ export function Footer() {
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
           <div className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} Aerio, Aiken Tine Ahac s.p.
+            © {new Date().getFullYear()} Echo.
           </div>
           <div className="flex items-center gap-6">
             <div className="flex gap-6 text-sm">
