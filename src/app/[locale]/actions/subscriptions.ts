@@ -8,7 +8,7 @@ import { revalidatePath } from "next/cache";
 import Stripe from "stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-11-17.clover" as any,
+  apiVersion: "2025-11-17.clover",
 });
 
 /**
