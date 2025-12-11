@@ -267,7 +267,6 @@ export async function createSubscriptionPlan(data: {
   stripeProductId: string | null;
   price: number;
   interval: "month" | "year" | "lifetime" | "free";
-  features: string; // JSON string
   isActive: boolean;
   sortOrder: number;
 }) {
@@ -315,7 +314,6 @@ export async function updateSubscriptionPlan(
     stripeProductId: string | null;
     price: number;
     interval: "month" | "year" | "lifetime" | "free";
-    features: string;
     isActive: boolean;
     isInternal: boolean;
     sortOrder: number;

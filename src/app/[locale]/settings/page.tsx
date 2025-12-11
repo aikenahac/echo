@@ -98,24 +98,6 @@ export default async function SettingsPage({ params }: { params: { locale: strin
                   </p>
                 </div>
               )}
-
-              {subscription.plan.features && (
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Features</label>
-                  <div className="mt-2">
-                    {(() => {
-                      const features = JSON.parse(subscription.plan.features);
-                      return (
-                        <ul className="space-y-1 text-sm">
-                          <li>Unlimited books</li>
-                          {features.earlyAccess && <li>Early access to new features</li>}
-                          {features.prioritySupport && <li>Priority support</li>}
-                        </ul>
-                      );
-                    })()}
-                  </div>
-                </div>
-              )}
             </CardContent>
           </Card>
         )}

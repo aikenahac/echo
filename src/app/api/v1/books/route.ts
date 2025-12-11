@@ -1,4 +1,3 @@
-import { NextRequest } from "next/server";
 import { withAuth } from "@/lib/api-handler";
 import { createApiResponse } from "@/lib/api-auth";
 import { addBookToLibrary } from "@/app/[locale]/actions/books";
@@ -12,14 +11,14 @@ import { eq } from "drizzle-orm";
  */
 export const POST = withAuth(async (request, { user }) => {
   const body = await request.json();
-  const { bookData, status } = body;
+  const { bookData, status, isFavorite } = body;
 
   if (!bookData || !status) {
     throw new Error("Missing required fields: bookData, status");
   }
 
   // Reuse existing server action
-  const result = await addBookToLibrary(bookData, status);
+  const result = await addBookToLibrary(bookData, status, isFavorite);
 
   if (result.error) {
     throw new Error(result.error);
@@ -36,28 +35,27 @@ export const POST = withAuth(async (request, { user }) => {
  *  - favorite: "true" | "false" (optional)
  */
 export const GET = withAuth(async (request, { user }) => {
-  const { searchParams } = new URL(request.url);
-  const status = searchParams.get("status");
-  const favoriteFilter = searchParams.get("favorite");
-
-  const { and } = await import("drizzle-orm");
-
-  // Build where conditions
-  const conditions = [eq(userBooks.userId, user.id)];
-
-  if (status && ["want", "reading", "finished"].includes(status)) {
-    conditions.push(eq(userBooks.status, status as any));
-  }
-
-  if (favoriteFilter === "true") {
-    conditions.push(eq(userBooks.isFavorite, true));
-  }
-
-  const results = await db.query.userBooks.findMany({
-    where: and(...conditions),
-    with: { book: true },
-    orderBy: (userBooks, { desc }) => [desc(userBooks.updatedAt)],
+  const allUserBooks = await db.query.userBooks.findMany({
+    where: eq(userBooks.userId, user.id),
+    with: {
+      book: true,
+    },
+    orderBy: (userBooks, { desc }) => [desc(userBooks.createdAt)],
   });
 
-  return createApiResponse(results);
+  // Separate books by favorites and status
+  const favoriteBooks = allUserBooks.filter((ub) => ub.isFavorite);
+  const wantToRead = allUserBooks.filter((ub) => ub.status === "want");
+  const currentlyReading = allUserBooks.filter((ub) => ub.status === "reading");
+  const finished = allUserBooks.filter((ub) => ub.status === "finished");
+
+  // Transform to include book count and books
+  const transformed = {
+    favoriteBooks,
+    wantToRead,
+    currentlyReading,
+    finished,
+  };
+
+  return createApiResponse(transformed);
 });

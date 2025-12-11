@@ -107,9 +107,29 @@ export default async function ProfilePage() {
     <div className="container mx-auto px-4 py-8 max-w-4xl">
       <div className="space-y-8">
         <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-3xl font-bold mb-2">{t("title")}</h1>
-            <p className="text-muted-foreground">{user.email}</p>
+          <div className="flex items-start gap-4">
+            {user.profilePictureUrl ? (
+              <img
+                src={user.profilePictureUrl}
+                alt={user.displayName || user.username || "Profile"}
+                className="w-24 h-24 rounded-full object-cover"
+              />
+            ) : (
+              <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center">
+                <span className="text-3xl font-semibold">
+                  {(user.displayName || user.username || user.email)?.[0]?.toUpperCase()}
+                </span>
+              </div>
+            )}
+            <div>
+              <h1 className="text-3xl font-bold mb-1">
+                {user.displayName || user.username || t("title")}
+              </h1>
+              {user.displayName && user.username && (
+                <p className="text-muted-foreground mb-1">@{user.username}</p>
+              )}
+              <p className="text-sm text-muted-foreground">{user.email}</p>
+            </div>
           </div>
           {hasPaidPlan && (
             <Link href="/settings">

@@ -1,9 +1,7 @@
-import { NextRequest } from "next/server";
 import { withAuth } from "@/lib/api-handler";
 import { createApiResponse } from "@/lib/api-auth";
 import {
   updateReadingProgress,
-  updateBookCurrentPage,
   updateBookPageCount,
 } from "@/app/[locale]/actions/books";
 
@@ -23,6 +21,8 @@ export const PUT = withAuth(async (request, { user, params }) => {
     if (result.error) {
       throw new Error(result.error);
     }
+
+    return createApiResponse(result);
   }
 
   // Handle current page update
@@ -32,10 +32,6 @@ export const PUT = withAuth(async (request, { user, params }) => {
       throw new Error(result.error);
     }
     return createApiResponse(result);
-  }
-
-  if (pageCount !== undefined) {
-    return createApiResponse({ success: true });
   }
 
   throw new Error("Missing required field: currentPage or pageCount");

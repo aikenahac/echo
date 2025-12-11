@@ -12,7 +12,6 @@ interface Plan {
   name: string;
   price: number;
   interval: string;
-  features: string | null;
   isActive: boolean;
   stripePriceId: string | null;
 }
@@ -57,7 +56,6 @@ export function PlanSelector({
   return (
     <div className="space-y-4">
       {plans.map((plan) => {
-        const features = plan.features ? JSON.parse(plan.features) : {};
         const isCurrent = plan.id === currentPlanId;
         const isFree = !plan.stripePriceId; // Free plans don't have Stripe price ID
 
@@ -97,26 +95,10 @@ export function PlanSelector({
                   <Check className="h-4 w-4 text-primary" />
                   <span className="font-semibold">Unlimited books</span>
                 </li>
-                {(features.customCollections || features.maxCollections) && (
+                {!isFree && (
                   <li className="flex items-center gap-2 text-sm">
                     <Check className="h-4 w-4 text-primary" />
-                    <span className="font-semibold">
-                      {features.maxCollections
-                        ? `${features.maxCollections} custom collections`
-                        : "Custom collections"}
-                    </span>
-                  </li>
-                )}
-                {features.earlyAccess && (
-                  <li className="flex items-center gap-2 text-sm">
-                    <Check className="h-4 w-4 text-primary" />
-                    Early access to new features
-                  </li>
-                )}
-                {features.prioritySupport && (
-                  <li className="flex items-center gap-2 text-sm">
-                    <Check className="h-4 w-4 text-primary" />
-                    Priority support
+                    <span className="font-semibold">Custom collections</span>
                   </li>
                 )}
               </ul>

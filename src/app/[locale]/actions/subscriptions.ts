@@ -242,7 +242,6 @@ export async function getOrCreateFreePlan() {
           name: "Free",
           price: 0,
           interval: "free",
-          features: JSON.stringify({}),
           isActive: true,
           isInternal: false,
           sortOrder: 0,

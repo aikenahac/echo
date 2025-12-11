@@ -44,6 +44,8 @@ export const users = pgTable(
     email: text("email").notNull().unique(),
     username: text("username").unique(),
     bio: text("bio"),
+    displayName: text("display_name"),
+    profilePictureUrl: text("profile_picture_url"),
     role: userRoleEnum("role").default("user").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -179,7 +181,6 @@ export const subscriptionPlans = pgTable(
     stripeProductId: text("stripe_product_id"),
     price: integer("price").notNull().default(0), // Price in cents
     interval: billingIntervalEnum("interval").notNull().default("free"),
-    features: text("features"), // JSON string: arbitrary plan features (e.g. {"customCollections": true})
     isActive: boolean("is_active").default(true).notNull(),
     isInternal: boolean("is_internal").default(false).notNull(), // Internal plans not shown on subscription page
     sortOrder: integer("sort_order").default(0).notNull(),

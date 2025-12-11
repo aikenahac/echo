@@ -19,7 +19,6 @@ interface Plan {
   name: string;
   price: number;
   interval: string;
-  features: string | null;
   isActive: boolean;
   isInternal: boolean;
   stripePriceId: string | null;
@@ -39,7 +38,6 @@ export function SubscriptionPlansTable({ plans }: { plans: Plan[] }) {
               <TableHead>Name</TableHead>
               <TableHead>Price</TableHead>
               <TableHead>Interval</TableHead>
-              <TableHead>Features</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Visibility</TableHead>
               <TableHead>Stripe Price ID</TableHead>
@@ -47,11 +45,7 @@ export function SubscriptionPlansTable({ plans }: { plans: Plan[] }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {plans.map((plan) => {
-              const features = plan.features
-                ? JSON.parse(plan.features)
-                : {};
-              return (
+            {plans.map((plan) => (
                 <TableRow key={plan.id}>
                   <TableCell className="font-medium">{plan.name}</TableCell>
                   <TableCell>
@@ -83,8 +77,7 @@ export function SubscriptionPlansTable({ plans }: { plans: Plan[] }) {
                     </Button>
                   </TableCell>
                 </TableRow>
-              );
-            })}
+            ))}
           </TableBody>
         </Table>
       </div>

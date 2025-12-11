@@ -35,7 +35,6 @@ export function CreatePlanDialog() {
     stripeProductId: "",
     price: 0,
     interval: "month" as "month" | "year" | "lifetime" | "free",
-    features: "{}",
     sortOrder: 10,
   });
 
@@ -50,7 +49,6 @@ export function CreatePlanDialog() {
         stripeProductId: formData.stripeProductId || null,
         price: Math.round(formData.price * 100), // Convert to cents
         interval: formData.interval,
-        features: formData.features,
         isActive: true,
         sortOrder: formData.sortOrder,
       });
@@ -67,7 +65,6 @@ export function CreatePlanDialog() {
           stripeProductId: "",
           price: 0,
           interval: "month",
-          features: "{}",
           sortOrder: 10,
         });
         router.refresh();
@@ -181,22 +178,6 @@ export function CreatePlanDialog() {
                 placeholder="prod_..."
                 className="font-mono text-sm"
               />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="features">Features (JSON)</Label>
-              <textarea
-                id="features"
-                className="w-full min-h-[80px] p-2 border rounded-md font-mono text-sm"
-                value={formData.features}
-                onChange={(e) =>
-                  setFormData({ ...formData, features: e.target.value })
-                }
-                placeholder='{}'
-              />
-              <p className="text-xs text-muted-foreground">
-                Enter a JSON object describing plan features, e.g. {`{"customCollections": true}`}.
-              </p>
             </div>
 
             <div className="space-y-2">

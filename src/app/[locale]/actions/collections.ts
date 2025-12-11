@@ -29,7 +29,7 @@ function generateSlug(name: string, userId: string): string {
   return `${baseSlug}-${randomStr}`;
 }
 
-// Helper function to check if user has collection access (paid plan with customCollections feature)
+// Helper function to check if user has collection access (paid plan)
 async function checkCollectionAccess(userId: string): Promise<boolean> {
   const subscription = await db.query.userSubscriptions.findFirst({
     where: eq(userSubscriptions.userId, userId),
@@ -40,35 +40,17 @@ async function checkCollectionAccess(userId: string): Promise<boolean> {
     return false;
   }
 
-  // Check if user has a paid plan (price > 0, has stripePriceId, or is lifetime)
-  const hasPaidPlan =
-    subscription.plan.price > 0 ||
-    subscription.plan.stripePriceId !== null ||
-    subscription.plan.interval === "lifetime";
-
-  if (!hasPaidPlan) {
+  // Check if subscription is active
+  if (subscription.status !== 'active' && subscription.status !== 'trialing') {
     return false;
   }
 
-  // Parse features to check for customCollections
-  if (subscription.plan.features) {
-    try {
-      const features = JSON.parse(subscription.plan.features);
-      // If customCollections is explicitly set to false, deny access
-      if (features.customCollections === false) {
-        return false;
-      }
-      // If customCollections is explicitly set to true, or if maxCollections is set, allow access
-      if (features.customCollections === true || features.maxCollections !== undefined) {
-        return true;
-      }
-    } catch (error) {
-      console.error("Error parsing plan features:", error);
-    }
-  }
-
-  // Default: allow access for all paid plans (even if features are not set)
-  return true;
+  // Check if user has a paid plan (price > 0, has stripePriceId, or is lifetime)
+  return (
+    subscription.plan.price > 0 ||
+    subscription.plan.stripePriceId !== null ||
+    subscription.plan.interval === "lifetime"
+  );
 }
 
 /**

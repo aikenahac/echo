@@ -78,6 +78,64 @@ export async function deleteCollectionCover(imageUrl: string) {
 }
 
 /**
+ * Generate a presigned URL for uploading a profile picture
+ * @param userId - The user's ID
+ * @param fileExtension - File extension (e.g., 'jpg', 'png')
+ * @returns Object with presigned URL and the final public URL
+ */
+export async function generateProfilePictureUploadUrl(
+  userId: string,
+  fileExtension: string = "jpg"
+) {
+  const timestamp = Date.now();
+  const key = `pfp/${userId}/${timestamp}.${fileExtension}`;
+
+  const command = new PutObjectCommand({
+    Bucket: BUCKET_NAME,
+    Key: key,
+    ContentType: `image/${fileExtension}`,
+    // Note: ACL removed to avoid CORS issues
+    // Set bucket to public or use bucket policy instead
+  });
+
+  // Generate presigned URL (valid for 5 minutes)
+  const uploadUrl = await getSignedUrl(s3Client, command, {
+    expiresIn: 300,
+  });
+
+  // Construct the final public URL
+  const publicUrl = `${PUBLIC_URL}/${key}`;
+
+  return {
+    uploadUrl,
+    publicUrl,
+    key,
+  };
+}
+
+/**
+ * Delete a profile picture from S3
+ * @param imageUrl - The public URL of the image to delete
+ */
+export async function deleteProfilePicture(imageUrl: string) {
+  try {
+    // Extract the key from the public URL
+    const key = imageUrl.replace(`${PUBLIC_URL}/`, "");
+
+    const command = new DeleteObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: key,
+    });
+
+    await s3Client.send(command);
+    console.log(`Deleted profile picture: ${key}`);
+  } catch (error) {
+    console.error("Error deleting profile picture from S3:", error);
+    throw error;
+  }
+}
+
+/**
  * Validate file type for collection covers
  * @param fileType - MIME type of the file
  * @returns Boolean indicating if the file type is valid

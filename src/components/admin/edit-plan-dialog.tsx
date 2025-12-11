@@ -22,7 +22,6 @@ interface Plan {
   name: string;
   price: number;
   interval: string;
-  features: string | null;
   isActive: boolean;
   isInternal: boolean;
   stripePriceId: string | null;
@@ -46,7 +45,6 @@ export function EditPlanDialog({
     price: plan.price / 100, // Convert cents to dollars
     stripePriceId: plan.stripePriceId || "",
     stripeProductId: plan.stripeProductId || "",
-    features: plan.features || "{}",
     isActive: plan.isActive,
     isInternal: plan.isInternal,
   });
@@ -61,7 +59,6 @@ export function EditPlanDialog({
         price: Math.round(formData.price * 100), // Convert to cents
         stripePriceId: formData.stripePriceId || null,
         stripeProductId: formData.stripeProductId || null,
-        features: formData.features,
         isActive: formData.isActive,
         isInternal: formData.isInternal,
       });
@@ -145,22 +142,6 @@ export function EditPlanDialog({
                 placeholder="prod_..."
                 className="font-mono text-sm"
               />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="features">Features (JSON)</Label>
-              <textarea
-                id="features"
-                className="w-full min-h-[100px] p-2 border rounded-md font-mono text-sm"
-                value={formData.features}
-                onChange={(e) =>
-                  setFormData({ ...formData, features: e.target.value })
-                }
-                placeholder='{}'
-              />
-              <p className="text-xs text-muted-foreground">
-                Enter a JSON object describing plan features, e.g. {`{"customCollections": true}`}
-              </p>
             </div>
 
             <div className="flex items-center justify-between">

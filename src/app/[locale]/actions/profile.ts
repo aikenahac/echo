@@ -6,11 +6,17 @@ import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { assignFreePlanToUser } from "./subscriptions";
+import { generateProfilePictureUploadUrl as generateS3UploadUrl } from "@/lib/s3";
 
 /**
  * Update user profile
  */
-export async function updateProfile(username: string, bio: string) {
+export async function updateProfile(
+  username: string,
+  bio: string,
+  displayName?: string,
+  profilePictureUrl?: string
+) {
   const { userId } = await auth();
 
   if (!userId) {
@@ -59,6 +65,11 @@ export async function updateProfile(username: string, bio: string) {
       }
     }
 
+    // Validate display name if provided
+    if (displayName && displayName.length > 100) {
+      return { error: "Display name must be at most 100 characters long" };
+    }
+
     // Upsert user profile (insert or update)
     await db
       .insert(users)
@@ -67,6 +78,8 @@ export async function updateProfile(username: string, bio: string) {
         email: email,
         username: username || null,
         bio: bio || null,
+        displayName: displayName || null,
+        profilePictureUrl: profilePictureUrl || null,
       })
       .onConflictDoUpdate({
         target: users.id,
@@ -74,6 +87,8 @@ export async function updateProfile(username: string, bio: string) {
           email: email, // Update email from Clerk
           username: username || null,
           bio: bio || null,
+          displayName: displayName || null,
+          profilePictureUrl: profilePictureUrl || null,
           updatedAt: new Date(),
         },
       });
@@ -87,5 +102,39 @@ export async function updateProfile(username: string, bio: string) {
   } catch (error) {
     console.error("Error updating profile:", error);
     return { error: "Failed to update profile" };
+  }
+}
+
+/**
+ * Generate a presigned URL for uploading a profile picture
+ */
+export async function generateProfilePictureUploadUrl(fileExtension: string) {
+  const { userId } = await auth();
+
+  if (!userId) {
+    return { error: "Unauthorized" };
+  }
+
+  try {
+    // Validate file extension
+    const validExtensions = ["jpg", "jpeg", "png", "webp"];
+    if (!validExtensions.includes(fileExtension.toLowerCase())) {
+      return { error: "Invalid file type. Supported: JPG, PNG, WEBP" };
+    }
+
+    const { uploadUrl, publicUrl, key } = await generateS3UploadUrl(
+      userId,
+      fileExtension
+    );
+
+    return {
+      success: true,
+      uploadUrl,
+      publicUrl,
+      key,
+    };
+  } catch (error) {
+    console.error("Error generating upload URL:", error);
+    return { error: "Failed to generate upload URL" };
   }
 }

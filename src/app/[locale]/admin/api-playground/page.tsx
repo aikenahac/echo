@@ -17,6 +17,8 @@ export default async function ApiPlaygroundPage() {
         </p>
       </div>
 
+      <ApiPlayground endpoints={apiEndpoints} />
+
       {/* Integration Guide */}
       <Card>
         <CardHeader>
@@ -59,8 +61,6 @@ export default async function ApiPlaygroundPage() {
           </Alert>
         </CardContent>
       </Card>
-
-      <ApiPlayground endpoints={apiEndpoints} />
     </div>
   );
 }

@@ -16,6 +16,7 @@ export type ReadingStatus = "want" | "reading" | "finished";
 export async function addBookToLibrary(
   bookData: NormalizedBook,
   status: ReadingStatus,
+  isFavorite: boolean = false,
 ) {
   const { userId } = await auth();
 
@@ -79,6 +80,7 @@ export async function addBookToLibrary(
         userId,
         bookId: existingBook.id,
         status,
+        isFavorite,
         startedAt: status === "reading" ? new Date() : null,
         finishedAt: status === "finished" ? new Date() : null,
         pageCount: existingBook.pages,
