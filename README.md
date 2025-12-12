@@ -276,10 +276,6 @@ pnpm dlx shadcn@latest add <component-name>
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-## License
-
-This project is licensed under the MIT License.
-
 ## Acknowledgments
 
 - Book data provided by [Open Library](https://openlibrary.org/)
