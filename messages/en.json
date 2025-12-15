@@ -67,6 +67,7 @@
   "search": {
     "title": "Search Books",
     "placeholder": "Search for books by title, author, or ISBN...",
+    "placeholderBooks": "Search for books by title...",
     "noResults": "No results found. Try a different search term.",
     "searchButton": "Search",
     "searching": "Searching...",
@@ -80,6 +81,9 @@
       "want": "Want",
       "reading": "Reading",
       "finished": "Finished"
+    },
+    "tabs": {
+      "books": "Books"
     },
     "noCover": "No cover"
   },

@@ -11,6 +11,7 @@ import {
   Code,
   Home,
   CreditCard,
+  Database,
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
@@ -36,9 +37,14 @@ const navItems = [
     icon: MessageSquare,
   },
   {
-    title: "Books",
-    href: "/admin/content/books",
+    title: "Catalog",
+    href: "/admin/content/catalog",
     icon: BookOpen,
+  },
+  {
+    title: "Alexandria",
+    href: "/admin/data-import",
+    icon: Database,
   },
   {
     title: "API Playground",

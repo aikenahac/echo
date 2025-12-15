@@ -1,12 +1,10 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import Image from "next/image";
-import { useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
 import { db } from "@/db";
 import { users, userBooks, userSubscriptions } from "@/db/schema";
-import { eq, and, gte } from "drizzle-orm";
-import { sql } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { Heart, Settings } from "lucide-react";
 import { ProfileStats } from "@/components/profile-stats";
 import { EditProfileForm } from "@/components/edit-profile-form";
@@ -109,10 +107,12 @@ export default async function ProfilePage() {
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-4">
             {user.profilePictureUrl ? (
-              <img
+              <Image
                 src={user.profilePictureUrl}
                 alt={user.displayName || user.username || "Profile"}
                 className="w-24 h-24 rounded-full object-cover"
+                width={96}
+                height={96}
               />
             ) : (
               <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center">
@@ -150,7 +150,7 @@ export default async function ProfilePage() {
         <EditProfileForm user={user} />
 
         {favoriteBooks.length > 0 && (
-          <div className="border-2 border-primary/20 rounded-lg p-6 bg-gradient-to-br from-primary/5 to-transparent">
+          <div className="border-2 border-primary/20 rounded-lg p-6 bg-linear-to-br from-primary/5 to-transparent">
             <div className="flex items-center gap-2 mb-6">
               <Heart className="h-6 w-6 fill-primary text-primary" />
               <h2 className="text-3xl font-bold">
@@ -162,7 +162,7 @@ export default async function ProfilePage() {
                 <div key={userBook.id}>
                   <a
                     href={`/books/${userBook.bookId}`}
-                    className="block relative aspect-[2/3] group"
+                    className="block relative aspect-2/3 group"
                   >
                     {userBook.book.coverUrl ? (
                       <Image
@@ -193,7 +193,7 @@ export default async function ProfilePage() {
                 <div key={userBook.id}>
                   <a
                     href={`/books/${userBook.bookId}`}
-                    className="block relative aspect-[2/3]"
+                    className="block relative aspect-2/3"
                   >
                     {userBook.book.coverUrl ? (
                       <Image
@@ -224,7 +224,7 @@ export default async function ProfilePage() {
                 <div key={userBook.id}>
                   <a
                     href={`/books/${userBook.bookId}`}
-                    className="block relative aspect-[2/3]"
+                    className="block relative aspect-2/3"
                   >
                     {userBook.book.coverUrl ? (
                       <Image

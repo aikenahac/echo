@@ -8,6 +8,7 @@ import { isValidImageType, isValidImageSize } from "@/lib/s3";
 import { useRouter } from "@/i18n/routing";
 import type { users } from "@/db/schema";
 import type { InferSelectModel } from "drizzle-orm";
+import Image from "next/image";
 
 type User = InferSelectModel<typeof users>;
 
@@ -56,6 +57,8 @@ export function EditProfileForm({ user }: EditProfileFormProps) {
         toast.error(result.error || "Failed to generate upload URL");
         return;
       }
+
+      console.log({ upload: result.publicUrl });
 
       // Upload to S3
       const uploadResponse = await fetch(result.uploadUrl, {
@@ -169,14 +172,19 @@ export function EditProfileForm({ user }: EditProfileFormProps) {
       <h2 className="text-xl font-semibold mb-4">{t("form.title")}</h2>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label htmlFor="profilePicture" className="block text-sm font-medium mb-1">
+          <label
+            htmlFor="profilePicture"
+            className="block text-sm font-medium mb-1"
+          >
             Profile Picture
           </label>
           {user.profilePictureUrl && (
-            <img
+            <Image
               src={user.profilePictureUrl}
-              alt="Profile"
-              className="w-24 h-24 rounded-full object-cover mb-2"
+              alt={user.displayName || user.username || "Profile"}
+              className="w-24 h-24 rounded-full object-cover"
+              width={96}
+              height={96}
             />
           )}
           <input
@@ -195,7 +203,10 @@ export function EditProfileForm({ user }: EditProfileFormProps) {
           </p>
         </div>
         <div>
-          <label htmlFor="displayName" className="block text-sm font-medium mb-1">
+          <label
+            htmlFor="displayName"
+            className="block text-sm font-medium mb-1"
+          >
             Display Name
           </label>
           <input
@@ -226,7 +237,8 @@ export function EditProfileForm({ user }: EditProfileFormProps) {
             maxLength={30}
           />
           <p className="text-xs text-muted-foreground mt-1">
-            Only letters, numbers, underscores (_), and dots (.) allowed. 3-30 characters.
+            Only letters, numbers, underscores (_), and dots (.) allowed. 3-30
+            characters.
           </p>
         </div>
         <div>

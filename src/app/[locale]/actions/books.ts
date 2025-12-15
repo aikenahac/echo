@@ -10,6 +10,118 @@ import { assignFreePlanToUser } from "./subscriptions";
 
 export type ReadingStatus = "want" | "reading" | "finished";
 
+export interface EditionData {
+  olEditionKey: string;
+  title: string;
+  authors: string[];
+  isbn10: string | null;
+  isbn13: string | null;
+  pages: number | null;
+  publishDate: string | null;
+  coverUrl: string | null;
+}
+
+/**
+ * Add an OpenLibrary edition to the user's library
+ */
+export async function addEditionToLibrary(
+  editionData: EditionData,
+  status: ReadingStatus,
+  isFavorite: boolean = false,
+) {
+  const { userId } = await auth();
+
+  if (!userId) {
+    return { error: "Unauthorized" };
+  }
+
+  try {
+    // Ensure user exists in our database
+    await db
+      .insert(users)
+      .values({
+        id: userId,
+        email: "", // Will be updated from Clerk webhook
+      })
+      .onConflictDoNothing();
+
+    // Assign free plan to new users
+    await assignFreePlanToUser(userId);
+
+    // Check if book already exists by OpenLibrary edition key
+    let existingBook = await db.query.books.findFirst({
+      where: eq(books.olEditionKey, editionData.olEditionKey),
+    });
+
+    // If not found by edition key, check by ISBN as fallback
+    if (!existingBook) {
+      const isbn = editionData.isbn13 || editionData.isbn10;
+      if (isbn) {
+        existingBook = await db.query.books.findFirst({
+          where: eq(books.isbn, isbn),
+        });
+      }
+    }
+
+    // If book doesn't exist, create it
+    if (!existingBook) {
+      const isbn = editionData.isbn13 || editionData.isbn10;
+      const publishedYear = editionData.publishDate
+        ? parseInt(editionData.publishDate.match(/\d{4}/)?.[0] || "0")
+        : null;
+
+      const [newBook] = await db
+        .insert(books)
+        .values({
+          olEditionKey: editionData.olEditionKey,
+          isbn,
+          title: editionData.title,
+          author: editionData.authors.join(", "),
+          coverUrl: editionData.coverUrl,
+          pages: editionData.pages,
+          publishedYear,
+        })
+        .returning();
+      existingBook = newBook;
+    }
+
+    // Check if user already has this book
+    const existingUserBook = await db.query.userBooks.findFirst({
+      where: and(
+        eq(userBooks.userId, userId),
+        eq(userBooks.bookId, existingBook.id),
+      ),
+    });
+
+    if (existingUserBook) {
+      return { error: "Book already in your library" };
+    }
+
+    // Add book to user's library
+    const [userBook] = await db
+      .insert(userBooks)
+      .values({
+        userId,
+        bookId: existingBook.id,
+        status,
+        isFavorite,
+        startedAt: status === "reading" ? new Date() : null,
+        finishedAt: status === "finished" ? new Date() : null,
+        pageCount: existingBook.pages,
+        currentPage: status === "finished" ? existingBook.pages || 0 : 0,
+      })
+      .returning();
+
+    revalidatePath("/library");
+    revalidatePath("/books/search");
+
+    return { success: true, userBook };
+  } catch (error) {
+    console.error("Error adding edition to library:", error);
+    return { error: "Failed to add edition to library" };
+  }
+}
+
 /**
  * Add a book to the user's library
  */

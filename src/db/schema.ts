@@ -62,6 +62,7 @@ export const books = pgTable(
   "books",
   {
     id: uuid("id").defaultRandom().primaryKey(),
+    olEditionKey: text("ol_edition_key").unique(), // OpenLibrary edition key
     isbn: text("isbn").unique(),
     title: text("title").notNull(),
     author: text("author").notNull(),
@@ -73,6 +74,7 @@ export const books = pgTable(
   (table) => ({
     isbnIdx: index("books_isbn_idx").on(table.isbn),
     titleIdx: index("books_title_idx").on(table.title),
+    olEditionKeyIdx: index("books_ol_edition_key_idx").on(table.olEditionKey),
   }),
 );
 
