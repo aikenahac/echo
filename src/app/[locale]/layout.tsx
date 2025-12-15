@@ -156,6 +156,12 @@ export default async function LocaleLayout({
   let hasUsername = true;
   let hasAdminAccess = false;
   let hasPaidPlan = false;
+  let userData: {
+    displayName: string | null;
+    username: string | null;
+    email: string;
+    profilePictureUrl: string | null;
+  } | null = null;
 
   if (userId) {
     // Get email from Clerk
@@ -185,6 +191,16 @@ export default async function LocaleLayout({
     hasUsername = !!user?.username;
     hasAdminAccess = user?.role === "moderator" || user?.role === "admin";
 
+    // Prepare user data for navigation
+    if (user) {
+      userData = {
+        displayName: user.displayName,
+        username: user.username,
+        email: user.email,
+        profilePictureUrl: user.profilePictureUrl,
+      };
+    }
+
     // Check if user has a non-free plan (paid or lifetime)
     const subscription = await db.query.userSubscriptions.findFirst({
       where: eq(userSubscriptions.userId, userId),
@@ -204,7 +220,11 @@ export default async function LocaleLayout({
           className={`${eb_garamond.variable} ${eb_garamond_body.variable} ${ibm_plex_mono.variable} antialiased`}
         >
           <NextIntlClientProvider messages={messages}>
-            <Navigation hasAdminAccess={hasAdminAccess} hasPaidPlan={hasPaidPlan} />
+            <Navigation
+              hasAdminAccess={hasAdminAccess}
+              hasPaidPlan={hasPaidPlan}
+              userData={userData}
+            />
             <main>{children}</main>
             <Footer />
             <UsernameSetupDialog hasUsername={hasUsername} />

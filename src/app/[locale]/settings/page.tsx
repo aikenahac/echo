@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
+import { UserProfile } from "@clerk/nextjs";
 
 export default async function SettingsPage({ params }: { params: { locale: string } }) {
   const { userId } = await auth();
@@ -37,11 +38,15 @@ export default async function SettingsPage({ params }: { params: { locale: strin
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <label className="text-sm font-medium text-muted-foreground">Email</label>
+              <label className="text-sm font-medium text-muted-foreground">
+                Email
+              </label>
               <p className="text-base">{user?.email || "Not available"}</p>
             </div>
             <div>
-              <label className="text-sm font-medium text-muted-foreground">Username</label>
+              <label className="text-sm font-medium text-muted-foreground">
+                Username
+              </label>
               <p className="text-base">{user?.username || "Not set"}</p>
             </div>
           </CardContent>
@@ -56,16 +61,24 @@ export default async function SettingsPage({ params }: { params: { locale: strin
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Current Plan</label>
+                  <label className="text-sm font-medium text-muted-foreground">
+                    Current Plan
+                  </label>
                   <p className="text-2xl font-bold">{subscription.plan.name}</p>
                 </div>
-                <Badge variant={subscription.status === "active" ? "default" : "secondary"}>
+                <Badge
+                  variant={
+                    subscription.status === "active" ? "default" : "secondary"
+                  }
+                >
                   {subscription.status}
                 </Badge>
               </div>
 
               <div>
-                <label className="text-sm font-medium text-muted-foreground">Price</label>
+                <label className="text-sm font-medium text-muted-foreground">
+                  Price
+                </label>
                 <p className="text-base">
                   {subscription.plan.price === 0 ? (
                     "Free"
@@ -73,23 +86,30 @@ export default async function SettingsPage({ params }: { params: { locale: strin
                     <>
                       €{(subscription.plan.price / 100).toFixed(2)}
                       <span className="text-sm text-muted-foreground">
-                        /{subscription.plan.interval === "lifetime" ? "lifetime" : subscription.plan.interval}
+                        /
+                        {subscription.plan.interval === "lifetime"
+                          ? "lifetime"
+                          : subscription.plan.interval}
                       </span>
                     </>
                   )}
                 </p>
               </div>
 
-              {subscription.plan.interval !== "lifetime" && subscription.currentPeriodEnd && (
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    {subscription.cancelAtPeriodEnd ? "Expires" : "Renews"}
-                  </label>
-                  <p className="text-base">
-                    {format(new Date(subscription.currentPeriodEnd), "MMMM d, yyyy")}
-                  </p>
-                </div>
-              )}
+              {subscription.plan.interval !== "lifetime" &&
+                subscription.currentPeriodEnd && (
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">
+                      {subscription.cancelAtPeriodEnd ? "Expires" : "Renews"}
+                    </label>
+                    <p className="text-base">
+                      {format(
+                        new Date(subscription.currentPeriodEnd),
+                        "MMMM d, yyyy",
+                      )}
+                    </p>
+                  </div>
+                )}
 
               {subscription.plan.interval === "lifetime" && (
                 <div className="pt-4 border-t">
@@ -101,6 +121,25 @@ export default async function SettingsPage({ params }: { params: { locale: strin
             </CardContent>
           </Card>
         )}
+
+        {/* Clerk Account Management */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Account Management</CardTitle>
+          </CardHeader>
+          <CardContent className="flex items-center justify-center">
+            <UserProfile
+              routing="hash"
+              appearance={{
+                elements: {
+                  cardBox: {
+                    width: "100%",
+                  },
+                },
+              }}
+            />
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
