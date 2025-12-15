@@ -179,6 +179,8 @@ export const subscriptionPlans = pgTable(
     name: text("name").notNull(),
     stripePriceId: text("stripe_price_id").unique(), // Nullable for free/internal plans
     stripeProductId: text("stripe_product_id"),
+    paddlePriceId: text("paddle_price_id").unique(), // Paddle price ID
+    paddleProductId: text("paddle_product_id"), // Paddle product ID
     price: integer("price").notNull().default(0), // Price in cents
     interval: billingIntervalEnum("interval").notNull().default("free"),
     isActive: boolean("is_active").default(true).notNull(),
@@ -207,6 +209,9 @@ export const userSubscriptions = pgTable(
       .references(() => subscriptionPlans.id),
     stripeSubscriptionId: text("stripe_subscription_id").unique(),
     stripeCustomerId: text("stripe_customer_id"),
+    paddleSubscriptionId: text("paddle_subscription_id").unique(),
+    paddleCustomerId: text("paddle_customer_id"),
+    paddleTransactionId: text("paddle_transaction_id"),
     status: subscriptionStatusEnum("status").notNull().default("active"),
     currentPeriodStart: timestamp("current_period_start"),
     currentPeriodEnd: timestamp("current_period_end"),

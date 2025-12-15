@@ -10,6 +10,7 @@ const isProtectedRoute = createRouteMatcher([
   "/:locale/feed(.*)",
   "/:locale/books/search(.*)",
   "/:locale/users/search(.*)",
+  "/:locale/settings(.*)",
 ]);
 
 const isApiRoute = createRouteMatcher(["/api(.*)"]);

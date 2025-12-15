@@ -263,8 +263,8 @@ export async function deleteUserAsAdmin(targetUserId: string) {
  */
 export async function createSubscriptionPlan(data: {
   name: string;
-  stripePriceId: string | null;
-  stripeProductId: string | null;
+  paddlePriceId: string | null;
+  paddleProductId: string | null;
   price: number;
   interval: "month" | "year" | "lifetime" | "free";
   isActive: boolean;
@@ -273,14 +273,6 @@ export async function createSubscriptionPlan(data: {
   const currentUser = await requireRole(["admin"]);
 
   try {
-    // Validate Stripe IDs if provided
-    if (data.stripePriceId) {
-      const price = await stripe.prices.retrieve(data.stripePriceId);
-      if (!price) {
-        return { error: "Invalid Stripe Price ID" };
-      }
-    }
-
     const [plan] = await db
       .insert(subscriptionPlans)
       .values(data)
@@ -310,8 +302,8 @@ export async function updateSubscriptionPlan(
   planId: string,
   data: Partial<{
     name: string;
-    stripePriceId: string | null;
-    stripeProductId: string | null;
+    paddlePriceId: string | null;
+    paddleProductId: string | null;
     price: number;
     interval: "month" | "year" | "lifetime" | "free";
     isActive: boolean;
@@ -322,14 +314,6 @@ export async function updateSubscriptionPlan(
   const currentUser = await requireRole(["admin"]);
 
   try {
-    // Validate Stripe IDs if provided
-    if (data.stripePriceId) {
-      const price = await stripe.prices.retrieve(data.stripePriceId);
-      if (!price) {
-        return { error: "Invalid Stripe Price ID" };
-      }
-    }
-
     await db
       .update(subscriptionPlans)
       .set({ ...data, updatedAt: new Date() })

@@ -1,83 +1,95 @@
 "use client";
 
-import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
+import { SignedIn, SignedOut } from "@clerk/nextjs";
 import { Link } from "@/i18n/routing";
-import { Search, Library, Activity, User, ChevronDown, ChevronUp, Shield, CreditCard, Settings, Users, Tag } from "lucide-react";
+import {
+  Search,
+  Library,
+  Activity,
+  ChevronDown,
+  ChevronUp,
+  Shield,
+  CreditCard,
+  Users,
+  Tag,
+} from "lucide-react";
 import { useTranslations } from "next-intl";
 import { usePathname } from "next/navigation";
 import { useState, useMemo } from "react";
 import { Button } from "./ui/button";
 import Image from "next/image";
+import { UserDropdown } from "./user-dropdown";
 
 interface NavigationProps {
   hasAdminAccess?: boolean;
   hasPaidPlan?: boolean;
+  userData?: {
+    displayName: string | null;
+    username: string | null;
+    email: string;
+    profilePictureUrl: string | null;
+  } | null;
 }
 
-export function Navigation({ hasAdminAccess = false, hasPaidPlan = false }: NavigationProps) {
+export function Navigation({
+  hasAdminAccess = false,
+  hasPaidPlan = false,
+  userData = null,
+}: NavigationProps) {
   const t = useTranslations("navigation");
   const pathname = usePathname();
   const [isMobileNavExpanded, setIsMobileNavExpanded] = useState(false);
 
-  const navItems = useMemo(
-    () => {
-      const items = [
-        {
-          href: "/books/search",
-          icon: Search,
-          label: t("search"),
-          match: (path: string) => path.includes("/books/search"),
-        },
-        {
-          href: "/library",
-          icon: Library,
-          label: t("library"),
-          match: (path: string) => path.includes("/library"),
-        },
-        {
-          href: "/feed",
-          icon: Activity,
-          label: t("feed"),
-          match: (path: string) => path.includes("/feed"),
-        },
-        {
-          href: "/users/search",
-          icon: Users,
-          label: t("findUsers"),
-          match: (path: string) => path.includes("/users/search"),
-        },
-        {
-          href: "/profile",
-          icon: User,
-          label: t("profile"),
-          match: (path: string) => path.includes("/profile"),
-        },
-      ];
+  const navItems = useMemo(() => {
+    const items = [
+      {
+        href: "/books/search",
+        icon: Search,
+        label: t("search"),
+        match: (path: string) => path.includes("/books/search"),
+      },
+      {
+        href: "/library",
+        icon: Library,
+        label: t("library"),
+        match: (path: string) => path.includes("/library"),
+      },
+      {
+        href: "/feed",
+        icon: Activity,
+        label: t("feed"),
+        match: (path: string) => path.includes("/feed"),
+      },
+      {
+        href: "/users/search",
+        icon: Users,
+        label: t("findUsers"),
+        match: (path: string) => path.includes("/users/search"),
+      },
+    ];
 
-      // Show Settings for paid users, Premium for others
-      if (!hasPaidPlan)  {
-        items.push({
-          href: "/subscription",
-          icon: CreditCard,
-          label: t("premium"),
-          match: (path: string) => path.includes("/subscription"),
-        });
-      }
+    // Show Settings for paid users, Premium for others
+    if (!hasPaidPlan) {
+      items.push({
+        href: "/subscription",
+        icon: CreditCard,
+        label: t("premium"),
+        match: (path: string) => path.includes("/subscription"),
+      });
+    }
 
-      // Add admin link if user has admin access
-      if (hasAdminAccess) {
-        items.push({
-          href: "/admin",
-          icon: Shield,
-          label: t("admin"),
-          match: (path: string) => path.includes("/admin"),
-        });
-      }
+    // Add admin link if user has admin access
+    if (hasAdminAccess) {
+      items.push({
+        href: "/admin",
+        icon: Shield,
+        label: t("admin"),
+        match: (path: string) => path.includes("/admin"),
+      });
+    }
 
-      return items;
-    },
-    [t, hasAdminAccess, hasPaidPlan]
-  );
+    return items;
+  }, [t, hasAdminAccess, hasPaidPlan]);
 
   const activeNav = navItems.find((item) => item.match(pathname));
 
@@ -113,7 +125,7 @@ export function Navigation({ hasAdminAccess = false, hasPaidPlan = false }: Navi
                   </Link>
                 );
               })}
-              <UserButton />
+              {userData && <UserDropdown user={userData} />}
             </div>
           </SignedIn>
 
@@ -126,11 +138,11 @@ export function Navigation({ hasAdminAccess = false, hasPaidPlan = false }: Navi
                 <Tag className="h-4 w-4" />
                 {t("pricing")}
               </Link>
-              <SignInButton mode="modal">
+              <Link href="/sign-in">
                 <button className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90">
                   {t("signIn")}
                 </button>
-              </SignInButton>
+              </Link>
             </div>
           </SignedOut>
         </div>
