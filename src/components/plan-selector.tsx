@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Check, Loader2 } from "lucide-react";
-import { createCheckoutSession, upgradeToFreePlan } from "@/app/[locale]/actions/subscriptions";
+import { createPaddleCheckout, upgradeToFreePlan } from "@/app/[locale]/actions/subscriptions";
 import { toast } from "sonner";
 
 interface Plan {
@@ -13,7 +13,7 @@ interface Plan {
   price: number;
   interval: string;
   isActive: boolean;
-  stripePriceId: string | null;
+  paddlePriceId: string | null;
 }
 
 export function PlanSelector({
@@ -38,12 +38,19 @@ export function PlanSelector({
           window.location.reload();
         }
       } else {
-        // Stripe checkout for paid plans
-        const result = await createCheckoutSession(planId);
+        // Paddle checkout for paid plans
+        const result = await createPaddleCheckout(planId);
         if (result.error) {
           toast.error(result.error);
-        } else if (result.url) {
-          window.location.href = result.url;
+        } else if (result.transactionId) {
+          // Open Paddle checkout overlay
+          if (typeof window !== "undefined" && (window as any).Paddle) {
+            (window as any).Paddle.Checkout.open({
+              transactionId: result.transactionId,
+            });
+          } else {
+            toast.error("Payment system not loaded. Please refresh and try again.");
+          }
         }
       }
     } catch {
@@ -57,7 +64,7 @@ export function PlanSelector({
     <div className="space-y-4">
       {plans.map((plan) => {
         const isCurrent = plan.id === currentPlanId;
-        const isFree = !plan.stripePriceId; // Free plans don't have Stripe price ID
+        const isFree = !plan.paddlePriceId; // Free plans don't have Paddle price ID
 
         return (
           <Card
