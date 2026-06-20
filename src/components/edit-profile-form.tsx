@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
+import { encode } from "blurhash";
 import { updateProfile, generateProfilePictureUploadUrl } from "@/app/[locale]/actions/profile";
 import { isValidImageType, isValidImageSize } from "@/lib/s3";
 import { useRouter } from "@/i18n/routing";
@@ -14,6 +15,32 @@ type User = InferSelectModel<typeof users>;
 interface EditProfileFormProps {
   user: User;
 }
+
+const computeBlurhash = (file: File): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = document.createElement("img");
+      img.onload = () => {
+        const MAX = 200;
+        let w = img.width;
+        let h = img.height;
+        if (w > h) { h = Math.round((h * MAX) / w); w = MAX; }
+        else { w = Math.round((w * MAX) / h); h = MAX; }
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d")!;
+        ctx.drawImage(img, 0, 0, w, h);
+        const imageData = ctx.getImageData(0, 0, w, h);
+        resolve(encode(imageData.data, w, h, 4, 4));
+      };
+      img.onerror = reject;
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 
 export function EditProfileForm({ user }: EditProfileFormProps) {
   const t = useTranslations("profile");
@@ -34,21 +61,18 @@ export function EditProfileForm({ user }: EditProfileFormProps) {
   };
 
   const handleProfilePictureUpload = async (file: File) => {
+    if (!isValidImageType(file.type)) {
+      toast.error("Invalid file type. Supported: JPG, PNG, WEBP");
+      return;
+    }
+
+    if (!isValidImageSize(file.size, 5)) {
+      toast.error("File too large. Maximum size: 5MB");
+      return;
+    }
+
     setUploadingPicture(true);
     try {
-      // Validate file type
-      if (!isValidImageType(file.type)) {
-        toast.error("Invalid file type. Supported: JPG, PNG, WEBP");
-        return;
-      }
-
-      // Validate file size (5MB max)
-      if (!isValidImageSize(file.size, 5)) {
-        toast.error("File too large. Maximum size: 5MB");
-        return;
-      }
-
-      // Get presigned URL
       const ext = file.name.split(".").pop() || "jpg";
       const result = await generateProfilePictureUploadUrl(ext);
 
@@ -57,25 +81,22 @@ export function EditProfileForm({ user }: EditProfileFormProps) {
         return;
       }
 
-      // Upload to S3
       const uploadResponse = await fetch(result.uploadUrl, {
         method: "PUT",
         body: file,
-        headers: {
-          "Content-Type": file.type,
-        },
+        headers: { "Content-Type": file.type },
       });
 
-      if (!uploadResponse.ok) {
-        throw new Error("Upload failed");
-      }
+      if (!uploadResponse.ok) throw new Error("Upload failed");
 
-      // Update profile with new URL
+      const blurhash = await computeBlurhash(file);
+
       const updateResult = await updateProfile(
         username,
         bio,
         displayName,
-        result.publicUrl
+        result.publicUrl,
+        blurhash
       );
 
       if (updateResult.error) {
@@ -115,7 +136,8 @@ export function EditProfileForm({ user }: EditProfileFormProps) {
         username,
         bio,
         displayName,
-        user.profilePictureUrl || undefined
+        user.profilePictureUrl || undefined,
+        user.profilePictureBlurhash || undefined
       );
       if (result.error) {
         toast.error(result.error);

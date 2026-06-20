@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Upload, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
+import { encode } from "blurhash";
 
 interface ImageUploadProps {
-  onUpload: (imageUrl: string) => void;
+  onUpload: (imageUrl: string, blurhash: string) => void;
   currentImageUrl?: string;
   onRemove?: () => void;
   maxSizeMB?: number;
@@ -31,7 +32,9 @@ export function ImageUpload({
   /**
    * Resize image to max 800x800px while maintaining aspect ratio
    */
-  const resizeImage = (file: File): Promise<Blob> => {
+  const resizeImage = (
+    file: File
+  ): Promise<{ blob: Blob; blurhash: string }> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -44,7 +47,6 @@ export function ImageUpload({
             return;
           }
 
-          // Calculate new dimensions (max 800x800, maintain aspect ratio)
           const MAX_SIZE = 800;
           let width = img.width;
           let height = img.height;
@@ -61,17 +63,17 @@ export function ImageUpload({
             }
           }
 
-          canvas.width = width;
-          canvas.height = height;
+          canvas.width = Math.round(width);
+          canvas.height = Math.round(height);
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-          // Draw resized image
-          ctx.drawImage(img, 0, 0, width, height);
+          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const hash = encode(imageData.data, canvas.width, canvas.height, 4, 4);
 
-          // Convert to blob
           canvas.toBlob(
             (blob) => {
               if (blob) {
-                resolve(blob);
+                resolve({ blob, blurhash: hash });
               } else {
                 reject(new Error("Failed to create blob"));
               }
@@ -114,7 +116,6 @@ export function ImageUpload({
 
     setError(null);
 
-    // Validate file
     const validationError = validateFile(file);
     if (validationError) {
       setError(validationError);
@@ -124,25 +125,18 @@ export function ImageUpload({
     setIsUploading(true);
 
     try {
-      // Resize image
-      const resizedBlob = await resizeImage(file);
+      const { blob: resizedBlob, blurhash } = await resizeImage(file);
 
-      // Create preview
       const preview = URL.createObjectURL(resizedBlob);
       setPreviewUrl(preview);
 
-      // Convert blob to file for upload
       const resizedFile = new File([resizedBlob], file.name, {
         type: "image/jpeg",
       });
 
-      // Upload complete - parent component will handle getting presigned URL and uploading
-      // For now, we'll create a temporary object URL and pass the file back
-      // The parent will need to handle the actual S3 upload
-      onUpload(preview);
-
-      // Store the file for parent component to access
       (window as any).__pendingUploadFile = resizedFile;
+
+      onUpload(preview, blurhash);
     } catch (err) {
       console.error("Error processing image:", err);
       setError("Failed to process image. Please try again.");
