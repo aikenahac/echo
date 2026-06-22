@@ -5,6 +5,7 @@ import { getTranslations } from "next-intl/server";
 import { db } from "@/db";
 import { follows, userBooks, reviews } from "@/db/schema";
 import { eq, and, inArray, desc, or } from "drizzle-orm";
+import Link from "next/link";
 
 export default async function FeedPage() {
   const t = await getTranslations("feed");
@@ -26,16 +27,16 @@ export default async function FeedPage() {
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-8">{t("title")}</h1>
         <div className="text-center py-12 text-muted-foreground">
-          <p>{t("empty")}</p>
+          <p>{t("empty.title")}</p>
           <p className="text-sm mt-2">
-            {t("emptyDescription")}
+            {t("empty.description")}
           </p>
-          <a
+          <Link
             href="/users/search"
             className="inline-block mt-4 px-6 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
           >
-            {t("findUsers")}
-          </a>
+            {t("empty.action")}
+          </Link>
         </div>
       </div>
     );
@@ -148,7 +149,7 @@ export default async function FeedPage() {
                     <p className="text-sm text-muted-foreground mb-1">
                       {activity.data.user.username || activity.data.user.email}
                     </p>
-                    <p className="font-medium">{t("reviewed")}</p>
+                    <p className="font-medium">{t("activities.reviewed")}</p>
                     <a
                       href={`/books/${activity.data.bookId}`}
                       className="text-lg font-semibold hover:underline"

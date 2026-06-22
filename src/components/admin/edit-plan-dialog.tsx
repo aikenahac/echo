@@ -24,8 +24,8 @@ interface Plan {
   interval: string;
   isActive: boolean;
   isInternal: boolean;
-  stripePriceId: string | null;
-  stripeProductId: string | null;
+  paddlePriceId: string | null;
+  paddleProductId: string | null;
   sortOrder: number;
 }
 
@@ -43,8 +43,8 @@ export function EditPlanDialog({
   const [formData, setFormData] = useState({
     name: plan.name,
     price: plan.price / 100, // Convert cents to dollars
-    stripePriceId: plan.stripePriceId || "",
-    stripeProductId: plan.stripeProductId || "",
+    paddlePriceId: plan.paddlePriceId || "",
+    paddleProductId: plan.paddleProductId || "",
     isActive: plan.isActive,
     isInternal: plan.isInternal,
   });
@@ -57,8 +57,8 @@ export function EditPlanDialog({
       const result = await updateSubscriptionPlan(plan.id, {
         name: formData.name,
         price: Math.round(formData.price * 100), // Convert to cents
-        stripePriceId: formData.stripePriceId || null,
-        stripeProductId: formData.stripeProductId || null,
+        paddlePriceId: formData.paddlePriceId || null,
+        paddleProductId: formData.paddleProductId || null,
         isActive: formData.isActive,
         isInternal: formData.isInternal,
       });
@@ -116,14 +116,14 @@ export function EditPlanDialog({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="stripePriceId">Stripe Price ID</Label>
+              <Label htmlFor="paddlePriceId">Paddle Price ID</Label>
               <Input
-                id="stripePriceId"
-                value={formData.stripePriceId}
+                id="paddlePriceId"
+                value={formData.paddlePriceId}
                 onChange={(e) =>
-                  setFormData({ ...formData, stripePriceId: e.target.value })
+                  setFormData({ ...formData, paddlePriceId: e.target.value })
                 }
-                placeholder="price_..."
+                placeholder="pri_..."
                 className="font-mono text-sm"
               />
               <p className="text-xs text-muted-foreground">
@@ -132,14 +132,14 @@ export function EditPlanDialog({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="stripeProductId">Stripe Product ID</Label>
+              <Label htmlFor="paddleProductId">Paddle Product ID</Label>
               <Input
-                id="stripeProductId"
-                value={formData.stripeProductId}
+                id="paddleProductId"
+                value={formData.paddleProductId}
                 onChange={(e) =>
-                  setFormData({ ...formData, stripeProductId: e.target.value })
+                  setFormData({ ...formData, paddleProductId: e.target.value })
                 }
-                placeholder="prod_..."
+                placeholder="pro_..."
                 className="font-mono text-sm"
               />
             </div>

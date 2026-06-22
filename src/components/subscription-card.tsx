@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { createPortalSession } from "@/app/[locale]/actions/subscriptions";
+import { cancelSubscription } from "@/app/[locale]/actions/subscriptions";
 import { format } from "date-fns";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
@@ -16,7 +16,7 @@ interface Subscription {
   currentPeriodStart: Date | null;
   currentPeriodEnd: Date | null;
   cancelAtPeriodEnd: boolean;
-  stripeSubscriptionId: string | null;
+  paddleSubscriptionId: string | null;
   plan: {
     id: string;
     name: string;
@@ -32,17 +32,18 @@ export function SubscriptionCard({
 }) {
   const [loading, setLoading] = useState(false);
 
-  const handleManageBilling = async () => {
+  const handleCancelSubscription = async () => {
     setLoading(true);
     try {
-      const result = await createPortalSession();
+      const result = await cancelSubscription();
       if (result.error) {
         toast.error(result.error);
-      } else if (result.url) {
-        window.location.href = result.url;
+      } else if (result.success) {
+        toast.success("Subscription will cancel at period end");
+        window.location.reload();
       }
     } catch (error) {
-      toast.error("Failed to open billing portal");
+      toast.error("Failed to cancel subscription");
     } finally {
       setLoading(false);
     }
@@ -95,11 +96,11 @@ export function SubscriptionCard({
           </div>
         )}
 
-        {subscription.stripeSubscriptionId && (
+        {subscription.paddleSubscriptionId && !cancelAtPeriodEnd && (
           <Button
             variant="outline"
             className="w-full"
-            onClick={handleManageBilling}
+            onClick={handleCancelSubscription}
             disabled={loading}
           >
             {loading ? (
@@ -108,7 +109,7 @@ export function SubscriptionCard({
                 Loading...
               </>
             ) : (
-              "Manage Billing"
+              "Cancel Subscription"
             )}
           </Button>
         )}

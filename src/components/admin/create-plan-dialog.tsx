@@ -31,8 +31,8 @@ export function CreatePlanDialog() {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
-    stripePriceId: "",
-    stripeProductId: "",
+    paddlePriceId: "",
+    paddleProductId: "",
     price: 0,
     interval: "month" as "month" | "year" | "lifetime" | "free",
     sortOrder: 10,
@@ -45,8 +45,8 @@ export function CreatePlanDialog() {
     try {
       const result = await createSubscriptionPlan({
         name: formData.name,
-        stripePriceId: formData.stripePriceId || null,
-        stripeProductId: formData.stripeProductId || null,
+        paddlePriceId: formData.paddlePriceId || null,
+        paddleProductId: formData.paddleProductId || null,
         price: Math.round(formData.price * 100), // Convert to cents
         interval: formData.interval,
         isActive: true,
@@ -61,8 +61,8 @@ export function CreatePlanDialog() {
         // Reset form
           setFormData({
           name: "",
-          stripePriceId: "",
-          stripeProductId: "",
+          paddlePriceId: "",
+          paddleProductId: "",
           price: 0,
           interval: "month",
           sortOrder: 10,
@@ -89,8 +89,8 @@ export function CreatePlanDialog() {
           <DialogHeader>
             <DialogTitle>Create Subscription Plan</DialogTitle>
             <DialogDescription>
-              Add a new subscription plan. Enter the Stripe Price ID from your
-              Stripe Dashboard.
+              Add a new subscription plan. Enter the Paddle Price ID from your
+              Paddle Dashboard.
             </DialogDescription>
           </DialogHeader>
 
@@ -149,14 +149,14 @@ export function CreatePlanDialog() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="stripePriceId">Stripe Price ID</Label>
+              <Label htmlFor="paddlePriceId">Paddle Price ID</Label>
               <Input
-                id="stripePriceId"
-                value={formData.stripePriceId}
+                id="paddlePriceId"
+                value={formData.paddlePriceId}
                 onChange={(e) =>
-                  setFormData({ ...formData, stripePriceId: e.target.value })
+                  setFormData({ ...formData, paddlePriceId: e.target.value })
                 }
-                placeholder="price_..."
+                placeholder="pri_..."
                 className="font-mono text-sm"
               />
               <p className="text-xs text-muted-foreground">
@@ -165,17 +165,17 @@ export function CreatePlanDialog() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="stripeProductId">Stripe Product ID</Label>
+              <Label htmlFor="paddleProductId">Paddle Product ID</Label>
               <Input
-                id="stripeProductId"
-                value={formData.stripeProductId}
+                id="paddleProductId"
+                value={formData.paddleProductId}
                 onChange={(e) =>
                   setFormData({
                     ...formData,
-                    stripeProductId: e.target.value,
+                    paddleProductId: e.target.value,
                   })
                 }
-                placeholder="prod_..."
+                placeholder="pro_..."
                 className="font-mono text-sm"
               />
             </div>

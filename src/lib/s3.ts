@@ -5,17 +5,17 @@ import {
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
-// Initialize S3 client
-const s3Client = new S3Client({
+export const s3Client = new S3Client({
   region: process.env.AWS_REGION!,
+  endpoint: `https://s3.${process.env.AWS_REGION}.wasabisys.com`,
   credentials: {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
   },
 });
 
-const BUCKET_NAME = process.env.AWS_S3_BUCKET_NAME!;
-const PUBLIC_URL = process.env.AWS_S3_PUBLIC_URL!;
+export const BUCKET_NAME = process.env.AWS_S3_BUCKET_NAME!;
+const PUBLIC_URL = `${process.env.NEXT_PUBLIC_BASE_URL}/api/cdn`;
 
 /**
  * Generate a presigned URL for uploading a collection cover image
@@ -36,8 +36,6 @@ export async function generateCollectionCoverUploadUrl(
     Bucket: BUCKET_NAME,
     Key: key,
     ContentType: `image/${fileExtension}`,
-    // Make the object publicly readable
-    ACL: "public-read",
   });
 
   // Generate presigned URL (valid for 5 minutes)
@@ -94,8 +92,6 @@ export async function generateProfilePictureUploadUrl(
     Bucket: BUCKET_NAME,
     Key: key,
     ContentType: `image/${fileExtension}`,
-    // Note: ACL removed to avoid CORS issues
-    // Set bucket to public or use bucket policy instead
   });
 
   // Generate presigned URL (valid for 5 minutes)

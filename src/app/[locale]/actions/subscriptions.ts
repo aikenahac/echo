@@ -5,16 +5,19 @@ import { db } from "@/db";
 import { users, userSubscriptions, subscriptionPlans } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import Stripe from "stripe";
+import { Paddle, Environment } from "@paddle/paddle-node-sdk";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-11-17.clover",
+const paddle = new Paddle(process.env.PADDLE_API_KEY!, {
+  environment:
+    process.env.PADDLE_ENVIRONMENT === "production"
+      ? Environment.production
+      : Environment.sandbox,
 });
 
 /**
- * Create a Stripe Checkout session for subscription upgrade
+ * Create a Paddle Checkout transaction for subscription upgrade
  */
-export async function createCheckoutSession(planId: string) {
+export async function createPaddleCheckout(planId: string) {
   const { userId } = await auth();
   if (!userId) return { error: "Unauthorized" };
 
@@ -32,78 +35,90 @@ export async function createCheckoutSession(planId: string) {
       return { error: "Plan not found" };
     }
 
-    if (!plan.stripePriceId) {
+    if (!plan.paddlePriceId) {
       return { error: "This plan does not require checkout" };
     }
 
-    // Get or create Stripe customer ID
-    // Check if user has existing subscription with customer ID
+    // Get or create Paddle customer
     const existingSubscription = await db.query.userSubscriptions.findFirst({
       where: eq(userSubscriptions.userId, userId),
     });
 
-    let customerId = existingSubscription?.stripeCustomerId;
+    let customerId = existingSubscription?.paddleCustomerId;
     if (!customerId) {
-      // Create new Stripe customer (will be saved to userSubscriptions by webhook)
-      const customer = await stripe.customers.create({
-        email: user?.email,
-        metadata: { userId },
-      });
-      customerId = customer.id;
+      try {
+        // Try to create new Paddle customer
+        const customer = await paddle.customers.create({
+          email: user?.email ?? "",
+          customData: { userId },
+        });
+        customerId = customer.id;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } catch (customerError: any) {
+        // If customer already exists, extract customer ID from error message
+        if (customerError.code === "customer_already_exists") {
+          console.log("Customer already exists, extracting ID from error");
+          // Error message format: "customer email conflicts with customer of id ctm_xxx"
+          const match = customerError.detail?.match(/customer of id (ctm_[a-z0-9]+)/i);
+          if (match && match[1]) {
+            customerId = match[1];
+            console.log("Using existing customer ID from error:", customerId);
+          } else {
+            console.error("Could not extract customer ID from error:", customerError.detail);
+            return { error: "Customer already exists but ID could not be determined" };
+          }
+        } else {
+          throw customerError;
+        }
+      }
     }
 
-    // Create checkout session
-    const session = await stripe.checkout.sessions.create({
-      customer: customerId,
-      mode: "subscription",
-      payment_method_types: ["card"],
-      line_items: [
-        {
-          price: plan.stripePriceId,
-          quantity: 1,
-        },
-      ],
-      success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/subscription/canceled`,
-      metadata: {
-        userId,
-        planId,
-      },
+    if (!customerId) {
+      return { error: "Failed to get or create customer" };
+    }
+
+    // Create checkout transaction
+    const transaction = await paddle.transactions.create({
+      items: [{ priceId: plan.paddlePriceId, quantity: 1 }],
+      customerId,
+      customData: { userId, planId },
     });
 
-    return { sessionId: session.id, url: session.url };
+    return {
+      transactionId: transaction.id,
+      checkoutUrl: transaction.checkout?.url,
+    };
   } catch (error) {
-    console.error("Error creating checkout session:", error);
-    return { error: "Failed to create checkout session" };
+    console.error("Error creating Paddle checkout:", error);
+    return { error: "Failed to create checkout" };
   }
 }
 
 /**
- * Create a Stripe Customer Portal session
+ * Cancel subscription (replaces Stripe Customer Portal)
  */
-export async function createPortalSession() {
+export async function cancelSubscription() {
   const { userId } = await auth();
   if (!userId) return { error: "Unauthorized" };
 
   try {
-    // Get user's subscription to find Stripe customer ID
     const subscription = await db.query.userSubscriptions.findFirst({
       where: eq(userSubscriptions.userId, userId),
     });
 
-    if (!subscription?.stripeCustomerId) {
-      return { error: "No Stripe customer found" };
+    if (!subscription?.paddleSubscriptionId) {
+      return { error: "No subscription found" };
     }
 
-    const session = await stripe.billingPortal.sessions.create({
-      customer: subscription.stripeCustomerId,
-      return_url: `${process.env.NEXT_PUBLIC_BASE_URL}/subscription`,
+    await paddle.subscriptions.cancel(subscription.paddleSubscriptionId, {
+      effectiveFrom: "next_billing_period",
     });
 
-    return { url: session.url };
+    revalidatePath("/subscription");
+    return { success: true };
   } catch (error) {
-    console.error("Error creating portal session:", error);
-    return { error: "Failed to create portal session" };
+    console.error("Error canceling subscription:", error);
+    return { error: "Failed to cancel subscription" };
   }
 }
 
@@ -175,8 +190,8 @@ export async function upgradeToFreePlan(planId: string) {
       return { error: "Plan not found" };
     }
 
-    // Verify it's actually a free plan (no Stripe price ID)
-    if (plan.stripePriceId) {
+    // Verify it's actually a free plan (no Paddle price ID)
+    if (plan.paddlePriceId) {
       return { error: "This plan requires payment" };
     }
 

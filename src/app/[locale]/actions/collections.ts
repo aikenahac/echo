@@ -132,6 +132,7 @@ export async function updateCollection(
     colorTag?: string;
     iconName?: string;
     coverImageUrl?: string;
+    coverImageBlurhash?: string;
   }
 ) {
   const { userId } = await auth();

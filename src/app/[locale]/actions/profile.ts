@@ -15,7 +15,8 @@ export async function updateProfile(
   username: string,
   bio: string,
   displayName?: string,
-  profilePictureUrl?: string
+  profilePictureUrl?: string,
+  profilePictureBlurhash?: string
 ) {
   const { userId } = await auth();
 
@@ -80,6 +81,7 @@ export async function updateProfile(
         bio: bio || null,
         displayName: displayName || null,
         profilePictureUrl: profilePictureUrl || null,
+        profilePictureBlurhash: profilePictureBlurhash || null,
       })
       .onConflictDoUpdate({
         target: users.id,
@@ -89,6 +91,7 @@ export async function updateProfile(
           bio: bio || null,
           displayName: displayName || null,
           profilePictureUrl: profilePictureUrl || null,
+          profilePictureBlurhash: profilePictureBlurhash || null,
           updatedAt: new Date(),
         },
       });

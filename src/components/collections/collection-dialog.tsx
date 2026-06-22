@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -71,66 +71,59 @@ export function CollectionDialog({
   );
 
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [coverImageBlurhash, setCoverImageBlurhash] = useState<string | null>(null);
   const [isIconPickerOpen, setIsIconPickerOpen] = useState(false);
   const [isColorPickerOpen, setIsColorPickerOpen] = useState(false);
 
-  const handleImageUpload = async (previewUrl: string) => {
+  // Reset image state when dialog closes
+  useEffect(() => {
+    if (!open) {
+      setCoverImageBlurhash(null);
+    }
+  }, [open]);
+
+  const handleImageUpload = async (previewUrl: string, blurhash: string) => {
+    setCoverImageBlurhash(blurhash);
     if (!collection?.id && !isEditing) {
-      // For new collections, just store the preview
       setCoverImageUrl(previewUrl);
       return;
     }
 
-    // For existing collections, upload immediately
     setIsUploadingImage(true);
     try {
-      // Get the file from the temporary storage
       const file = (window as any).__pendingUploadFile as File;
-      if (!file) {
-        throw new Error("No file to upload");
-      }
+      if (!file) throw new Error("No file to upload");
 
-      // Get file extension
       const extension = file.name.split(".").pop() || "jpg";
-
-      // Generate presigned URL
       const result = await generateCollectionCoverUrl(collection!.id, extension);
 
       if (result.error || !result.uploadUrl || !result.publicUrl) {
         throw new Error(result.error || "Failed to generate upload URL");
       }
 
-      // Upload to S3
       const uploadResponse = await fetch(result.uploadUrl, {
         method: "PUT",
         body: file,
-        headers: {
-          "Content-Type": file.type,
-        },
+        headers: { "Content-Type": file.type },
       });
 
-      if (!uploadResponse.ok) {
-        throw new Error("Failed to upload image to S3");
-      }
+      if (!uploadResponse.ok) throw new Error("Failed to upload image to S3");
 
-      // Update collection with new image URL
       const updateResult = await updateCollection(collection!.id, {
         coverImageUrl: result.publicUrl,
+        coverImageBlurhash: blurhash,
       });
 
-      if (updateResult.error) {
-        throw new Error(updateResult.error);
-      }
+      if (updateResult.error) throw new Error(updateResult.error);
 
       setCoverImageUrl(result.publicUrl);
       toast.success(tToast("coverUploaded"));
-
-      // Clean up
       delete (window as any).__pendingUploadFile;
     } catch (error) {
       console.error("Error uploading image:", error);
       toast.error(tToast("coverUploadFailed"));
       setCoverImageUrl(null);
+      setCoverImageBlurhash(null);
     } finally {
       setIsUploadingImage(false);
     }
@@ -138,6 +131,7 @@ export function CollectionDialog({
 
   const handleRemoveImage = () => {
     setCoverImageUrl(null);
+    setCoverImageBlurhash(null);
     delete (window as any).__pendingUploadFile;
   };
 
@@ -204,6 +198,7 @@ export function CollectionDialog({
                 if (uploadResponse.ok) {
                   await updateCollection(result.collection.id, {
                     coverImageUrl: uploadResult.publicUrl,
+                    coverImageBlurhash: coverImageBlurhash ?? undefined,
                   });
                 }
               }
@@ -232,6 +227,7 @@ export function CollectionDialog({
           iconName: "book",
         });
         setCoverImageUrl(null);
+        setCoverImageBlurhash(null);
       } catch (error) {
         console.error("Error saving collection:", error);
         toast.error(tToast("saveFailed"));
