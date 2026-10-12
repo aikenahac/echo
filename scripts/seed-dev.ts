@@ -669,12 +669,17 @@ async function main() {
       const b = book(title);
       const total = b.pages ?? 300;
       // Recent activity for followed friends keeps the Friends feed fresh
-      const touched =
-        isFollowed && j < 2
+      // One followed reader always started a book in the last hour, so the Friends feed
+      // opens with a "started reading" band, as drawn
+      const startedNow = i === 2 && j === 0;
+      const touched = startedNow
+        ? hoursAgo(0.7)
+        : isFollowed && j < 2
           ? hoursAgo(faker.number.float({ min: 0.5, max: 96 }))
           : daysAgo(faker.number.int({ min: 5, max: 120 }));
-      const status =
-        title === "James"
+      const status = startedNow
+        ? ("reading" as const)
+        : title === "James"
           ? "finished"
           : faker.helpers.weightedArrayElement([
               { weight: 3, value: "finished" as const },
