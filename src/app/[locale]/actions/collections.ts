@@ -20,6 +20,7 @@ import {
 } from "@/lib/s3";
 import { validateImageUpload } from "@/lib/image-validation";
 import { publicUserColumns } from "@/lib/public-user";
+import { isUuid } from "@/lib/utils";
 
 // Helper function to generate URL-friendly slug
 function generateSlug(name: string): string {
@@ -349,10 +350,8 @@ export async function getCollectionById(identifier: string) {
 
   try {
     // Look up by ID if the identifier is a UUID, otherwise by slug
-    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identifier);
-
     const collection = await db.query.collections.findFirst({
-      where: isUUID
+      where: isUuid(identifier)
         ? eq(collections.id, identifier)
         : eq(collections.slug, identifier),
       with: {

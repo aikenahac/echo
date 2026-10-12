@@ -1,15 +1,13 @@
 import { redirect } from "next/navigation";
 import Image from "next/image";
 import { getTranslations } from "next-intl/server";
-import { db } from "@/db";
-import { books, userBooks } from "@/db/schema";
-import { eq, and, gte, count, sum, desc, sql } from "drizzle-orm";
 import { Heart, Settings } from "lucide-react";
 import { ProfileStats } from "@/components/profile-stats";
 import { EditProfileForm } from "@/components/edit-profile-form";
 import { Link } from "@/i18n/routing";
 import { Button } from "@/components/ui/button";
 import { getViewer, isPaidPlan } from "@/lib/auth";
+import { getProfileShelves, getYearStats } from "@/lib/reading-stats";
 
 // Shelves are 2-6 columns wide inside a max-w-4xl (896px) container
 const SHELF_COVER_SIZES = "(min-width: 1024px) 140px, (min-width: 768px) 33vw, 50vw";
@@ -30,56 +28,11 @@ export default async function ProfilePage() {
   // Check if user has a paid plan to show settings link
   const hasPaidPlan = isPaidPlan(user.subscription?.plan);
 
-  // Get current year start date
-  const currentYearStart = new Date(new Date().getFullYear(), 0, 1);
+  const [yearStats, { favorites: favoriteBooks, currentlyReading, recentlyFinished }] =
+    await Promise.all([getYearStats(userId), getProfileShelves(userId)]);
 
-  const [[yearStats], favoriteBooks, currentlyReading, recentlyFinished] =
-    await Promise.all([
-      // Reading stats for books finished this year
-      db
-        .select({
-          booksThisYear: count(),
-          totalPages: sum(books.pages).mapWith(Number),
-        })
-        .from(userBooks)
-        .innerJoin(books, eq(userBooks.bookId, books.id))
-        .where(
-          and(
-            eq(userBooks.userId, userId),
-            eq(userBooks.status, "finished"),
-            gte(userBooks.finishedAt, currentYearStart),
-          ),
-        ),
-      // Favorite books
-      db.query.userBooks.findMany({
-        where: and(eq(userBooks.userId, userId), eq(userBooks.isFavorite, true)),
-        with: {
-          book: true,
-        },
-        limit: 6,
-        orderBy: [desc(userBooks.updatedAt)],
-      }),
-      // Currently reading books
-      db.query.userBooks.findMany({
-        where: and(eq(userBooks.userId, userId), eq(userBooks.status, "reading")),
-        with: {
-          book: true,
-        },
-        limit: 6,
-      }),
-      // Recently finished books
-      db.query.userBooks.findMany({
-        where: and(eq(userBooks.userId, userId), eq(userBooks.status, "finished")),
-        with: {
-          book: true,
-        },
-        orderBy: [sql`${userBooks.finishedAt} desc nulls last`],
-        limit: 6,
-      }),
-    ]);
-
-  const booksThisYear = yearStats?.booksThisYear ?? 0;
-  const totalPages = yearStats?.totalPages ?? 0;
+  const booksThisYear = yearStats.booksFinishedThisYear;
+  const totalPages = yearStats.pagesReadThisYear;
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">

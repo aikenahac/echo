@@ -41,9 +41,8 @@ async function generateUploadUrl(
     ACL: acl,
   });
 
-  // Generate presigned URL (valid for 5 minutes)
   const uploadUrl = await getSignedUrl(getS3(), command, {
-    expiresIn: 300,
+    expiresIn: UPLOAD_URL_EXPIRES_IN,
   });
 
   return {
@@ -83,6 +82,9 @@ export async function generateProfilePictureUploadUrl(
   // Note: ACL omitted to avoid CORS issues - bucket policy makes pfp/ public
   return generateUploadUrl(key, contentType, fileSize);
 }
+
+/** Presigned upload URLs are valid for 5 minutes */
+export const UPLOAD_URL_EXPIRES_IN = 300;
 
 export const collectionCoverPrefix = (userId: string) =>
   `collections/${userId}/`;
