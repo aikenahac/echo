@@ -24,7 +24,7 @@ import {
   generateCollectionCoverUrl,
 } from "@/app/[locale]/actions/collections";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { LoaderCircle } from "lucide-react";
 import { DynamicIcon } from "lucide-react/dynamic";
 import { COLORS, DEFAULT_COLOR, getColorClass, type ColorValue } from "@/lib/colors";
 import { cn } from "@/lib/utils";
@@ -356,7 +356,7 @@ export function CollectionDialog({
             <Button type="submit" disabled={isPending || isUploadingImage}>
               {isPending || isUploadingImage ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
                   {isUploadingImage ? t("uploading") : t("saving")}
                 </>
               ) : isEditing ? (

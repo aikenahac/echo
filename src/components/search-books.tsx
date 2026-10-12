@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import Image from "next/image";
-import { Search, Loader2, Database, Globe } from "lucide-react";
+import { Search, LoaderCircle, Database, Globe } from "lucide-react";
 import {
   searchBooksHybrid,
   type SearchResult,
@@ -111,7 +111,7 @@ export function SearchBooks() {
         <Button type="submit" disabled={isSearching || !query.trim()}>
           {isSearching ? (
             <>
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              <LoaderCircle className="h-4 w-4 animate-spin mr-2" />
               {t("searching")}
             </>
           ) : (
@@ -228,7 +228,7 @@ export function SearchBooks() {
               >
                 {isLoadingMore ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    <LoaderCircle className="h-4 w-4 animate-spin mr-2" />
                     Loading more...
                   </>
                 ) : (

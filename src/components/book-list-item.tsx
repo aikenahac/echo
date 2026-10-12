@@ -2,7 +2,7 @@ import { UserBook } from "@/types";
 import { Card } from "./ui/card";
 import { Link } from "@/i18n/routing";
 import Image from "next/image";
-import { CheckCircle, Minus, Plus } from "lucide-react";
+import { CircleCheck, Minus, Plus } from "lucide-react";
 import { useState } from "react";
 import { updateBookCurrentPage } from "@/app/[locale]/actions/books";
 import { toast } from "sonner";
@@ -96,7 +96,7 @@ export function BookListItem({ userBook }: { userBook: UserBook }) {
         {userBook.status === "finished" && userBook.rating && (
           <div className="flex items-center gap-1">
             {Array.from({ length: 5 }).map((_, i) => (
-              <CheckCircle
+              <CircleCheck
                 key={i}
                 className={`h-3 w-3 ${
                   i < userBook.rating!

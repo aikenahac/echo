@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Edit } from "lucide-react";
+import { SquarePen } from "lucide-react";
 import { EditPlanDialog } from "./edit-plan-dialog";
 
 interface Plan {
@@ -73,7 +73,7 @@ export function SubscriptionPlansTable({ plans }: { plans: Plan[] }) {
                       size="sm"
                       onClick={() => setEditingPlan(plan)}
                     >
-                      <Edit className="h-4 w-4" />
+                      <SquarePen className="h-4 w-4" />
                     </Button>
                   </TableCell>
                 </TableRow>

@@ -7,7 +7,7 @@ import Image from "next/image";
 import {
   Bookmark,
   BookOpen,
-  CheckCircle,
+  CircleCheck,
   LayoutGrid,
   List,
   Menu,
@@ -166,7 +166,7 @@ export function CollectionIsland({
       finished: {
         label: t("tabs.finished"),
         books: finished,
-        icon: CheckCircle,
+        icon: CircleCheck,
         href: "/library?tab=finished",
       },
     }),

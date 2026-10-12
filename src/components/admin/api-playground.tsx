@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Play, Copy, Check } from "lucide-react";
+import { LoaderCircle, Play, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 
 interface ApiPlaygroundProps {
@@ -268,7 +268,7 @@ export function ApiPlayground({ endpoints }: ApiPlaygroundProps) {
           <Button onClick={handleTest} disabled={loading} className="w-full">
             {loading ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
                 Sending Request...
               </>
             ) : (

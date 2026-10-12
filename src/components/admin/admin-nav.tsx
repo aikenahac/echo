@@ -9,7 +9,7 @@ import {
   MessageSquare,
   BookOpen,
   Code,
-  Home,
+  House,
   CreditCard,
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
@@ -89,7 +89,7 @@ export function AdminNav() {
           href="/"
           className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
         >
-          <Home className="h-4 w-4" />
+          <House className="h-4 w-4" />
           Back to App
         </Link>
       </div>

@@ -24,7 +24,7 @@ import { updateUserRole, deleteUserAsAdmin } from "@/app/[locale]/actions/admin"
 import { EditUserDialog } from "@/components/admin/edit-user-dialog";
 import { ManageUserSubscriptionDialog } from "@/components/admin/manage-user-subscription-dialog";
 import { toast } from "sonner";
-import { Trash2, Loader2, Pencil, CreditCard } from "lucide-react";
+import { Trash2, LoaderCircle, Pencil, CreditCard } from "lucide-react";
 
 interface Plan {
   id: string;
@@ -273,7 +273,7 @@ export function UsersDataTable({ data, plans }: { data: User[]; plans: Plan[] })
                                 title="Delete User"
                               >
                                 {deletingUserId === user.id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                  <LoaderCircle className="h-4 w-4 animate-spin" />
                                 ) : (
                                   <Trash2 className="h-4 w-4" />
                                 )}

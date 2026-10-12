@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  MoreVertical,
+  EllipsisVertical,
   Pencil,
   Trash2,
   Eye,
@@ -112,7 +112,7 @@ export function CollectionSidebarItem({
               size="icon"
               className="h-6 w-6 shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
             >
-              <MoreVertical className="h-4 w-4" />
+              <EllipsisVertical className="h-4 w-4" />
               <span className="sr-only">Collection options</span>
             </Button>
           </DropdownMenuTrigger>

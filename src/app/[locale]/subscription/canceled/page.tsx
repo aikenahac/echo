@@ -1,4 +1,4 @@
-import { XCircle } from "lucide-react";
+import { CircleX } from "lucide-react";
 import { Link } from "@/i18n/routing";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,7 +15,7 @@ export default function SubscriptionCanceledPage() {
       <Card>
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100">
-            <XCircle className="h-6 w-6 text-yellow-600" />
+            <CircleX className="h-6 w-6 text-yellow-600" />
           </div>
           <CardTitle className="text-2xl">Checkout Canceled</CardTitle>
           <CardDescription>

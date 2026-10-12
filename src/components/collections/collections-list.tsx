@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Plus, Loader2, Crown } from "lucide-react";
+import { Plus, LoaderCircle, Crown } from "lucide-react";
 import { CollectionSidebarItem } from "./collection-sidebar-item";
 import { CollectionDialog } from "./collection-dialog";
 import { PremiumPaywallDialog } from "@/components/premium-paywall-dialog";
@@ -91,7 +91,7 @@ export function CollectionsList() {
 
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <LoaderCircle className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : collections.length === 0 ? (
           <div className="px-2 py-4 text-center">

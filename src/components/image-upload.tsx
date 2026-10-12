@@ -2,7 +2,7 @@
 
 import { useState, useRef, ChangeEvent } from "react";
 import { Button } from "@/components/ui/button";
-import { Upload, X, Loader2 } from "lucide-react";
+import { Upload, X, LoaderCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 
@@ -211,7 +211,7 @@ export function ImageUpload({
         >
           {isUploading ? (
             <div className="flex flex-col items-center gap-2">
-              <Loader2 className="h-8 w-8 animate-spin" />
+              <LoaderCircle className="h-8 w-8 animate-spin" />
               <span className="text-sm text-muted-foreground">
                 Processing image...
               </span>

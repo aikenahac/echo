@@ -9,7 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Plus, Loader2, FolderPlus, Crown } from "lucide-react";
+import { Plus, LoaderCircle, FolderPlus, Crown } from "lucide-react";
 import {
   getUserCollections,
   addBookToCollection,
@@ -164,7 +164,7 @@ export function AddToCollectionPopover({
 
             {isLoading ? (
               <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin" />
+                <LoaderCircle className="h-6 w-6 animate-spin" />
               </div>
             ) : collections.length === 0 ? (
               <div className="py-8 text-center">
@@ -207,7 +207,7 @@ export function AddToCollectionPopover({
                           <div className="flex items-center justify-between">
                             <span>{collection.name}</span>
                             {isProcessing ? (
-                              <Loader2 className="h-3 w-3 animate-spin" />
+                              <LoaderCircle className="h-3 w-3 animate-spin" />
                             ) : (
                               <span className="text-xs text-muted-foreground">
                                 {collection.bookCount || 0}

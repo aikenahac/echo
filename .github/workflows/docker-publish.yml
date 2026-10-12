@@ -87,6 +87,7 @@ jobs:
             NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL=/
             NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL=/
             NEXT_PUBLIC_BASE_URL=${{ vars.NEXT_PUBLIC_BASE_URL || 'https://echobook.club' }}
+            AWS_S3_PUBLIC_URL=${{ vars.AWS_S3_PUBLIC_URL }}
 
       # Sign the resulting Docker image digest except on PRs.
       # This will only write to the public Rekor transparency log when the Docker

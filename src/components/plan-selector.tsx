@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Check, Loader2 } from "lucide-react";
+import { Check, LoaderCircle } from "lucide-react";
 import { createCheckoutSession, upgradeToFreePlan } from "@/app/[locale]/actions/subscriptions";
 import { toast } from "sonner";
 
@@ -112,7 +112,7 @@ export function PlanSelector({
                 >
                   {loading === plan.id ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
                       Processing...
                     </>
                   ) : isFree ? (

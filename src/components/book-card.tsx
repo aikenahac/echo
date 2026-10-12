@@ -2,7 +2,7 @@
 
 import { Link } from "@/i18n/routing";
 import { useState, useTransition } from "react";
-import { MoreVertical, Trash2, Star, Heart, Plus, Minus, FolderPlus } from "lucide-react";
+import { EllipsisVertical, Trash2, Star, Heart, Plus, Minus, FolderPlus } from "lucide-react";
 import { toast } from "sonner";
 import {
   updateBookStatus,
@@ -131,7 +131,7 @@ export function BookCard({ userBook }: BookCardProps) {
               size="icon"
               className="opacity-0 group-hover:opacity-100 transition-opacity"
             >
-              <MoreVertical className="h-4 w-4" />
+              <EllipsisVertical className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">

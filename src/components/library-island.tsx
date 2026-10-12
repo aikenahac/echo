@@ -7,7 +7,7 @@ import { useMemo, useState } from "react";
 import {
   Bookmark,
   BookOpen,
-  CheckCircle,
+  CircleCheck,
   LayoutGrid,
   List,
   Menu,
@@ -156,7 +156,7 @@ export function LibraryIsland({
       finished: {
         label: t("tabs.finished"),
         books: finished,
-        icon: CheckCircle,
+        icon: CircleCheck,
       },
     }),
     [t, favorites, wantToRead, currentlyReading, finished],
