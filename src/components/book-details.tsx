@@ -41,6 +41,8 @@ export function BookDetails({
   const t = useTranslations("book");
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [isPending, startTransition] = useTransition();
+  // The user's own page count wins over the catalog value (same as the server)
+  const totalPages = userBook?.pageCount || book.pages || null;
 
   const handleToggleFavorite = () => {
     if (!userBook) return;
@@ -172,7 +174,7 @@ export function BookDetails({
       </div>
 
       {/* Progress Tracker */}
-      {userBook && userBook.status === "reading" && book.pages && (
+      {userBook && userBook.status === "reading" && totalPages && (
         <div className="border rounded-lg p-6">
           <h2 className="text-xl font-semibold mb-4">
             {t("progress.sectionTitle")}
@@ -180,7 +182,7 @@ export function BookDetails({
           <ProgressTracker
             userBookId={userBook.id}
             currentPage={userBook.currentPage || 0}
-            totalPages={book.pages}
+            totalPages={totalPages}
           />
         </div>
       )}

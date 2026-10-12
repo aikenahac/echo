@@ -1,6 +1,6 @@
-import { withAuth, ApiError } from "@/lib/api-handler";
+import { withAuth, ApiError, actionError } from "@/lib/api-handler";
 import { createApiResponse } from "@/lib/api-auth";
-import { updateProfile } from "@/app/[locale]/actions/profile";
+import { updateProfileFields } from "@/app/[locale]/actions/profile";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -47,26 +47,28 @@ export const GET = withAuth(async (request, { user }) => {
 
 /**
  * PUT /api/v1/profile
- * Update current user's profile
- * Body: { username: string, bio: string, displayName?: string, profilePictureUrl?: string }
+ * Partially update current user's profile. Only fields present in the body
+ * change; null or "" clears a field (except username, which can't be cleared).
+ * Body: { username?, bio?, displayName?, profilePictureUrl? }
  */
-export const PUT = withAuth(async (request, { user }) => {
+export const PUT = withAuth(async (request) => {
   const body = await request.json();
-  const { username, bio, displayName, profilePictureUrl } = body;
 
-  if (!username) {
-    throw new ApiError("Missing required field: username");
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    throw new ApiError("Invalid request body");
   }
 
-  const result = await updateProfile(
+  const { username, bio, displayName, profilePictureUrl } = body;
+
+  const result = await updateProfileFields({
     username,
-    bio || "",
+    bio,
     displayName,
-    profilePictureUrl
-  );
+    profilePictureUrl,
+  });
 
   if (result.error) {
-    throw new ApiError(result.error);
+    throw actionError(result.error);
   }
 
   return createApiResponse(result);

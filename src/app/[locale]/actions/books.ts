@@ -194,12 +194,13 @@ export async function updateBookPageCount(
 }
 
 /**
- * Update the current page of a book in the user's library
+ * Set the current page of a book in the user's library. The single rule set
+ * behind the library card stepper, the book detail progress form and the API:
+ * - the page can't exceed the page count (the user's own, else the catalog's)
+ * - reaching the page count marks the book finished
+ * - any other page above 0 marks it reading
  */
-export async function updateBookCurrentPage(
-  userBookId: string,
-  currentPage: number,
-) {
+async function setCurrentPage(userBookId: string, currentPage: number) {
   const { userId } = await auth();
 
   if (!userId) {
@@ -213,25 +214,36 @@ export async function updateBookCurrentPage(
   try {
     const userBook = await db.query.userBooks.findFirst({
       where: and(eq(userBooks.id, userBookId), eq(userBooks.userId, userId)),
+      with: {
+        book: true,
+      },
     });
 
     if (!userBook) {
       return { error: "Book not found in your library" };
     }
 
-    const updateData: Record<string, unknown> = {
-      currentPage,
-      updatedAt: new Date(),
-    };
+    const totalPages = userBook.pageCount || userBook.book.pages || null;
 
-    if (currentPage > 0 && userBook.status !== "reading") {
-      updateData.status = "reading"
-      updateData.startedAt = new Date();
+    if (totalPages && currentPage > totalPages) {
+      return { error: "Current page cannot exceed total pages" };
     }
 
-    if (currentPage === userBook.pageCount) {
-      updateData.finishedAt = new Date();
-      updateData.status = "finished"
+    const now = new Date();
+    const updateData: Partial<typeof userBooks.$inferInsert> = {
+      currentPage,
+      updatedAt: now,
+    };
+
+    if (totalPages && currentPage === totalPages) {
+      if (userBook.status !== "finished") {
+        updateData.status = "finished";
+        updateData.finishedAt = now;
+        updateData.startedAt = userBook.startedAt ?? now;
+      }
+    } else if (currentPage > 0 && userBook.status !== "reading") {
+      updateData.status = "reading";
+      updateData.startedAt = userBook.startedAt ?? now;
     }
 
     await db
@@ -246,6 +258,17 @@ export async function updateBookCurrentPage(
     console.error("Error updating book current page:", error);
     return { error: "Failed to update book current page" };
   }
+}
+
+/**
+ * Update the current page of a book in the user's library (library card
+ * stepper)
+ */
+export async function updateBookCurrentPage(
+  userBookId: string,
+  currentPage: number,
+) {
+  return setCurrentPage(userBookId, currentPage);
 }
 
 /**
@@ -278,65 +301,14 @@ export async function removeBookFromLibrary(userBookId: string) {
 }
 
 /**
- * Update reading progress for a book
+ * Update reading progress for a book (book detail progress form). Same rules
+ * as updateBookCurrentPage.
  */
 export async function updateReadingProgress(
   userBookId: string,
   currentPage: number,
 ) {
-  const { userId } = await auth();
-
-  if (!userId) {
-    return { error: "Unauthorized" };
-  }
-
-  if (!isValidPageNumber(currentPage)) {
-    return { error: "Invalid page number" };
-  }
-
-  try {
-    const userBook = await db.query.userBooks.findFirst({
-      where: and(eq(userBooks.id, userBookId), eq(userBooks.userId, userId)),
-      with: {
-        book: true,
-      },
-    });
-
-    if (!userBook) {
-      return { error: "Book not found in your library" };
-    }
-
-    if (userBook.book.pages && currentPage > userBook.book.pages) {
-      return { error: "Current page cannot exceed total pages" };
-    }
-
-    const updateData: Record<string, unknown> = {
-      currentPage,
-      updatedAt: new Date(),
-    };
-
-    // If user reached the last page, mark as finished
-    if (
-      userBook.book.pages &&
-      currentPage >= userBook.book.pages &&
-      userBook.status !== "finished"
-    ) {
-      updateData.status = "finished";
-      updateData.finishedAt = new Date();
-    }
-
-    await db
-      .update(userBooks)
-      .set(updateData)
-      .where(eq(userBooks.id, userBookId));
-
-    revalidateLocalized("/library", `/books/${userBook.bookId}`);
-
-    return { success: true };
-  } catch (error) {
-    console.error("Error updating reading progress:", error);
-    return { error: "Failed to update reading progress" };
-  }
+  return setCurrentPage(userBookId, currentPage);
 }
 
 /**
