@@ -2,8 +2,10 @@ import { withAuth, ApiError, actionError } from "@/lib/api-handler";
 import { createApiResponse } from "@/lib/api-auth";
 import { updateProfileFields } from "@/app/[locale]/actions/profile";
 import { db } from "@/db";
-import { users } from "@/db/schema";
+import { users, userSubscriptions } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { clerkClient } from "@clerk/nextjs/server";
+import { getStripe } from "@/lib/stripe";
 
 /**
  * GET /api/v1/profile
@@ -72,4 +74,43 @@ export const PUT = withAuth(async (request) => {
   }
 
   return createApiResponse(result);
+});
+
+/**
+ * DELETE /api/v1/profile
+ * Permanently delete the current user's account: cancels any running Stripe
+ * subscription, deletes the user row (cascades to library, reviews, follows,
+ * collections and subscription), then deletes the Clerk user.
+ * Required for in-app account deletion (App Store guideline 5.1.1(v)).
+ */
+export const DELETE = withAuth(async (request, { user }) => {
+  const subscription = await db.query.userSubscriptions.findFirst({
+    where: eq(userSubscriptions.userId, user.id),
+  });
+
+  if (
+    subscription?.stripeSubscriptionId &&
+    ["active", "trialing", "past_due", "unpaid", "incomplete"].includes(
+      subscription.status,
+    )
+  ) {
+    try {
+      await getStripe().subscriptions.cancel(subscription.stripeSubscriptionId);
+    } catch (error) {
+      console.error(
+        "Error cancelling subscription on account deletion:",
+        error,
+      );
+      throw new ApiError("Could not cancel your subscription. Try again.", 500);
+    }
+  }
+
+  // Delete the data first: if the Clerk call then fails, the client is still
+  // signed in and can retry (the next request re-provisions an empty row).
+  await db.delete(users).where(eq(users.id, user.id));
+
+  const client = await clerkClient();
+  await client.users.deleteUser(user.id);
+
+  return createApiResponse({ success: true });
 });

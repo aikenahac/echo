@@ -316,6 +316,7 @@ type FeedItem =
 | PUT | `/profile` | `{ username?, displayName?, bio?, profilePictureUrl? }` | `{ success }`. **Partial update:** only fields present in the body change; `null` or `""` clears `displayName`, `bio` or `profilePictureUrl`. `username` can be changed but not cleared. An empty body → 400. |
 | GET | `/profile/stats` | – | `{ booksFinishedThisYear, pagesReadThisYear, totalBooks, countsByStatus: { want, reading, finished }, favoritesCount }` |
 | GET | `/profile/username-available` | `?username=` (required) | `{ available: true }` or `{ available: false, reason }` (format error or "Username already taken"). Your own current username counts as available. |
+| DELETE | `/profile` | – | `{ success: true }`. **Permanently deletes the account:** cancels a running Stripe subscription, deletes all of the user's data, then the Clerk user. Sign out on the client afterwards. |
 | POST | `/profile/picture-upload-url` | `{ contentType, fileSize }` | `{ uploadUrl, publicUrl, expiresIn: 300 }` |
 
 > ⚠️ **Changed:** `PUT /profile` used to replace every field (omitted fields were cleared) and required `username` on every call. It's now a partial update.
