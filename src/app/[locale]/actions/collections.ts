@@ -558,17 +558,15 @@ export async function followCollection(collectionId: string) {
       where: eq(collections.id, collectionId),
     });
 
-    if (!collection) {
-      return { error: "Collection not found" };
-    }
-
-    if (!collection.isPublic) {
-      return { error: "Cannot follow private collections" };
-    }
-
     // Cannot follow own collections
-    if (collection.userId === userId) {
+    if (collection?.userId === userId) {
       return { error: "Cannot follow your own collection" };
+    }
+
+    // Private collections of other users are reported as missing so their
+    // existence isn't revealed
+    if (!collection || !collection.isPublic) {
+      return { error: "Collection not found" };
     }
 
     // Add follow
@@ -603,6 +601,15 @@ export async function unfollowCollection(collectionId: string) {
   }
 
   try {
+    const collection = await db.query.collections.findFirst({
+      where: eq(collections.id, collectionId),
+      columns: { slug: true },
+    });
+
+    if (!collection) {
+      return { error: "Collection not found" };
+    }
+
     await db
       .delete(collectionFollows)
       .where(
@@ -612,13 +619,7 @@ export async function unfollowCollection(collectionId: string) {
         )
       );
 
-    const collection = await db.query.collections.findFirst({
-      where: eq(collections.id, collectionId),
-    });
-
-    if (collection) {
-      revalidateLocalized(`/library/collections/${collection.slug}`);
-    }
+    revalidateLocalized(`/library/collections/${collection.slug}`);
 
     return { success: true };
   } catch (error) {
@@ -764,5 +765,62 @@ export async function updateCollectionOrder(
   } catch (error) {
     console.error("Error updating collection order:", error);
     return { error: "Failed to update collection order" };
+  }
+}
+
+const MAX_COLLECTIONS_TO_ORDER = 500;
+
+/**
+ * Reorder all of the current user's collections. `order` lists every one of
+ * the user's collection IDs exactly once, in the new order.
+ */
+export async function reorderCollections(order: string[]) {
+  const { userId } = await auth();
+  if (!userId) {
+    return { error: "Unauthorized" };
+  }
+
+  if (
+    !Array.isArray(order) ||
+    order.length > MAX_COLLECTIONS_TO_ORDER ||
+    !order.every(isUuid)
+  ) {
+    return { error: "order must be an array of collection IDs" };
+  }
+
+  if (new Set(order).size !== order.length) {
+    return { error: "order must not contain duplicate IDs" };
+  }
+
+  try {
+    const owned = await db.query.collections.findMany({
+      where: eq(collections.userId, userId),
+      columns: { id: true },
+    });
+    const ownedIds = new Set(owned.map((col) => col.id));
+
+    if (order.some((id) => !ownedIds.has(id))) {
+      return { error: "Collection not found or unauthorized" };
+    }
+
+    if (order.length !== ownedIds.size) {
+      return { error: "order must list each of your collections exactly once" };
+    }
+
+    const now = new Date();
+    await db.transaction(async (tx) => {
+      for (const [index, id] of order.entries()) {
+        await tx
+          .update(collections)
+          .set({ sortOrder: index + 1, updatedAt: now })
+          .where(and(eq(collections.id, id), eq(collections.userId, userId)));
+      }
+    });
+
+    revalidateLocalized("/library");
+    return { success: true };
+  } catch (error) {
+    console.error("Error reordering collections:", error);
+    return { error: "Failed to reorder collections" };
   }
 }
