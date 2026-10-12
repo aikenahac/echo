@@ -24,7 +24,6 @@ import {
   revokeUserSubscription,
 } from "@/app/[locale]/actions/admin";
 import { toast } from "sonner";
-import { useRouter } from "@/i18n/routing";
 import { format } from "date-fns";
 
 interface Plan {
@@ -62,7 +61,6 @@ export function ManageUserSubscriptionDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [selectedPlanId, setSelectedPlanId] = useState(
     user.subscription?.plan.id || ""
@@ -85,9 +83,8 @@ export function ManageUserSubscriptionDialog({
       } else {
         toast.success("Subscription updated successfully");
         onOpenChange(false);
-        router.refresh();
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to update subscription");
     } finally {
       setLoading(false);
@@ -111,9 +108,8 @@ export function ManageUserSubscriptionDialog({
       } else {
         toast.success("Subscription revoked successfully");
         onOpenChange(false);
-        router.refresh();
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to revoke subscription");
     } finally {
       setLoading(false);

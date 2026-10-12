@@ -1,0 +1,7 @@
+# Dependency install scripts. None are needed: Next.js uses its own SWC
+# binaries and esbuild/watchers ship prebuilt platform packages.
+allowBuilds:
+  "@parcel/watcher": false
+  "@swc/core": false
+  esbuild: false
+  unrs-resolver: false

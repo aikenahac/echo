@@ -24,7 +24,7 @@ export default function SubscriptionSuccessPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="rounded-lg bg-muted p-4">
-            <h3 className="font-semibold mb-2">What's next?</h3>
+            <h3 className="font-semibold mb-2">What&apos;s next?</h3>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li className="flex items-start gap-2">
                 <CircleCheck className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />

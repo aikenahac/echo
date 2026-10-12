@@ -5,6 +5,17 @@ import { getTranslations } from "next-intl/server";
 import { db } from "@/db";
 import { follows, userBooks, reviews } from "@/db/schema";
 import { eq, and, inArray, desc, or } from "drizzle-orm";
+import { Link } from "@/i18n/routing";
+import { publicUserColumns } from "@/lib/public-user";
+
+type PublicUser = {
+  username: string | null;
+  displayName: string | null;
+};
+
+function getUserName(user: PublicUser) {
+  return user.displayName || user.username || "Anonymous";
+}
 
 export default async function FeedPage() {
   const t = await getTranslations("feed");
@@ -30,50 +41,47 @@ export default async function FeedPage() {
           <p className="text-sm mt-2">
             {t("emptyDescription")}
           </p>
-          <a
+          <Link
             href="/users/search"
             className="inline-block mt-4 px-6 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
           >
             {t("findUsers")}
-          </a>
+          </Link>
         </div>
       </div>
     );
   }
 
   // Fetch recent activities from followed users
-  const recentBooks = await db.query.userBooks.findMany({
-    where: and(
-      inArray(userBooks.userId, followingIds),
-      or(eq(userBooks.status, "reading"), eq(userBooks.status, "finished")),
-    ),
-    with: {
-      book: true,
-      user: true,
-    },
-    orderBy: [desc(userBooks.updatedAt)],
-    limit: 20,
-  });
-
-  const recentReviews = await db.query.reviews.findMany({
-    where: and(
-      inArray(reviews.userId, followingIds),
-      eq(reviews.isPrivate, false),
-    ),
-    with: {
-      book: true,
-      user: true,
-    },
-    orderBy: [desc(reviews.createdAt)],
-    limit: 10,
-  });
+  const [recentBooks, recentReviews] = await Promise.all([
+    db.query.userBooks.findMany({
+      where: and(
+        inArray(userBooks.userId, followingIds),
+        or(eq(userBooks.status, "reading"), eq(userBooks.status, "finished")),
+      ),
+      with: {
+        book: true,
+        user: { columns: publicUserColumns },
+      },
+      orderBy: [desc(userBooks.updatedAt)],
+      limit: 20,
+    }),
+    db.query.reviews.findMany({
+      where: and(
+        inArray(reviews.userId, followingIds),
+        eq(reviews.isPrivate, false),
+      ),
+      with: {
+        book: true,
+        user: { columns: publicUserColumns },
+      },
+      orderBy: [desc(reviews.createdAt)],
+      limit: 10,
+    }),
+  ]);
 
   // Combine and sort activities
-  const activities: Array<{
-    type: "book" | "review";
-    date: Date;
-    data: any;
-  }> = [
+  const activities = [
     ...recentBooks.map((ub) => ({
       type: "book" as const,
       date: ub.updatedAt,
@@ -90,8 +98,11 @@ export default async function FeedPage() {
     <div className="container mx-auto px-4 py-8 max-w-2xl">
       <h1 className="text-3xl font-bold mb-8">{t("title")}</h1>
       <div className="space-y-6">
-        {activities.map((activity, index) => (
-          <div key={index} className="border rounded-lg p-6 space-y-3">
+        {activities.map((activity) => (
+          <div
+            key={`${activity.type}-${activity.data.id}`}
+            className="border rounded-lg p-6 space-y-3"
+          >
             {activity.type === "book" && (
               <>
                 <div className="flex items-start gap-4">
@@ -101,25 +112,26 @@ export default async function FeedPage() {
                         src={activity.data.book.coverUrl}
                         alt={activity.data.book.title}
                         fill
+                        sizes="64px"
                         className="object-cover rounded"
                       />
                     </div>
                   )}
                   <div className="flex-1">
                     <p className="text-sm text-muted-foreground mb-1">
-                      {activity.data.user.username || activity.data.user.email}
+                      {getUserName(activity.data.user)}
                     </p>
                     <p className="font-medium">
                       {activity.data.status === "finished"
                         ? t("activities.finishedReading")
                         : t("activities.startedReading")}
                     </p>
-                    <a
+                    <Link
                       href={`/books/${activity.data.bookId}`}
                       className="text-lg font-semibold hover:underline"
                     >
                       {activity.data.book.title}
-                    </a>
+                    </Link>
                     <p className="text-sm text-muted-foreground">
                       by {activity.data.book.author}
                     </p>
@@ -140,21 +152,22 @@ export default async function FeedPage() {
                         src={activity.data.book.coverUrl}
                         alt={activity.data.book.title}
                         fill
+                        sizes="64px"
                         className="object-cover rounded"
                       />
                     </div>
                   )}
                   <div className="flex-1">
                     <p className="text-sm text-muted-foreground mb-1">
-                      {activity.data.user.username || activity.data.user.email}
+                      {getUserName(activity.data.user)}
                     </p>
                     <p className="font-medium">{t("reviewed")}</p>
-                    <a
+                    <Link
                       href={`/books/${activity.data.bookId}`}
                       className="text-lg font-semibold hover:underline"
                     >
                       {activity.data.book.title}
-                    </a>
+                    </Link>
                     <p className="text-sm mt-2 line-clamp-3">
                       {activity.data.content}
                     </p>

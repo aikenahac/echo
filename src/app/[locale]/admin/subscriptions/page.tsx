@@ -7,29 +7,29 @@ import { SubscriptionPlansTable } from "@/components/admin/subscription-plans-ta
 import { CreatePlanDialog } from "@/components/admin/create-plan-dialog";
 
 export default async function SubscriptionsAdminPage() {
-  const plans = await db.query.subscriptionPlans.findMany({
-    orderBy: (plans, { asc }) => [asc(plans.sortOrder)],
-  });
-
-  // Stats
-  const [totalSubscriptions] = await db
-    .select({ count: count() })
-    .from(userSubscriptions)
-    .where(eq(userSubscriptions.status, "active"));
-
-  const [premiumUsers] = await db
-    .select({ count: count() })
-    .from(userSubscriptions)
-    .innerJoin(
-      subscriptionPlans,
-      eq(userSubscriptions.planId, subscriptionPlans.id),
-    )
-    .where(
-      and(
-        eq(userSubscriptions.status, "active"),
-        ne(subscriptionPlans.interval, "free")
+  const [plans, [totalSubscriptions], [premiumUsers]] = await Promise.all([
+    db.query.subscriptionPlans.findMany({
+      orderBy: (plans, { asc }) => [asc(plans.sortOrder)],
+    }),
+    // Stats
+    db
+      .select({ count: count() })
+      .from(userSubscriptions)
+      .where(eq(userSubscriptions.status, "active")),
+    db
+      .select({ count: count() })
+      .from(userSubscriptions)
+      .innerJoin(
+        subscriptionPlans,
+        eq(userSubscriptions.planId, subscriptionPlans.id),
       )
-    );
+      .where(
+        and(
+          eq(userSubscriptions.status, "active"),
+          ne(subscriptionPlans.interval, "free")
+        )
+      ),
+  ]);
 
   return (
     <div className="space-y-6">

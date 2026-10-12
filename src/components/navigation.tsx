@@ -1,11 +1,11 @@
 "use client";
 
-import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
+import { Show, SignInButton, UserButton } from "@clerk/nextjs";
 import { Link } from "@/i18n/routing";
-import { Search, Library, Activity, User, ChevronDown, ChevronUp, Shield, CreditCard, Settings, Users, Tag } from "lucide-react";
+import { Search, Library, Activity, User, ChevronDown, ChevronUp, Shield, CreditCard, Users, Tag } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { usePathname } from "next/navigation";
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { Button } from "./ui/button";
 import Image from "next/image";
 
@@ -19,65 +19,58 @@ export function Navigation({ hasAdminAccess = false, hasPaidPlan = false }: Navi
   const pathname = usePathname();
   const [isMobileNavExpanded, setIsMobileNavExpanded] = useState(false);
 
-  const navItems = useMemo(
-    () => {
-      const items = [
-        {
-          href: "/books/search",
-          icon: Search,
-          label: t("search"),
-          match: (path: string) => path.includes("/books/search"),
-        },
-        {
-          href: "/library",
-          icon: Library,
-          label: t("library"),
-          match: (path: string) => path.includes("/library"),
-        },
-        {
-          href: "/feed",
-          icon: Activity,
-          label: t("feed"),
-          match: (path: string) => path.includes("/feed"),
-        },
-        {
-          href: "/users/search",
-          icon: Users,
-          label: t("findUsers"),
-          match: (path: string) => path.includes("/users/search"),
-        },
-        {
-          href: "/profile",
-          icon: User,
-          label: t("profile"),
-          match: (path: string) => path.includes("/profile"),
-        },
-      ];
-
-      // Show Settings for paid users, Premium for others
-      if (!hasPaidPlan)  {
-        items.push({
-          href: "/subscription",
-          icon: CreditCard,
-          label: t("premium"),
-          match: (path: string) => path.includes("/subscription"),
-        });
-      }
-
-      // Add admin link if user has admin access
-      if (hasAdminAccess) {
-        items.push({
-          href: "/admin",
-          icon: Shield,
-          label: t("admin"),
-          match: (path: string) => path.includes("/admin"),
-        });
-      }
-
-      return items;
+  const navItems = [
+    {
+      href: "/books/search",
+      icon: Search,
+      label: t("search"),
+      match: (path: string) => path.includes("/books/search"),
     },
-    [t, hasAdminAccess, hasPaidPlan]
-  );
+    {
+      href: "/library",
+      icon: Library,
+      label: t("library"),
+      match: (path: string) => path.includes("/library"),
+    },
+    {
+      href: "/feed",
+      icon: Activity,
+      label: t("feed"),
+      match: (path: string) => path.includes("/feed"),
+    },
+    {
+      href: "/users/search",
+      icon: Users,
+      label: t("findUsers"),
+      match: (path: string) => path.includes("/users/search"),
+    },
+    {
+      href: "/profile",
+      icon: User,
+      label: t("profile"),
+      match: (path: string) => path.includes("/profile"),
+    },
+  ];
+
+  // Show Settings for paid users, Premium for others
+  if (!hasPaidPlan)  {
+    navItems.push({
+      href: "/subscription",
+      icon: CreditCard,
+      label: t("premium"),
+      match: (path: string) => path.includes("/subscription"),
+    });
+  }
+
+  // Add admin link if user has admin access
+  if (hasAdminAccess) {
+    navItems.push({
+      href: "/admin",
+      icon: Shield,
+      label: t("admin"),
+      match: (path: string) => path.includes("/admin"),
+    });
+  }
 
   const activeNav = navItems.find((item) => item.match(pathname));
 
@@ -98,7 +91,7 @@ export function Navigation({ hasAdminAccess = false, hasPaidPlan = false }: Navi
           </Link>
 
           {/* Desktop Navigation */}
-          <SignedIn>
+          <Show when="signed-in">
             <div className="hidden md:flex items-center gap-6">
               {navItems.map((item) => {
                 const Icon = item.icon;
@@ -115,9 +108,9 @@ export function Navigation({ hasAdminAccess = false, hasPaidPlan = false }: Navi
               })}
               <UserButton />
             </div>
-          </SignedIn>
+          </Show>
 
-          <SignedOut>
+          <Show when="signed-out">
             <div className="flex items-center gap-4">
               <Link
                 href="/pricing"
@@ -132,11 +125,11 @@ export function Navigation({ hasAdminAccess = false, hasPaidPlan = false }: Navi
                 </button>
               </SignInButton>
             </div>
-          </SignedOut>
+          </Show>
         </div>
 
         {/* Mobile Navigation */}
-        <SignedIn>
+        <Show when="signed-in">
           <div className="md:hidden pb-2">
             {!isMobileNavExpanded && activeNav && (
               <div className="flex items-center justify-between py-2">
@@ -195,7 +188,7 @@ export function Navigation({ hasAdminAccess = false, hasPaidPlan = false }: Navi
               </div>
             )}
           </div>
-        </SignedIn>
+        </Show>
       </div>
     </nav>
   );

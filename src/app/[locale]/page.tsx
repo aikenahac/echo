@@ -1,4 +1,4 @@
-import { SignedIn, SignedOut } from "@clerk/nextjs";
+import { Show } from "@clerk/nextjs";
 import { Link } from "@/i18n/routing";
 import { Book, Users, TrendingUp } from "lucide-react";
 import { useTranslations } from "next-intl";
@@ -9,7 +9,7 @@ export default function HomePage() {
 
   return (
     <div className="container mx-auto px-4 py-16">
-      <SignedOut>
+      <Show when="signed-out">
         <div className="max-w-4xl mx-auto text-center space-y-8">
           <h1 className="text-5xl font-bold mb-4">{t("welcome")}</h1>
           <p className="text-xl text-muted-foreground mb-8">{t("tagline")}</p>
@@ -44,9 +44,9 @@ export default function HomePage() {
             </div>
           </div>
         </div>
-      </SignedOut>
+      </Show>
 
-      <SignedIn>
+      <Show when="signed-in">
         <div className="max-w-4xl mx-auto">
           <h1 className="text-4xl font-bold mb-8">{t("welcomeBack")}</h1>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -100,7 +100,7 @@ export default function HomePage() {
             </Link>
           </div>
         </div>
-      </SignedIn>
+      </Show>
     </div>
   );
 }

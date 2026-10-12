@@ -5,7 +5,6 @@ import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 import { updateProfile, generateProfilePictureUploadUrl } from "@/app/[locale]/actions/profile";
 import { isValidImageType, isValidImageSize } from "@/lib/image-validation";
-import { useRouter } from "@/i18n/routing";
 import type { users } from "@/db/schema";
 import type { InferSelectModel } from "drizzle-orm";
 
@@ -18,7 +17,6 @@ interface EditProfileFormProps {
 export function EditProfileForm({ user }: EditProfileFormProps) {
   const t = useTranslations("profile");
   const tToast = useTranslations("toast");
-  const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [username, setUsername] = useState(user.username || "");
   const [bio, setBio] = useState(user.bio || "");
@@ -81,7 +79,6 @@ export function EditProfileForm({ user }: EditProfileFormProps) {
         toast.error(updateResult.error);
       } else {
         toast.success("Profile picture updated!");
-        router.refresh();
       }
     } catch (error) {
       console.error("Error uploading profile picture:", error);

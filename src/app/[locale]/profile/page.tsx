@@ -1,107 +1,85 @@
-import { auth, currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import Image from "next/image";
-import { useTranslations } from "next-intl";
 import { getTranslations } from "next-intl/server";
 import { db } from "@/db";
-import { users, userBooks, userSubscriptions } from "@/db/schema";
-import { eq, and, gte } from "drizzle-orm";
-import { sql } from "drizzle-orm";
+import { books, userBooks } from "@/db/schema";
+import { eq, and, gte, count, sum, desc, sql } from "drizzle-orm";
 import { Heart, Settings } from "lucide-react";
 import { ProfileStats } from "@/components/profile-stats";
 import { EditProfileForm } from "@/components/edit-profile-form";
 import { Link } from "@/i18n/routing";
 import { Button } from "@/components/ui/button";
+import { getViewer, isPaidPlan } from "@/lib/auth";
+
+// Shelves are 2-6 columns wide inside a max-w-4xl (896px) container
+const SHELF_COVER_SIZES = "(min-width: 1024px) 140px, (min-width: 768px) 33vw, 50vw";
+const FAVORITE_COVER_SIZES =
+  "(min-width: 1024px) 140px, (min-width: 768px) 20vw, (min-width: 640px) 25vw, 33vw";
 
 export default async function ProfilePage() {
   const t = await getTranslations("profile");
-  const { userId } = await auth();
-
-  if (!userId) {
-    redirect("/");
-  }
-
-  // Get email from Clerk
-  const clerkUser = await currentUser();
-  const email = clerkUser?.emailAddresses[0]?.emailAddress || "";
-
-  // Ensure user exists in database with email
-  await db
-    .insert(users)
-    .values({
-      id: userId,
-      email: email,
-    })
-    .onConflictDoUpdate({
-      target: users.id,
-      set: {
-        email: email,
-      },
-    });
-
-  // Fetch user profile
-  const user = await db.query.users.findFirst({
-    where: eq(users.id, userId),
-  });
+  // Cached per request (already loaded by the layout)
+  const user = await getViewer();
 
   if (!user) {
     redirect("/");
   }
 
+  const userId = user.id;
+
   // Check if user has a paid plan to show settings link
-  const subscription = await db.query.userSubscriptions.findFirst({
-    where: eq(userSubscriptions.userId, userId),
-    with: { plan: true },
-  });
-  const hasPaidPlan = subscription?.plan && (subscription.plan.price > 0 || subscription.plan.stripePriceId !== null || subscription.plan.interval === "lifetime");
+  const hasPaidPlan = isPaidPlan(user.subscription?.plan);
 
   // Get current year start date
   const currentYearStart = new Date(new Date().getFullYear(), 0, 1);
 
-  // Fetch reading stats
-  const finishedBooks = await db.query.userBooks.findMany({
-    where: and(eq(userBooks.userId, userId), eq(userBooks.status, "finished")),
-    with: {
-      book: true,
-    },
-  });
+  const [[yearStats], favoriteBooks, currentlyReading, recentlyFinished] =
+    await Promise.all([
+      // Reading stats for books finished this year
+      db
+        .select({
+          booksThisYear: count(),
+          totalPages: sum(books.pages).mapWith(Number),
+        })
+        .from(userBooks)
+        .innerJoin(books, eq(userBooks.bookId, books.id))
+        .where(
+          and(
+            eq(userBooks.userId, userId),
+            eq(userBooks.status, "finished"),
+            gte(userBooks.finishedAt, currentYearStart),
+          ),
+        ),
+      // Favorite books
+      db.query.userBooks.findMany({
+        where: and(eq(userBooks.userId, userId), eq(userBooks.isFavorite, true)),
+        with: {
+          book: true,
+        },
+        limit: 6,
+        orderBy: [desc(userBooks.updatedAt)],
+      }),
+      // Currently reading books
+      db.query.userBooks.findMany({
+        where: and(eq(userBooks.userId, userId), eq(userBooks.status, "reading")),
+        with: {
+          book: true,
+        },
+        limit: 6,
+      }),
+      // Recently finished books
+      db.query.userBooks.findMany({
+        where: and(eq(userBooks.userId, userId), eq(userBooks.status, "finished")),
+        with: {
+          book: true,
+        },
+        orderBy: [sql`${userBooks.finishedAt} desc nulls last`],
+        limit: 6,
+      }),
+    ]);
 
-  const booksThisYear = finishedBooks.filter(
-    (ub) => ub.finishedAt && new Date(ub.finishedAt) >= currentYearStart,
-  );
-
-  const totalPages = booksThisYear.reduce(
-    (sum, ub) => sum + (ub.book.pages || 0),
-    0,
-  );
-
-  // Fetch favorite books
-  const favoriteBooks = await db.query.userBooks.findMany({
-    where: and(eq(userBooks.userId, userId), eq(userBooks.isFavorite, true)),
-    with: {
-      book: true,
-    },
-    limit: 6,
-    orderBy: (userBooks, { desc }) => [desc(userBooks.updatedAt)],
-  });
-
-  // Fetch currently reading books
-  const currentlyReading = await db.query.userBooks.findMany({
-    where: and(eq(userBooks.userId, userId), eq(userBooks.status, "reading")),
-    with: {
-      book: true,
-    },
-    limit: 6,
-  });
-
-  // Fetch recently finished books
-  const recentlyFinished = finishedBooks
-    .sort((a, b) => {
-      const dateA = a.finishedAt ? new Date(a.finishedAt).getTime() : 0;
-      const dateB = b.finishedAt ? new Date(b.finishedAt).getTime() : 0;
-      return dateB - dateA;
-    })
-    .slice(0, 6);
+  const booksThisYear = yearStats?.booksThisYear ?? 0;
+  const totalPages = yearStats?.totalPages ?? 0;
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -142,7 +120,7 @@ export default async function ProfilePage() {
         </div>
 
         <ProfileStats
-          booksThisYear={booksThisYear.length}
+          booksThisYear={booksThisYear}
           totalPages={totalPages}
           currentStreak={0} // TODO: Calculate reading streak
         />
@@ -160,7 +138,7 @@ export default async function ProfilePage() {
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4">
               {favoriteBooks.map((userBook) => (
                 <div key={userBook.id}>
-                  <a
+                  <Link
                     href={`/books/${userBook.bookId}`}
                     className="block relative aspect-[2/3] group"
                   >
@@ -169,6 +147,7 @@ export default async function ProfilePage() {
                         src={userBook.book.coverUrl}
                         alt={userBook.book.title}
                         fill
+                        sizes={FAVORITE_COVER_SIZES}
                         className="rounded-lg shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200 object-cover"
                       />
                     ) : (
@@ -176,7 +155,7 @@ export default async function ProfilePage() {
                         {t("shelves.noCover")}
                       </div>
                     )}
-                  </a>
+                  </Link>
                 </div>
               ))}
             </div>
@@ -191,7 +170,7 @@ export default async function ProfilePage() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
               {currentlyReading.map((userBook) => (
                 <div key={userBook.id}>
-                  <a
+                  <Link
                     href={`/books/${userBook.bookId}`}
                     className="block relative aspect-[2/3]"
                   >
@@ -200,6 +179,7 @@ export default async function ProfilePage() {
                         src={userBook.book.coverUrl}
                         alt={userBook.book.title}
                         fill
+                        sizes={SHELF_COVER_SIZES}
                         className="rounded shadow hover:opacity-90 transition-opacity object-cover"
                       />
                     ) : (
@@ -207,7 +187,7 @@ export default async function ProfilePage() {
                         {t("shelves.noCover")}
                       </div>
                     )}
-                  </a>
+                  </Link>
                 </div>
               ))}
             </div>
@@ -222,7 +202,7 @@ export default async function ProfilePage() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
               {recentlyFinished.map((userBook) => (
                 <div key={userBook.id}>
-                  <a
+                  <Link
                     href={`/books/${userBook.bookId}`}
                     className="block relative aspect-[2/3]"
                   >
@@ -231,6 +211,7 @@ export default async function ProfilePage() {
                         src={userBook.book.coverUrl}
                         alt={userBook.book.title}
                         fill
+                        sizes={SHELF_COVER_SIZES}
                         className="rounded shadow hover:opacity-90 transition-opacity object-cover"
                       />
                     ) : (
@@ -238,7 +219,7 @@ export default async function ProfilePage() {
                         {t("shelves.noCover")}
                       </div>
                     )}
-                  </a>
+                  </Link>
                 </div>
               ))}
             </div>

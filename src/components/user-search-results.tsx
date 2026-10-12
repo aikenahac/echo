@@ -1,14 +1,17 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/i18n/routing";
 import { Search } from "lucide-react";
 import { toast } from "sonner";
 import { followUser, unfollowUser } from "@/app/[locale]/actions/social";
 import type { users } from "@/db/schema";
 import type { InferSelectModel } from "drizzle-orm";
 
-type User = InferSelectModel<typeof users>;
+type User = Pick<
+  InferSelectModel<typeof users>,
+  "id" | "username" | "displayName" | "profilePictureUrl" | "bio"
+>;
 
 interface UserSearchResultsProps {
   results: User[];
@@ -18,14 +21,14 @@ interface UserSearchResultsProps {
 
 export function UserSearchResults({
   results,
-  currentUserFollowing: initialFollowing,
-  query: initialQuery,
+  currentUserFollowing,
+  query: submittedQuery,
 }: UserSearchResultsProps) {
   const router = useRouter();
-  const [query, setQuery] = useState(initialQuery);
-  const [following, setFollowing] = useState<Set<string>>(
-    new Set(initialFollowing),
-  );
+  // Initialised from the submitted query; the page keys this component by it
+  const [query, setQuery] = useState(submittedQuery);
+  // Follow actions revalidate this page, so the prop stays up to date
+  const following = new Set(currentUserFollowing);
   const [isPending, startTransition] = useTransition();
 
   const handleSearch = (e: React.FormEvent) => {
@@ -43,7 +46,6 @@ export function UserSearchResults({
       if (result.error) {
         toast.error(result.error);
       } else {
-        setFollowing((prev) => new Set([...prev, userId]));
         toast.success("Followed user!");
       }
     });
@@ -55,11 +57,6 @@ export function UserSearchResults({
       if (result.error) {
         toast.error(result.error);
       } else {
-        setFollowing((prev) => {
-          const newSet = new Set(prev);
-          newSet.delete(userId);
-          return newSet;
-        });
         toast.success("Unfollowed user");
       }
     });
@@ -74,7 +71,7 @@ export function UserSearchResults({
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by username or email..."
+            placeholder="Search by username or name..."
             className="w-full pl-10 pr-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
@@ -96,7 +93,7 @@ export function UserSearchResults({
                 className="border rounded-lg p-4 flex items-center justify-between"
               >
                 <div>
-                  <p className="font-semibold">{user.username || user.email}</p>
+                  <p className="font-semibold">{user.displayName || user.username}</p>
                   {user.bio && (
                     <p className="text-sm text-muted-foreground line-clamp-1">
                       {user.bio}
@@ -122,13 +119,13 @@ export function UserSearchResults({
             );
           })}
         </div>
-      ) : query ? (
+      ) : submittedQuery ? (
         <p className="text-center text-muted-foreground py-8">
           No users found. Try a different search term.
         </p>
       ) : (
         <p className="text-center text-muted-foreground py-8">
-          Enter a username or email to search for users.
+          Enter a username or name to search for users.
         </p>
       )}
     </div>

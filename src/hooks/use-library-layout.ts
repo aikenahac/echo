@@ -1,32 +1,28 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import {
+  LIBRARY_LAYOUT_COOKIE,
+  type LibraryLayout,
+} from "@/lib/library-layout-cookie";
 
-type LibraryLayout = "grid" | "list";
+const ONE_YEAR_IN_SECONDS = 60 * 60 * 24 * 365;
 
-const STORAGE_KEY = "library-layout-preference";
-
-export function useLibraryLayout() {
-  const [layout, setLayout] = useState<LibraryLayout>("grid");
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  useEffect(() => {
-    // Load from localStorage on mount
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored === "list" || stored === "grid") {
-      setLayout(stored);
-    }
-    setIsLoaded(true);
-  }, []);
+/**
+ * Grid/list layout preference for the library. The initial value is read from
+ * the cookie on the server (see getLibraryLayout) and changes are written back
+ * to the cookie.
+ */
+export function useLibraryLayout(initialLayout: LibraryLayout) {
+  const [layout, setLayout] = useState<LibraryLayout>(initialLayout);
 
   const updateLayout = (newLayout: LibraryLayout) => {
     setLayout(newLayout);
-    localStorage.setItem(STORAGE_KEY, newLayout);
+    document.cookie = `${LIBRARY_LAYOUT_COOKIE}=${newLayout}; path=/; max-age=${ONE_YEAR_IN_SECONDS}; SameSite=Lax`;
   };
 
   return {
     layout,
     setLayout: updateLayout,
-    isLoaded,
   };
 }

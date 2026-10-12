@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -13,17 +12,19 @@ import {
   Menu,
   X,
   Heart,
+  type LucideIcon,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Card } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { BookCard } from "@/components/book-card";
 import { BookListItem } from "@/components/book-list-item";
-import { CollectionsList } from "./collections-list";
+import { CollectionsList, type SidebarCollection } from "./collections-list";
 import { useLibraryLayout } from "@/hooks/use-library-layout";
 import { cn } from "@/lib/utils";
 import { ReadingStatus, UserBook } from "@/types";
 import { getColorClass } from "@/lib/colors";
+import type { LibraryLayout } from "@/lib/library-layout-cookie";
 
 interface Collection {
   id: string;
@@ -44,19 +45,19 @@ interface Collection {
 interface CollectionIslandProps {
   collection: Collection;
   isOwner: boolean;
-  favorites: UserBook[];
-  wantToRead: UserBook[];
-  currentlyReading: UserBook[];
-  finished: UserBook[];
+  collections: SidebarCollection[];
+  hasCollectionAccess: boolean;
+  initialLayout: LibraryLayout;
 }
 
 interface SidebarContentProps {
   setIsSidebarOpen: (open: boolean) => void;
-  setLayout: (layout: "grid" | "list") => void;
-  layout: "grid" | "list";
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  tabs: Record<string, { label: string; books: UserBook[]; icon: any; href: string }>;
+  setLayout: (layout: LibraryLayout) => void;
+  layout: LibraryLayout;
+  tabs: Record<string, { label: string; icon: LucideIcon; href: string }>;
   activeView: "collection" | ReadingStatus;
+  collections: SidebarCollection[];
+  hasCollectionAccess: boolean;
 }
 
 function SidebarContent({
@@ -65,6 +66,8 @@ function SidebarContent({
   layout,
   tabs,
   activeView,
+  collections,
+  hasCollectionAccess,
 }: SidebarContentProps) {
   return (
     <>
@@ -126,7 +129,10 @@ function SidebarContent({
           </Link>
         );
       })}
-      <CollectionsList />
+      <CollectionsList
+        collections={collections}
+        hasCollectionAccess={hasCollectionAccess}
+      />
     </>
   );
 }
@@ -134,44 +140,37 @@ function SidebarContent({
 export function CollectionIsland({
   collection,
   isOwner,
-  favorites,
-  wantToRead,
-  currentlyReading,
-  finished,
+  collections,
+  hasCollectionAccess,
+  initialLayout,
 }: CollectionIslandProps) {
   const t = useTranslations("library");
-  const { layout, setLayout, isLoaded } = useLibraryLayout();
+  const { layout, setLayout } = useLibraryLayout(initialLayout);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  const tabs = useMemo(
-    () => ({
-      favorites: {
-        label: t("tabs.favorites"),
-        books: favorites,
-        icon: Heart,
-        href: "/library?tab=favorites",
-      },
-      want: {
-        label: t("tabs.want"),
-        books: wantToRead,
-        icon: Bookmark,
-        href: "/library?tab=want",
-      },
-      reading: {
-        label: t("tabs.reading"),
-        books: currentlyReading,
-        icon: BookOpen,
-        href: "/library?tab=reading",
-      },
-      finished: {
-        label: t("tabs.finished"),
-        books: finished,
-        icon: CircleCheck,
-        href: "/library?tab=finished",
-      },
-    }),
-    [t, favorites, wantToRead, currentlyReading, finished],
-  );
+  // Sidebar links back to the library tabs
+  const tabs: SidebarContentProps["tabs"] = {
+    favorites: {
+      label: t("tabs.favorites"),
+      icon: Heart,
+      href: "/library?tab=favorites",
+    },
+    want: {
+      label: t("tabs.want"),
+      icon: Bookmark,
+      href: "/library?tab=want",
+    },
+    reading: {
+      label: t("tabs.reading"),
+      icon: BookOpen,
+      href: "/library?tab=reading",
+    },
+    finished: {
+      label: t("tabs.finished"),
+      icon: CircleCheck,
+      href: "/library?tab=finished",
+    },
+  };
 
   const collectionBooks = collection.books.map((cb) => cb.userBook);
 
@@ -218,6 +217,8 @@ export function CollectionIsland({
           layout={layout}
           tabs={tabs}
           activeView="collection"
+          collections={collections}
+          hasCollectionAccess={hasCollectionAccess}
         />
       </Card>
 
@@ -231,6 +232,7 @@ export function CollectionIsland({
                 src={collection.coverImageUrl}
                 alt={collection.name}
                 fill
+                sizes="(min-width: 768px) 75vw, 100vw"
                 className="object-cover"
               />
             </div>
@@ -254,31 +256,27 @@ export function CollectionIsland({
         </div>
 
         {/* Books grid/list */}
-        {isLoaded && (
-          <>
-            {collectionBooks.length > 0 ? (
-              layout === "grid" ? (
-                <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
-                  {collectionBooks.map((userBook) => (
-                    <BookCard key={userBook.id} userBook={userBook} />
-                  ))}
-                </div>
-              ) : (
-                <div className="flex flex-col gap-3 md:gap-4">
-                  {collectionBooks.map((userBook) => (
-                    <BookListItem key={userBook.id} userBook={userBook} />
-                  ))}
-                </div>
-              )
-            ) : (
-              <div className="text-center py-12 text-muted-foreground">
-                <p className="text-lg font-semibold mb-2">No books in this collection yet</p>
-                {isOwner && (
-                  <p className="text-sm">Add books from your library to get started</p>
-                )}
-              </div>
+        {collectionBooks.length > 0 ? (
+          layout === "grid" ? (
+            <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+              {collectionBooks.map((userBook) => (
+                <BookCard key={userBook.id} userBook={userBook} />
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3 md:gap-4">
+              {collectionBooks.map((userBook) => (
+                <BookListItem key={userBook.id} userBook={userBook} />
+              ))}
+            </div>
+          )
+        ) : (
+          <div className="text-center py-12 text-muted-foreground">
+            <p className="text-lg font-semibold mb-2">No books in this collection yet</p>
+            {isOwner && (
+              <p className="text-sm">Add books from your library to get started</p>
             )}
-          </>
+          </div>
         )}
       </Card>
     </div>

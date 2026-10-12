@@ -3,7 +3,7 @@
 import { BookCard } from "@/components/book-card";
 import { useTranslations } from "next-intl";
 import { Card } from "./ui/card";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
   Bookmark,
   BookOpen,
@@ -13,6 +13,7 @@ import {
   Menu,
   X,
   Heart,
+  type LucideIcon,
 } from "lucide-react";
 
 import { useSearchParams } from "next/navigation";
@@ -22,19 +23,22 @@ import { cn } from "@/lib/utils";
 import { buttonVariants } from "./ui/button";
 import { useLibraryLayout } from "@/hooks/use-library-layout";
 import { Button } from "./ui/button";
-import Image from "next/image";
-import { CollectionsList } from "./collections/collections-list";
+import {
+  CollectionsList,
+  type SidebarCollection,
+} from "./collections/collections-list";
 import { BookListItem } from "./book-list-item";
+import type { LibraryLayout } from "@/lib/library-layout-cookie";
+
+type LibraryTab = "favorites" | ReadingStatus;
 
 const useFilter = (): {
-  tab: ReadingStatus | null;
-  collection: string | null;
+  tab: string | null;
 } => {
   const searchParams = useSearchParams();
-  const tab = searchParams.get("tab") as ReadingStatus;
-  const collection = searchParams.get("collection");
+  const tab = searchParams.get("tab");
 
-  return { tab, collection };
+  return { tab };
 };
 
 interface LibraryTabsProps {
@@ -42,15 +46,19 @@ interface LibraryTabsProps {
   wantToRead: UserBook[];
   currentlyReading: UserBook[];
   finished: UserBook[];
+  collections: SidebarCollection[];
+  hasCollectionAccess: boolean;
+  initialLayout: LibraryLayout;
 }
 
 interface SidebarContentProps {
   setIsSidebarOpen: (open: boolean) => void;
-  setLayout: (layout: "grid" | "list") => void;
-  layout: "grid" | "list";
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  tabs: Record<string, { label: string; books: UserBook[]; icon: any }>;
-  activeTab: string;
+  setLayout: (layout: LibraryLayout) => void;
+  layout: LibraryLayout;
+  tabs: Record<LibraryTab, { label: string; books: UserBook[]; icon: LucideIcon }>;
+  activeTab: LibraryTab;
+  collections: SidebarCollection[];
+  hasCollectionAccess: boolean;
 }
 
 function SidebarContent({
@@ -59,6 +67,8 @@ function SidebarContent({
   layout,
   tabs,
   activeTab,
+  collections,
+  hasCollectionAccess,
 }: SidebarContentProps) {
   return (
     <>
@@ -120,7 +130,10 @@ function SidebarContent({
           </Link>
         );
       })}
-      <CollectionsList />
+      <CollectionsList
+        collections={collections}
+        hasCollectionAccess={hasCollectionAccess}
+      />
     </>
   );
 }
@@ -130,39 +143,41 @@ export function LibraryIsland({
   wantToRead,
   currentlyReading,
   finished,
+  collections,
+  hasCollectionAccess,
+  initialLayout,
 }: LibraryTabsProps) {
   const t = useTranslations("library");
-  const { tab, collection } = useFilter();
-  const { layout, setLayout, isLoaded } = useLibraryLayout();
+  const { tab } = useFilter();
+  const { layout, setLayout } = useLibraryLayout(initialLayout);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  const tabs = useMemo(
-    () => ({
-      favorites: {
-        label: t("tabs.favorites"),
-        books: favorites,
-        icon: Heart,
-      },
-      want: {
-        label: t("tabs.want"),
-        books: wantToRead,
-        icon: Bookmark,
-      },
-      reading: {
-        label: t("tabs.reading"),
-        books: currentlyReading,
-        icon: BookOpen,
-      },
-      finished: {
-        label: t("tabs.finished"),
-        books: finished,
-        icon: CircleCheck,
-      },
-    }),
-    [t, favorites, wantToRead, currentlyReading, finished],
-  );
+  const tabs: SidebarContentProps["tabs"] = {
+    favorites: {
+      label: t("tabs.favorites"),
+      books: favorites,
+      icon: Heart,
+    },
+    want: {
+      label: t("tabs.want"),
+      books: wantToRead,
+      icon: Bookmark,
+    },
+    reading: {
+      label: t("tabs.reading"),
+      books: currentlyReading,
+      icon: BookOpen,
+    },
+    finished: {
+      label: t("tabs.finished"),
+      books: finished,
+      icon: CircleCheck,
+    },
+  };
 
-  const activeTab = tab ?? "reading";
+  // Unknown or missing ?tab= values fall back to "reading"
+  const activeTab: LibraryTab =
+    tab && Object.hasOwn(tabs, tab) ? (tab as LibraryTab) : "reading";
 
   return (
     <div className="w-full h-[80vh] flex flex-col md:flex-row gap-4">
@@ -204,17 +219,18 @@ export function LibraryIsland({
           layout={layout}
           tabs={tabs}
           activeTab={activeTab}
+          collections={collections}
+          hasCollectionAccess={hasCollectionAccess}
         />
       </Card>
 
       {/* Main content */}
       <Card className="flex-1 h-full overflow-auto p-4">
-        {isLoaded &&
-          (layout === "grid" ? (
-            <GridView books={tabs[activeTab].books} />
-          ) : (
-            <ListView books={tabs[activeTab].books} />
-          ))}
+        {layout === "grid" ? (
+          <GridView books={tabs[activeTab].books} />
+        ) : (
+          <ListView books={tabs[activeTab].books} />
+        )}
       </Card>
     </div>
   );

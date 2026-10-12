@@ -1,3 +1,5 @@
+"use client";
+
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,20 +9,27 @@ import { cn } from "@/lib/utils"; // Assuming you have shadcn's utility function
 /**
  * Props for the NumberSpinner component.
  * @param value The current number value (controlled from parent).
- * @param onChange The function to call when the value changes.
+ * @param onChange The function to call when the value is committed (on the
+ * +/- buttons, on blur or on Enter - not on every keystroke).
+ * @param max Optional upper bound, disables the + button when reached.
  * @param className Optional class names to apply to the container div.
  */
 type NumberSpinnerProps = {
   value: number;
   onChange: (newValue: number) => void;
+  max?: number | null;
   className?: string;
 }
 
 export function NumberSpinner({
   value,
   onChange,
+  max,
   className,
 }: NumberSpinnerProps) {
+  // What the user is typing, null when not editing (then `value` is shown)
+  const [draft, setDraft] = React.useState<string | null>(null);
+
   const handleDecrement = () => {
     // Prevent the value from going below 0
     if (value > 0) {
@@ -33,21 +42,32 @@ export function NumberSpinner({
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const rawValue = e.target.value;
+    // Only allow digits, which also keeps the value non-negative
+    setDraft(e.target.value.replace(/\D/g, ""));
+  };
 
-    // 1. Remove non-digit characters and parse as an integer.
-    // This enforces the "only allows for integers" and non-negative constraints.
-    let newNum = parseInt(rawValue.replace(/\D/g, ""), 10);
-
-    // If the input is empty or invalid (e.g., just "-"), default to 0.
-    if (isNaN(newNum) || rawValue === "") {
-      newNum = 0;
+  const commitDraft = () => {
+    if (draft === null) {
+      return;
     }
 
-    // 2. Ensure the value is not negative (though parseInt with \D removal should handle this).
-    const finalValue = Math.max(0, newNum);
+    // If the input is empty or invalid, default to 0.
+    const parsed = parseInt(draft, 10);
+    const finalValue = isNaN(parsed) ? 0 : parsed;
 
-    onChange(finalValue);
+    setDraft(null);
+    if (finalValue !== value) {
+      onChange(finalValue);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      commitDraft();
+    } else if (e.key === "Escape") {
+      setDraft(null);
+    }
   };
 
   return (
@@ -66,8 +86,10 @@ export function NumberSpinner({
       <Input
         type="text"
         inputMode="numeric"
-        value={value}
+        value={draft ?? value}
         onChange={handleInputChange}
+        onBlur={commitDraft}
+        onKeyDown={handleKeyDown}
         className={cn(
           "h-10 w-full text-center p-0 appearance-none rounded-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:z-10",
         )}
@@ -83,6 +105,7 @@ export function NumberSpinner({
         variant="outline"
         size="icon"
         onClick={handleIncrement}
+        disabled={max != null && value >= max}
         className="h-10 w-10 rounded-l-none border-l-0"
       >
         <Plus className="h-4 w-4" />

@@ -9,7 +9,6 @@ import {
   removeBookFromLibrary,
   toggleBookFavorite,
   type ReadingStatus,
-  updateBookCurrentPage,
 } from "@/app/[locale]/actions/books";
 import { useTranslations } from "next-intl";
 import {
@@ -30,7 +29,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import Image from "next/image";
 import { UserBook } from "@/types";
-import { PageEditPopover } from "./page-edit-popover";
+import { PageEditPopover, useBookProgress } from "./page-edit-popover";
 import { AddToCollectionPopover } from "./collections/add-to-collection-popover";
 
 interface BookCardProps {
@@ -44,7 +43,8 @@ export function BookCard({ userBook }: BookCardProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [showCollectionPopover, setShowCollectionPopover] = useState(false);
   const [isPending, startTransition] = useTransition();
-  const [currentPage, setCurrentPage] = useState(userBook.currentPage || 0);
+  const { currentPage, maxPage, updateCurrentPage, updatePageCount } =
+    useBookProgress(userBook);
 
   const handleStatusChange = (status: ReadingStatus) => {
     startTransition(async () => {
@@ -90,21 +90,6 @@ export function BookCard({ userBook }: BookCardProps) {
     });
   };
 
-  const updateCurrentPage = async (newValue: number) => {
-    if (userBook.pageCount && (newValue > userBook.pageCount)) {
-      return;
-    }
-
-    const result = await updateBookCurrentPage(userBook.id, newValue);
-
-    if (result.error) {
-      toast.error(tToast("pageUpdateError"));
-      return;
-    }
-
-    setCurrentPage(newValue);
-  };
-
   const handleDecrementCurrentPage = () => {
     // Prevent the value from going below 0
     if (currentPage > 0) {
@@ -116,10 +101,9 @@ export function BookCard({ userBook }: BookCardProps) {
     updateCurrentPage(currentPage + 1);
   };
 
-  const progressPercentage =
-    userBook.book.pages && userBook.currentPage
-      ? Math.round((userBook.currentPage / userBook.book.pages) * 100)
-      : 0;
+  const progressPercentage = maxPage
+    ? Math.min(100, Math.round((currentPage / maxPage) * 100))
+    : 0;
 
   return (
     <Card className="flex flex-col group relative">
@@ -208,6 +192,7 @@ export function BookCard({ userBook }: BookCardProps) {
               src={userBook.book.coverUrl}
               alt={userBook.book.title}
               fill
+              sizes="(min-width: 1280px) 20vw, (min-width: 1024px) 25vw, (min-width: 640px) 33vw, 100vw"
               className="object-cover rounded-t-lg hover:opacity-90 transition-opacity"
             />
           ) : (
@@ -257,9 +242,10 @@ export function BookCard({ userBook }: BookCardProps) {
             <Minus className="h-2 w-2" />
           </Button>
           <PageEditPopover
-            userBook={userBook}
             currentPage={currentPage}
+            maxPage={maxPage}
             updateCurrentPage={updateCurrentPage}
+            updatePageCount={updatePageCount}
           />
           <Button
             type="button"
@@ -273,11 +259,11 @@ export function BookCard({ userBook }: BookCardProps) {
       </CardContent>
 
       <CardFooter className="flex flex-col gap-2">
-        {userBook.status === "reading" && userBook.book.pages && (
+        {userBook.status === "reading" && !!maxPage && (
           <div className="w-full space-y-1">
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>
-                {userBook.currentPage || 0} / {userBook.book.pages} {tCard("pages")}
+                {currentPage} / {maxPage} {tCard("pages")}
               </span>
               <span>{progressPercentage}%</span>
             </div>
@@ -305,12 +291,12 @@ export function BookCard({ userBook }: BookCardProps) {
         <div className="absolute -bottom-2 left-2 z-50">
           <AddToCollectionPopover
             userBookId={userBook.id}
+            onOpenChange={(open) => {
+              // Hide the floating trigger once the popover is dismissed
+              if (!open) setShowCollectionPopover(false);
+            }}
             trigger={
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowCollectionPopover(false)}
-              >
+              <Button variant="outline" size="sm">
                 <FolderPlus className="mr-2 h-4 w-4" />
                 {tCard("selectCollections")}
               </Button>

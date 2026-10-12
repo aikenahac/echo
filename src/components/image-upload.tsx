@@ -6,6 +6,13 @@ import { Upload, X, LoaderCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 
+declare global {
+  interface Window {
+    // Resized file handed to the parent form until it uploads it
+    __pendingUploadFile?: File;
+  }
+}
+
 interface ImageUploadProps {
   onUpload: (imageUrl: string) => void;
   currentImageUrl?: string;
@@ -142,7 +149,7 @@ export function ImageUpload({
       onUpload(preview);
 
       // Store the file for parent component to access
-      (window as any).__pendingUploadFile = resizedFile;
+      window.__pendingUploadFile = resizedFile;
     } catch (err) {
       console.error("Error processing image:", err);
       setError("Failed to process image. Please try again.");
@@ -188,6 +195,7 @@ export function ImageUpload({
             src={previewUrl}
             alt="Collection cover preview"
             fill
+            sizes="(min-width: 672px) 624px, 100vw"
             className="object-cover"
           />
           <Button

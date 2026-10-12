@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback, memo } from "react";
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -11,9 +11,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
-import { DynamicIcon } from "lucide-react/dynamic";
+import { DynamicIcon, type IconName } from "lucide-react/dynamic";
 import { cn } from "@/lib/utils";
-import { useDebounce } from "@/hooks/use-debounce";
 
 // Curated list of 100 book-related icons
 const BOOK_ICONS = [
@@ -50,7 +49,7 @@ const BOOK_ICONS = [
   // Additional useful icons
   "tags", "tag", "lightbulb", "image", "camera", "film",
   "wallet", "gem", "dice-1", "dice-2", "dice-3", "dice-4", "dice-5", "dice-6"
-] as const;
+] as const satisfies readonly IconName[];
 
 interface IconPickerModalProps {
   open: boolean;
@@ -60,14 +59,14 @@ interface IconPickerModalProps {
 }
 
 /**
- * Individual icon button component (memoized for performance)
+ * Individual icon button component
  */
 const IconButton = ({
   iconName,
   isSelected,
   onSelect,
 }: {
-  iconName: string;
+  iconName: IconName;
   isSelected: boolean;
   onSelect: (iconName: string) => void;
 }) => {
@@ -83,7 +82,7 @@ const IconButton = ({
     >
       <div className="w-10 h-10 flex items-center justify-center">
         <DynamicIcon
-          name={iconName as any}
+          name={iconName}
           className="w-8 h-8 text-black dark:text-white"
           absoluteStrokeWidth
         />
@@ -92,8 +91,6 @@ const IconButton = ({
   );
 };
 
-IconButton.displayName = "IconButton";
-
 export function IconPickerModal({
   open,
   onOpenChange,
@@ -101,28 +98,21 @@ export function IconPickerModal({
   onSelectIcon,
 }: IconPickerModalProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const debouncedSearch = useDebounce(searchQuery, 300);
 
-  // Filter icons based on search query
-  const filteredIcons = useMemo(() => {
-    if (!debouncedSearch) {
-      return BOOK_ICONS;
-    }
+  // Filter icons based on search query (the list is small, no debounce needed)
+  const query = searchQuery.trim().toLowerCase();
+  const filteredIcons = query
+    ? BOOK_ICONS.filter((iconName) => iconName.includes(query))
+    : BOOK_ICONS;
 
-    const query = debouncedSearch.toLowerCase();
-    return BOOK_ICONS.filter((iconName) =>
-      iconName.toLowerCase().includes(query)
-    );
-  }, [debouncedSearch]);
-
-  const handleSelect = useCallback((iconName: string) => {
+  const handleSelect = (iconName: string) => {
     onSelectIcon(iconName);
     onOpenChange(false);
-  }, [onSelectIcon, onOpenChange]);
+  };
 
-  const handleClear = useCallback(() => {
+  const handleClear = () => {
     setSearchQuery("");
-  }, []);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -157,7 +147,7 @@ export function IconPickerModal({
         </div>
 
         {/* Results count */}
-        {debouncedSearch && (
+        {query && (
           <div className="text-sm text-muted-foreground">
             Found {filteredIcons.length} icon{filteredIcons.length !== 1 ? "s" : ""}
           </div>

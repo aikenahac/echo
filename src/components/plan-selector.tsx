@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Check, LoaderCircle } from "lucide-react";
 import { createCheckoutSession, upgradeToFreePlan } from "@/app/[locale]/actions/subscriptions";
 import { toast } from "sonner";
+import { useRouter } from "@/i18n/routing";
 
 interface Plan {
   id: string;
@@ -23,6 +24,7 @@ export function PlanSelector({
   plans: Plan[];
   currentPlanId: string | undefined;
 }) {
+  const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
 
   const handleUpgrade = async (planId: string, isFree: boolean) => {
@@ -35,7 +37,7 @@ export function PlanSelector({
           toast.error(result.error);
         } else {
           toast.success("Successfully upgraded to the plan!");
-          window.location.reload();
+          router.refresh();
         }
       } else {
         // Stripe checkout for paid plans
@@ -43,7 +45,7 @@ export function PlanSelector({
         if (result.error) {
           toast.error(result.error);
         } else if (result.url) {
-          window.location.href = result.url;
+          window.location.assign(result.url);
         }
       }
     } catch {

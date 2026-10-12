@@ -1,15 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Plus, LoaderCircle, Crown } from "lucide-react";
+import { Plus, Crown } from "lucide-react";
 import { CollectionSidebarItem } from "./collection-sidebar-item";
 import { CollectionDialog } from "./collection-dialog";
 import { PremiumPaywallDialog } from "@/components/premium-paywall-dialog";
-import { getUserCollections, hasCollectionAccess } from "@/app/[locale]/actions/collections";
 
-interface Collection {
+export interface SidebarCollection {
   id: string;
   name: string;
   description?: string | null;
@@ -21,40 +20,19 @@ interface Collection {
   bookCount?: number;
 }
 
-export function CollectionsList() {
-  const [collections, setCollections] = useState<Collection[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+interface CollectionsListProps {
+  collections: SidebarCollection[];
+  hasCollectionAccess: boolean;
+}
+
+// Collections are fetched by the page. The create/update/delete actions
+// revalidate /library, which refreshes the current route with fresh props.
+export function CollectionsList({
+  collections,
+  hasCollectionAccess: hasPremium,
+}: CollectionsListProps) {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
-  const [hasPremium, setHasPremium] = useState(false);
-
-  const loadCollections = async () => {
-    setIsLoading(true);
-    try {
-      const result = await getUserCollections();
-      if (result.collections) {
-        setCollections(result.collections);
-      }
-    } catch (error) {
-      console.error("Failed to load collections:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const checkPremiumAccess = async () => {
-    const result = await hasCollectionAccess();
-    setHasPremium(result.hasAccess || false);
-  };
-
-  useEffect(() => {
-    loadCollections();
-    checkPremiumAccess();
-  }, []);
-
-  const handleUpdate = () => {
-    loadCollections();
-  };
 
   const handleCreateClick = () => {
     if (!hasPremium) {
@@ -89,11 +67,7 @@ export function CollectionsList() {
           </Button>
         </div>
 
-        {isLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <LoaderCircle className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
-        ) : collections.length === 0 ? (
+        {collections.length === 0 ? (
           <div className="px-2 py-4 text-center">
             <p className="text-sm text-muted-foreground">
               No collections yet
@@ -113,7 +87,6 @@ export function CollectionsList() {
               <CollectionSidebarItem
                 key={collection.id}
                 collection={collection}
-                onUpdate={handleUpdate}
               />
             ))}
           </div>
@@ -123,7 +96,6 @@ export function CollectionsList() {
       <CollectionDialog
         open={showCreateDialog}
         onOpenChange={setShowCreateDialog}
-        onSuccess={handleUpdate}
       />
 
       <PremiumPaywallDialog

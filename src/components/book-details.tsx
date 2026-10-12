@@ -17,7 +17,10 @@ type Book = InferSelectModel<typeof books>;
 type UserBook = InferSelectModel<typeof userBooks> | null;
 type Review = InferSelectModel<typeof reviews> | null;
 type ReviewWithUser = InferSelectModel<typeof reviews> & {
-  user: InferSelectModel<typeof users>;
+  user: Pick<
+    InferSelectModel<typeof users>,
+    "id" | "username" | "displayName" | "profilePictureUrl"
+  >;
 };
 
 interface BookDetailsProps {
@@ -81,6 +84,7 @@ export function BookDetails({
                 src={book.coverUrl}
                 alt={book.title}
                 fill
+                sizes="(min-width: 768px) 288px, 100vw"
                 className="rounded-lg shadow-lg object-cover"
               />
             </div>
@@ -249,7 +253,7 @@ export function BookDetails({
                 className="border-b last:border-b-0 pb-4 last:pb-0"
               >
                 <p className="font-semibold text-sm mb-1">
-                  {review.user.username || review.user.email}
+                  {review.user.displayName || review.user.username || "Anonymous"}
                 </p>
                 <p className="text-sm whitespace-pre-wrap">{review.content}</p>
                 <p className="text-xs text-muted-foreground mt-2">

@@ -1,11 +1,17 @@
+import { cache } from "react";
 import { auth } from "@clerk/nextjs/server";
 import { notFound } from "next/navigation";
-import { getCollectionById } from "@/app/[locale]/actions/collections";
+import {
+  getCollectionById,
+  getUserCollections,
+  hasCollectionAccess,
+} from "@/app/[locale]/actions/collections";
 import { CollectionIsland } from "@/components/collections/collection-island";
 import { Metadata } from "next";
-import { db } from "@/db";
-import { userBooks } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { getLibraryLayout } from "@/lib/library-layout";
+
+// Deduplicate the lookup between generateMetadata and the page
+const getCollection = cache(getCollectionById);
 
 export async function generateMetadata({
   params,
@@ -13,7 +19,7 @@ export async function generateMetadata({
   params: Promise<{ locale: string; slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const result = await getCollectionById(slug);
+  const result = await getCollection(slug);
 
   if (result.error || !result.collection) {
     return {
@@ -39,8 +45,14 @@ export default async function CollectionPage({
     notFound();
   }
 
-  // Fetch collection by slug
-  const result = await getCollectionById(slug);
+  // Fetch collection by slug along with the sidebar data
+  const [result, collectionsResult, collectionAccess, layout] =
+    await Promise.all([
+      getCollection(slug),
+      getUserCollections(),
+      hasCollectionAccess(),
+      getLibraryLayout(),
+    ]);
 
   if (result.error || !result.collection) {
     notFound();
@@ -55,29 +67,13 @@ export default async function CollectionPage({
 
   const isOwner = userId === collection.userId;
 
-  // Fetch all user books with book details for the library tabs
-  const allUserBooks = await db.query.userBooks.findMany({
-    where: eq(userBooks.userId, userId),
-    with: {
-      book: true,
-    },
-    orderBy: (userBooks, { desc }) => [desc(userBooks.createdAt)],
-  });
-
-  // Separate books by favorites and status
-  const favoriteBooks = allUserBooks.filter((ub) => ub.isFavorite);
-  const wantToRead = allUserBooks.filter((ub) => ub.status === "want");
-  const currentlyReading = allUserBooks.filter((ub) => ub.status === "reading");
-  const finished = allUserBooks.filter((ub) => ub.status === "finished");
-
   return (
     <CollectionIsland
       collection={collection}
       isOwner={isOwner}
-      favorites={favoriteBooks}
-      wantToRead={wantToRead}
-      currentlyReading={currentlyReading}
-      finished={finished}
+      collections={collectionsResult.collections ?? []}
+      hasCollectionAccess={collectionAccess.hasAccess}
+      initialLayout={layout}
     />
   );
 }

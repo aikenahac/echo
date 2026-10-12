@@ -1,31 +1,16 @@
+"use client";
+
 import { UserBook } from "@/types";
 import { Card } from "./ui/card";
 import { Link } from "@/i18n/routing";
 import Image from "next/image";
 import { CircleCheck, Minus, Plus } from "lucide-react";
-import { useState } from "react";
-import { updateBookCurrentPage } from "@/app/[locale]/actions/books";
-import { toast } from "sonner";
 import { Button } from "./ui/button";
-import { PageEditPopover } from "./page-edit-popover";
+import { PageEditPopover, useBookProgress } from "./page-edit-popover";
 
 export function BookListItem({ userBook }: { userBook: UserBook }) {
-  const [currentPage, setCurrentPage] = useState(userBook.currentPage || 0);
-
-  const updateCurrentPage = async (newValue: number) => {
-    if (userBook.pageCount && newValue > userBook.pageCount) {
-      return;
-    }
-
-    const result = await updateBookCurrentPage(userBook.id, newValue);
-
-    if (result.error) {
-      toast.error("There was an error updating the current page");
-      return;
-    }
-
-    setCurrentPage(newValue);
-  };
+  const { currentPage, maxPage, updateCurrentPage, updatePageCount } =
+    useBookProgress(userBook);
 
   const handleDecrementCurrentPage = () => {
     // Prevent the value from going below 0
@@ -49,6 +34,7 @@ export function BookListItem({ userBook }: { userBook: UserBook }) {
             src={userBook.book.coverUrl}
             alt={userBook.book.title}
             fill
+            sizes="(min-width: 768px) 96px, (min-width: 640px) 80px, 64px"
             className="object-cover rounded"
           />
         ) : (
@@ -68,7 +54,7 @@ export function BookListItem({ userBook }: { userBook: UserBook }) {
             {userBook.book.author}
           </p>
         </div>
-        {userBook.status === "reading" && userBook.book.pages && (
+        {userBook.status === "reading" && !!maxPage && (
           <div className="flex flex-row items-center gap-1 mt-2">
             <Button
               type="button"
@@ -79,9 +65,10 @@ export function BookListItem({ userBook }: { userBook: UserBook }) {
               <Minus className="h-2 w-2" />
             </Button>
             <PageEditPopover
-              userBook={userBook}
               currentPage={currentPage}
+              maxPage={maxPage}
               updateCurrentPage={updateCurrentPage}
+              updatePageCount={updatePageCount}
             />
             <Button
               type="button"

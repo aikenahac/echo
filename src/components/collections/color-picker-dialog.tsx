@@ -1,6 +1,5 @@
 "use client";
 
-import { useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -42,13 +41,10 @@ export function ColorPickerDialog({
   selectedColor,
   onSelectColor,
 }: ColorPickerDialogProps) {
-  const handleSelect = useCallback(
-    (color: ColorValue) => {
-      onSelectColor(color);
-      onOpenChange(false);
-    },
-    [onSelectColor, onOpenChange]
-  );
+  const handleSelect = (color: ColorValue) => {
+    onSelectColor(color);
+    onOpenChange(false);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

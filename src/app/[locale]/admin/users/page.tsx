@@ -4,20 +4,21 @@ import { UsersDataTable } from "@/components/admin/users-data-table";
 import { desc, asc } from "drizzle-orm";
 
 export default async function UsersManagementPage() {
-  const allUsers = await db.query.users.findMany({
-    orderBy: [desc(users.createdAt)],
-    with: {
-      subscription: {
-        with: {
-          plan: true,
+  const [allUsers, plans] = await Promise.all([
+    db.query.users.findMany({
+      orderBy: [desc(users.createdAt)],
+      with: {
+        subscription: {
+          with: {
+            plan: true,
+          },
         },
       },
-    },
-  });
-
-  const plans = await db.query.subscriptionPlans.findMany({
-    orderBy: [asc(subscriptionPlans.sortOrder)],
-  });
+    }),
+    db.query.subscriptionPlans.findMany({
+      orderBy: [asc(subscriptionPlans.sortOrder)],
+    }),
+  ]);
 
   return (
     <div className="space-y-6">

@@ -25,7 +25,11 @@ export function ApiPlayground({ endpoints }: ApiPlaygroundProps) {
     JSON.stringify(selectedEndpoint.requestBody?.example || {}, null, 2),
   );
   const [queryParams, setQueryParams] = useState<Record<string, string>>({});
-  const [response, setResponse] = useState<any>(null);
+  const [response, setResponse] = useState<{
+    status: number;
+    statusText: string;
+    data: unknown;
+  } | null>(null);
   const [loading, setLoading] = useState(false);
   const [copiedPath, setCopiedPath] = useState(false);
 
@@ -78,7 +82,7 @@ export function ApiPlayground({ endpoints }: ApiPlaygroundProps) {
         try {
           JSON.parse(requestBody); // Validate JSON
           options.body = requestBody;
-        } catch (error) {
+        } catch {
           toast.error("Invalid JSON in request body");
           setLoading(false);
           return;
@@ -93,11 +97,13 @@ export function ApiPlayground({ endpoints }: ApiPlaygroundProps) {
         statusText: res.statusText,
         data,
       });
-    } catch (error: any) {
+    } catch (error) {
       setResponse({
         status: 500,
         statusText: "Error",
-        data: { error: error.message },
+        data: {
+          error: error instanceof Error ? error.message : String(error),
+        },
       });
     } finally {
       setLoading(false);

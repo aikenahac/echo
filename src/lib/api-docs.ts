@@ -6,8 +6,8 @@ export interface ApiEndpoint {
   requiresAuth: boolean;
   requestBody?: {
     contentType: "application/json";
-    schema: Record<string, any>;
-    example: any;
+    schema: Record<string, unknown>;
+    example: unknown;
   };
   queryParams?: Array<{
     name: string;
@@ -18,7 +18,7 @@ export interface ApiEndpoint {
   responses: Array<{
     status: number;
     description: string;
-    example: any;
+    example: unknown;
   }>;
 }
 

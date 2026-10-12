@@ -44,8 +44,17 @@ interface CollectionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   collection?: Collection | null;
-  onSuccess?: () => void;
+  /** Called after a successful save with the saved collection */
+  onSuccess?: (collection?: { slug: string }) => void;
 }
+
+const getInitialFormData = (collection?: Collection | null) => ({
+  name: collection?.name || "",
+  description: collection?.description || "",
+  isPublic: collection?.isPublic || false,
+  colorTag: (collection?.colorTag as ColorValue) || DEFAULT_COLOR,
+  iconName: collection?.iconName || "book",
+});
 
 export function CollectionDialog({
   open,
@@ -58,17 +67,22 @@ export function CollectionDialog({
   const t = useTranslations("collections.dialog");
   const tToast = useTranslations("collections.toast");
 
-  const [formData, setFormData] = useState({
-    name: collection?.name || "",
-    description: collection?.description || "",
-    isPublic: collection?.isPublic || false,
-    colorTag: (collection?.colorTag as ColorValue) || DEFAULT_COLOR,
-    iconName: collection?.iconName || "book",
-  });
+  const [formData, setFormData] = useState(() => getInitialFormData(collection));
 
   const [coverImageUrl, setCoverImageUrl] = useState<string | null>(
     collection?.coverImageUrl || null
   );
+
+  // Reset the form from the (possibly updated) collection whenever the dialog
+  // opens, so reopening it after an edit doesn't show stale values
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) {
+      setFormData(getInitialFormData(collection));
+      setCoverImageUrl(collection?.coverImageUrl || null);
+    }
+  }
 
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isIconPickerOpen, setIsIconPickerOpen] = useState(false);
@@ -85,7 +99,7 @@ export function CollectionDialog({
     setIsUploadingImage(true);
     try {
       // Get the file from the temporary storage
-      const file = (window as any).__pendingUploadFile as File;
+      const file = window.__pendingUploadFile;
       if (!file) {
         throw new Error("No file to upload");
       }
@@ -127,7 +141,7 @@ export function CollectionDialog({
       toast.success(tToast("coverUploaded"));
 
       // Clean up
-      delete (window as any).__pendingUploadFile;
+      delete window.__pendingUploadFile;
     } catch (error) {
       console.error("Error uploading image:", error);
       toast.error(tToast("coverUploadFailed"));
@@ -139,7 +153,7 @@ export function CollectionDialog({
 
   const handleRemoveImage = () => {
     setCoverImageUrl(null);
-    delete (window as any).__pendingUploadFile;
+    delete window.__pendingUploadFile;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -152,6 +166,7 @@ export function CollectionDialog({
 
     startTransition(async () => {
       try {
+        let savedCollection: { slug: string } | undefined;
         if (isEditing) {
           // Update existing collection
           const result = await updateCollection(collection.id, {
@@ -168,6 +183,7 @@ export function CollectionDialog({
           }
 
           toast.success(tToast("updated"));
+          savedCollection = result.collection;
         } else {
           // Create new collection
           const result = await createCollection({
@@ -184,7 +200,7 @@ export function CollectionDialog({
           }
 
           // If there's a pending cover image, upload it now
-          const file = (window as any).__pendingUploadFile as File;
+          const file = window.__pendingUploadFile;
           if (file && result.collection) {
             try {
               const uploadResult = await generateCollectionCoverUrl(
@@ -209,7 +225,7 @@ export function CollectionDialog({
                 }
               }
 
-              delete (window as any).__pendingUploadFile;
+              delete window.__pendingUploadFile;
             } catch (error) {
               console.error("Error uploading cover:", error);
               // Don't fail the whole operation if image upload fails
@@ -217,22 +233,14 @@ export function CollectionDialog({
           }
 
           toast.success(tToast("created"));
+          savedCollection = result.collection;
         }
 
+        // The form is reset from the collection the next time it opens
         onOpenChange(false);
         if (onSuccess) {
-          onSuccess();
+          onSuccess(savedCollection);
         }
-
-        // Reset form
-        setFormData({
-          name: "",
-          description: "",
-          isPublic: false,
-          colorTag: DEFAULT_COLOR,
-          iconName: "book",
-        });
-        setCoverImageUrl(null);
       } catch (error) {
         console.error("Error saving collection:", error);
         toast.error(tToast("saveFailed"));

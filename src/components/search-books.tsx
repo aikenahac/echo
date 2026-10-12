@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import Image from "next/image";
 import { Search, LoaderCircle, Database, Globe } from "lucide-react";
 import {
@@ -22,12 +22,13 @@ import {
   CardFooter,
   CardHeader,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 
 export function SearchBooks() {
   const t = useTranslations("search");
   const tToast = useTranslations("toast");
   const [query, setQuery] = useState("");
+  // The query of the last submitted search (results and "load more" use it)
+  const [submittedQuery, setSubmittedQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -37,41 +38,73 @@ export function SearchBooks() {
     "internal" | "external" | null
   >(null);
   const [isPending, startTransition] = useTransition();
+  // Incremented on every search so responses of older searches are ignored
+  const requestIdRef = useRef(0);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!query.trim()) return;
+    const trimmedQuery = query.trim();
+    if (!trimmedQuery) return;
 
+    const requestId = ++requestIdRef.current;
     setIsSearching(true);
+    setIsLoadingMore(false);
     setOffset(0);
     setHasMore(true);
 
-    const books = await searchBooksHybrid(query, 0, 20);
-    setResults(books);
-    setSearchSource(books.length > 0 ? books[0].source : null);
-    setHasMore(books.length === 20); // If we got 20 results, there might be more
-    setIsSearching(false);
+    try {
+      const books = await searchBooksHybrid(trimmedQuery, 0, 20);
+      if (requestId !== requestIdRef.current) return;
+
+      setResults(books);
+      setSubmittedQuery(trimmedQuery);
+      setSearchSource(books.length > 0 ? books[0].source : null);
+      setHasMore(books.length === 20); // If we got 20 results, there might be more
+    } catch {
+      if (requestId === requestIdRef.current) {
+        toast.error("Search failed. Please try again.");
+      }
+    } finally {
+      if (requestId === requestIdRef.current) {
+        setIsSearching(false);
+      }
+    }
   };
 
   const handleLoadMore = async () => {
-    if (!query.trim() || isLoadingMore) return;
+    if (!submittedQuery || isLoadingMore) return;
 
+    const requestId = requestIdRef.current;
     setIsLoadingMore(true);
     const newOffset = offset + 20;
 
-    const moreBooks = await searchBooksHybrid(query, newOffset, 20);
+    try {
+      const moreBooks = await searchBooksHybrid(submittedQuery, newOffset, 20);
+      // A newer search started while loading
+      if (requestId !== requestIdRef.current) return;
 
-    // Deduplicate by checking if book already exists in results
-    const existingIds = new Set(results.map(r => r.id || r.key || `${r.isbn}-${r.title}`));
-    const uniqueNewBooks = moreBooks.filter((book) => {
-      const bookId = book.id || book.key || `${book.isbn}-${book.title}`;
-      return !existingIds.has(bookId);
-    });
-
-    setResults([...results, ...uniqueNewBooks]);
-    setOffset(newOffset);
-    setHasMore(moreBooks.length === 20); // If we got 20 results, there might be more
-    setIsLoadingMore(false);
+      // Deduplicate by checking if book already exists in results
+      setResults((prev) => {
+        const existingIds = new Set(
+          prev.map((r) => r.id || r.key || `${r.isbn}-${r.title}`),
+        );
+        const uniqueNewBooks = moreBooks.filter((book) => {
+          const bookId = book.id || book.key || `${book.isbn}-${book.title}`;
+          return !existingIds.has(bookId);
+        });
+        return [...prev, ...uniqueNewBooks];
+      });
+      setOffset(newOffset);
+      setHasMore(moreBooks.length === 20); // If we got 20 results, there might be more
+    } catch {
+      if (requestId === requestIdRef.current) {
+        toast.error("Failed to load more results. Please try again.");
+      }
+    } finally {
+      if (requestId === requestIdRef.current) {
+        setIsLoadingMore(false);
+      }
+    }
   };
 
   const handleAddToLibrary = (book: SearchResult, status: ReadingStatus) => {
@@ -151,6 +184,7 @@ export function SearchBooks() {
                           src={book.coverUrl}
                           alt={book.title}
                           fill
+                          sizes="(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
                           className="object-cover rounded-t-lg"
                         />
                       ) : (
@@ -244,7 +278,7 @@ export function SearchBooks() {
         </>
       )}
 
-      {results.length === 0 && !isSearching && query && (
+      {results.length === 0 && !isSearching && submittedQuery && (
         <p className="text-center text-muted-foreground py-8">
           {t("noResults")}
         </p>

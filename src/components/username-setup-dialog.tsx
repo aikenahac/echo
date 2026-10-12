@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { updateProfile } from "@/app/[locale]/actions/profile";
 import { useTranslations } from "next-intl";
+import { useRouter } from "@/i18n/routing";
 import {
   Dialog,
   DialogContent,
@@ -24,14 +25,11 @@ export function UsernameSetupDialog({ hasUsername }: UsernameSetupDialogProps) {
   const t = useTranslations("profile");
   const tToast = useTranslations("toast");
   const tValidation = useTranslations("validation");
+  const router = useRouter();
   const [username, setUsername] = useState("");
   const [isPending, startTransition] = useTransition();
-  const [isOpen, setIsOpen] = useState(!hasUsername);
-
-  // Update dialog state when hasUsername prop changes
-  useEffect(() => {
-    setIsOpen(!hasUsername);
-  }, [hasUsername]);
+  // Closes the dialog right after saving, before the refreshed prop arrives
+  const [isSaved, setIsSaved] = useState(false);
 
   const handleUsernameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -64,9 +62,9 @@ export function UsernameSetupDialog({ hasUsername }: UsernameSetupDialogProps) {
         toast.error(result.error);
       } else {
         toast.success(tToast("profileUpdated"));
-        setIsOpen(false);
-        // Reload to update the UI with the new username
-        window.location.reload();
+        setIsSaved(true);
+        // Refresh server components to show the new username
+        router.refresh();
       }
     });
   };
@@ -76,7 +74,7 @@ export function UsernameSetupDialog({ hasUsername }: UsernameSetupDialogProps) {
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={() => {}}>
+    <Dialog open={!isSaved} onOpenChange={() => {}}>
       <DialogContent
         className="sm:max-w-md"
         onInteractOutside={(e) => e.preventDefault()}

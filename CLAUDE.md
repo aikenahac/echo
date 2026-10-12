@@ -80,13 +80,13 @@ Results are tagged with `source: 'database' | 'external'` to show users where da
 Uses Clerk for authentication. Important patterns:
 
 - **New user setup:** `username-setup-dialog.tsx` forces new users to set a username via a non-dismissible dialog
-- **User sync:** Users table is lazily created when they first add a book (see `addBookToLibrary` in `actions/books.ts`)
+- **User sync:** The users row and free plan are created on first visit by `getViewer()` in `src/lib/auth.ts` (called from the locale layout, cached per request with React `cache`). Server actions assume the row exists.
 - **Auth checks:** All server actions use `await auth()` to get `userId` and return `{ error: "Unauthorized" }` if missing
 
 ### State Management
 
 - **Client-side preferences:** Layout preferences (grid/list view) use localStorage via custom hook `use-library-layout.ts`
-- **Server state:** Uses Next.js cache revalidation with `revalidatePath()` after mutations
+- **Server state:** Uses Next.js cache revalidation after mutations via `revalidateLocalized()` from `src/lib/revalidate.ts` (every URL is locale-prefixed, so a bare `revalidatePath("/library")` would not match `/en/library`)
 - **Optimistic updates:** Not currently implemented - UI updates after server actions complete
 
 ### Internationalization
@@ -145,7 +145,9 @@ Uses Tailwind CSS v4 with:
 **Production workflow:**
 1. Modify `src/db/schema.ts`
 2. Run `pnpm db:generate` to create migration in `drizzle/` directory
-3. Migration runs automatically on Docker container startup via `src/db/migrate.ts`
+3. Migrations run via the `migrations` service in `docker-compose.prod.yaml` (`node dist/migrate.js`) before the app starts
+
+**Note:** `drizzle/0005`-`0007` are hand-written SQL files that are not in `drizzle/meta/_journal.json`, and the last snapshot (`0004`) is behind the schema, so `drizzle-kit migrate` does not apply them and `db:generate` would also emit the older drift. Apply hand-written migrations manually (`0007` is idempotent) until the journal is re-baselined.
 
 ## Deployment
 
@@ -156,7 +158,7 @@ The Dockerfile uses multi-stage builds:
 2. **builder** - Build Next.js app and compile migration script
 3. **runner** - Production image with standalone output
 
-**Important:** Migrations run automatically before the server starts (see `start:migrate` script).
+**Important:** Secrets are not build args; provide them to the container at runtime. Only `NEXT_PUBLIC_*` values and `AWS_S3_PUBLIC_URL` (allowed `next/image` host) are needed at build time. In production, migrations run in the separate `migrations` compose service.
 
 ### Adding shadcn/ui Components
 
@@ -174,8 +176,11 @@ This adds components to `src/components/ui/` with proper theming.
 2. Mark file with `"use server"` directive
 3. Call `await auth()` to get userId
 4. Perform database operation with `db` from `@/db`
-5. Call `revalidatePath()` to update cached data
-6. Return success/error object
+5. Validate inputs at runtime (server actions are public POST endpoints) and scope writes with `and(eq(id), eq(userId))`
+6. Call `revalidateLocalized()` to update cached data
+7. Return success/error object
+
+When exposing other users, select `publicUserColumns` from `src/lib/public-user.ts` (never email/role).
 
 ### Querying Books with Relations
 

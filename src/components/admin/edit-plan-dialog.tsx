@@ -15,7 +15,6 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { updateSubscriptionPlan } from "@/app/[locale]/actions/admin";
 import { toast } from "sonner";
-import { useRouter } from "@/i18n/routing";
 
 interface Plan {
   id: string;
@@ -38,7 +37,6 @@ export function EditPlanDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: plan.name,
@@ -68,9 +66,8 @@ export function EditPlanDialog({
       } else {
         toast.success("Plan updated successfully");
         onOpenChange(false);
-        router.refresh();
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to update plan");
     } finally {
       setLoading(false);

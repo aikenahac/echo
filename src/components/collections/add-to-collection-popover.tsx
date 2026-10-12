@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Popover,
   PopoverContent,
@@ -33,11 +33,14 @@ interface Collection {
 interface AddToCollectionPopoverProps {
   userBookId: string;
   trigger?: React.ReactNode;
+  /** Called after the popover opens or closes */
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function AddToCollectionPopover({
   userBookId,
   trigger,
+  onOpenChange,
 }: AddToCollectionPopoverProps) {
   const t = useTranslations("collections.addTo");
   const tToast = useTranslations("collections.toast");
@@ -49,32 +52,49 @@ export function AddToCollectionPopover({
   const [showPaywall, setShowPaywall] = useState(false);
   const [hasPremium, setHasPremium] = useState(false);
 
-  useEffect(() => {
-    if (open) {
-      loadCollections();
-      checkPremiumAccess();
-    }
-  }, [open]);
-
-  const checkPremiumAccess = async () => {
-    const result = await hasCollectionAccess();
-    setHasPremium(result.hasAccess || false);
-  };
-
+  // Collections are loaded lazily, each time the popover opens
   const loadCollections = async () => {
     setIsLoading(true);
     try {
-      const result = await getUserCollections();
+      const [result, access] = await Promise.all([
+        getUserCollections(),
+        hasCollectionAccess(),
+      ]);
+      setHasPremium(access.hasAccess || false);
       if (result.error) {
         toast.error(result.error);
       } else if (result.collections) {
         setCollections(result.collections);
       }
-    } catch (error) {
+    } catch {
       toast.error(tToast("loadFailed"));
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    setOpen(nextOpen);
+    onOpenChange?.(nextOpen);
+    if (nextOpen) {
+      loadCollections();
+    }
+  };
+
+  // Reflect a successful add/remove locally instead of refetching
+  const updateMembership = (collectionId: string, isAdded: boolean) => {
+    setCollections((prev) =>
+      prev.map((collection) => {
+        if (collection.id !== collectionId) {
+          return collection;
+        }
+        const books = collection.books ?? [];
+        const nextBooks = isAdded
+          ? [...books, { userBookId }]
+          : books.filter((b) => b.userBookId !== userBookId);
+        return { ...collection, books: nextBooks, bookCount: nextBooks.length };
+      })
+    );
   };
 
   const isBookInCollection = (collection: Collection): boolean => {
@@ -94,7 +114,7 @@ export function AddToCollectionPopover({
           toast.error(result.error);
         } else {
           toast.success(tToast("removed"));
-          await loadCollections();
+          updateMembership(collectionId, false);
         }
       } else {
         // Add to collection
@@ -103,10 +123,10 @@ export function AddToCollectionPopover({
           toast.error(result.error);
         } else {
           toast.success(tToast("added"));
-          await loadCollections();
+          updateMembership(collectionId, true);
         }
       }
-    } catch (error) {
+    } catch {
       toast.error(tToast("updateFailed"));
     } finally {
       setProcessingIds((prev) => {
@@ -133,7 +153,7 @@ export function AddToCollectionPopover({
 
   return (
     <>
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover open={open} onOpenChange={handleOpenChange}>
         <PopoverTrigger asChild>
           {trigger || (
             <Button variant="outline" size="sm">
