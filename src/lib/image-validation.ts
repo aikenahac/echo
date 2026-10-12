@@ -32,6 +32,9 @@ export function validateImageUpload(
   if (!isValidImageType(contentType)) {
     return "Invalid file type. Supported: JPG, PNG, WEBP";
   }
+  if (!Number.isInteger(fileSize) || fileSize <= 0) {
+    return "Invalid file size";
+  }
   if (!isValidImageSize(fileSize)) {
     return `File too large. Maximum size: ${MAX_IMAGE_SIZE_MB}MB`;
   }
