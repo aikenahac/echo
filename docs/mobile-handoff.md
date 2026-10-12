@@ -2,7 +2,7 @@
 
 This document describes everything the Echo web app does today, so a mobile app can be designed and built against the same backend. It covers the product (screens, flows, rules), the data model, and the REST API the mobile app will call, including the gaps where the API doesn't yet cover what the web app does.
 
-Source of truth: the code in this repo as of the `chore/upgrade-deps-and-fixes` branch (October 2026).
+Source of truth: the code in this repo as of the `feat/mobile-api-parity` branch (October 2026).
 
 ---
 
@@ -33,7 +33,7 @@ There are **two kinds of book ID**, and mixing them up is the most likely source
 - **Every `/api/v1/books/{id}/…` endpoint takes the `userBook.id`**, not the catalog `book.id`.
 - **Reviews are keyed by the catalog `book.id`.**
 - **Collections contain `userBook.id`s.**
-- The web app's book detail page (`/books/{id}`) uses the **catalog** `book.id`.
+- The web app's book detail page (`/books/{id}`) uses the **catalog** `book.id`; its API counterpart is `GET /api/v1/catalog/{bookId}`.
 
 A user can have a given book in their library **only once** (enforced by a unique constraint on user + book).
 
@@ -52,12 +52,12 @@ A user can have a given book in their library **only once** (enforced by a uniqu
 | `username` | Required to use the app. 3–30 characters, only `a-z A-Z 0-9 _ .`, unique. |
 | `displayName` | Optional, up to 100 characters. |
 | `bio` | Optional, up to 1000 characters. |
-| `profilePictureUrl` | Optional. Must be an image the user uploaded through the presigned S3 flow (see §9). |
+| `profilePictureUrl` | Optional. Must be an image the user uploaded through the presigned S3 flow (see §6, Image uploads). |
 | `email` | Comes from Clerk. Never exposed to other users. |
 | `role` | `user`, `moderator` or `admin`. Admin and moderator only matter for the web admin panel. |
 
 ### Mandatory username setup
-New users have no username. The web app shows a **non-dismissible dialog** on every page until a username is set. The input strips invalid characters as the user types and validates the length. **The mobile app needs the same blocking onboarding step** right after the first sign-in: check `GET /api/v1/profile` → `username === null`.
+New users have no username. The web app shows a **non-dismissible dialog** on every page until a username is set. The input strips invalid characters as the user types and validates the length. **The mobile app needs the same blocking onboarding step** right after the first sign-in: check `GET /api/v1/profile` → `username === null`. Validate as the user types with `GET /api/v1/profile/username-available?username=`, then save with `PUT /api/v1/profile { username }`.
 
 ### Name display convention
 Show `displayName`, with `@username` beneath it when both exist. Otherwise show `username`. Avatar fallback: the first letter of displayName, username or email, on a muted circle.
@@ -82,7 +82,7 @@ A natural mobile tab bar: **Library · Search · Feed · Profile**, with Find Us
   3. External results are **saved to Echo's catalog in the background**, so the catalog grows with use.
 - Each result has `source: "internal" | "external"`. The UI shows a small badge: "From our library" (database icon) or "From Open Library" (globe icon), based on the first result's source.
 - Each result card shows: cover (or a "No cover" placeholder), title, author, published year, a **"View details"** link (internal results only, since only they have a catalog `id`), and **three buttons to add the book to the library directly as Want / Reading / Finished**.
-- **Load more** pagination: offset steps of 20. The client de-duplicates appended results.
+- **Load more** pagination: offset steps of 20. The client de-duplicates appended results. The API exposes the same paging (`offset`, `limit`, `hasMore`).
 - Toasts: "Added *{title}* to library", or the error "Book already in your library".
 
 ### 4.3 Adding a book to the library (rules)
@@ -140,7 +140,7 @@ Opened by the catalog `book.id`. Shows:
 **Find Users**
 - Search by username or display name. The query must be at least 2 characters. Each result shows username (or display name), a one-line bio and a **Follow / Following** toggle button.
 - You can't follow yourself. Following someone twice returns the error "Already following".
-- **There is no public profile page for other users yet**: no user detail screen, no follower or following lists, no counts. This is a gap if the mobile design needs it (see §8).
+- **There is no public profile page for other users on the web yet.** The API has one for mobile: `GET /users/{userId}` (profile, stats, counts, shelves, public collections) and paginated `/users/{userId}/followers` and `/following`.
 
 **Activity feed**
 - Built from the users you follow. Two kinds of item, merged and sorted newest first:
@@ -165,11 +165,11 @@ Custom groups of books from the user's own library, like playlists.
 - **Collection view:** the cover banner, name, description, "N books", and the books in grid or list view using the same book cards as the library. Empty state: "No books in this collection yet".
 - **Sidebar item:** the colored icon, name, book count, and a ⋮ menu with Edit, the Public/Private indicator, and Delete (asks for confirmation; this deletes the collection, not the books).
 - **Paywall:** free users see a 👑 crown next to "Collections". Tapping create opens the **Premium paywall dialog**: "Unlock Custom Collections", a list of benefits, and the buttons *Maybe later* and *View plans*.
-- **Built on the server but not exposed in the UI or the API yet:** following other users' public collections, a public collection discovery list, and reordering collections (there's a `sortOrder` field).
+- **In the API but not in the web UI yet:** following other users' public collections, a public collection discovery list, viewing another user's public collection, and reordering collections (`sortOrder`).
 
 ### 4.9 Profile (own)
 - Header: avatar, name, @username, email, and a **Settings** button (paid users only).
-- **Stats tiles:** *Books This Year* (finished this calendar year), *Pages Read* (the sum of page counts of books finished this year), *Day Streak*. **The streak is hard-coded to 0 for now; it isn't implemented.**
+- **Stats tiles:** *Books This Year* (finished this calendar year), *Pages Read* (the sum of the catalog page counts of books finished this year), *Day Streak*. **The streak is hard-coded to 0 for now; it isn't implemented.** The API returns the first two (plus library totals) from `GET /profile/stats`.
 - **Edit profile form:** username, display name, bio, profile picture upload.
 - Shelves: **Favorites** (up to 6 covers, highlighted), **Currently Reading** (up to 6), **Recently Finished** (up to 6, by finish date). Each cover opens Book Detail.
 
@@ -224,6 +224,8 @@ interface Collection {
   coverImageUrl: string | null; isPublic: boolean; sortOrder: number;
   createdAt: string; updatedAt: string;
   bookCount: number; books: UserBook[];
+  // public views (/collections/public, /collections/{idOrSlug}/public) also include:
+  user?: PublicUser; followerCount?: number; isFollowing?: boolean;
 }
 
 interface SubscriptionPlan {
@@ -241,28 +243,38 @@ All dates are ISO 8601 strings.
 
 **Base:** `https://<host>/api/v1`. **Auth:** `Authorization: Bearer <Clerk session token>` on every endpoint; send `Content-Type: application/json` with request bodies.
 
-**Response shape:** success responses return the data **directly**, with no `{ success, data }` wrapper. (The in-app API docs claim a wrapper, but that's out of date.) Errors return `{ "error": "message" }` with status 400 (validation), 401 (not signed in), 403 (forbidden or premium required), 404 (not found) or 500.
+**Response shape:** success responses return the data **directly**, with no `{ success, data }` wrapper. Mutations that have nothing to return respond with `{ success: true }`. Errors return `{ "error": "message" }` with status 400 (validation), 401 (not signed in), 403 (premium required), 404 (not found, including resources you aren't allowed to see) or 500. Malformed IDs in the path return 404.
+
+**Pagination:** list endpoints take `limit` and `offset` query numbers (out-of-range values are clamped, not rejected) and return `hasMore`.
 
 ### Library
 | Method | Path | Body / Query | Returns |
 |---|---|---|---|
-| GET | `/books` | – | `{ favoriteBooks, wantToRead, currentlyReading, finished }`: arrays of `UserBook` (with `book`), newest first. **Ignores any `status` or `favorite` query.** |
+| GET | `/books` | `?status=want\|reading\|finished`, `?favorite=true\|false` (optional, combinable) | Without filters: `{ favoriteBooks, wantToRead, currentlyReading, finished }`, arrays of `UserBook` (with `book`). With any filter: a flat `UserBook[]`. Newest first. Invalid filter values → 400. |
 | POST | `/books` | `{ bookData: { title, author, isbn?, coverUrl?, pages?, publishedYear? }, status, isFavorite? }` | `201 { success, userBook }` |
 | GET | `/books/{userBookId}` | – | `UserBook` with `book` |
 | DELETE | `/books/{userBookId}` | – | `{ success }` |
 | PUT | `/books/{userBookId}/status` | `{ status }` | `{ success }` (see the transition rules in §4.4) |
-| PUT | `/books/{userBookId}/progress` | `{ currentPage }` **or** `{ pageCount }` (if both are sent, only `pageCount` is applied) | `{ success }` |
+| PUT | `/books/{userBookId}/progress` | `{ currentPage?, pageCount? }` (at least one; if both are sent, `pageCount` is applied first) | `{ success }`. Same rules as the web stepper, below. |
 | PUT | `/books/{userBookId}/rating` | `{ rating: 1–5 }` | `{ success }` |
 | PUT | `/books/{userBookId}/favorite` | `{ isFavorite: boolean }` | `{ success }` |
-| GET | `/books/search?q=` | `q` is required | `SearchResult[]`: `{ id?, key?, isbn, title, author, coverUrl, pages, publishedYear, source: "internal" \| "external" }`. Returns the first 20 only (no offset support through the API yet). |
+| GET | `/books/search` | `q` (required), `offset` (default 0, max 1000), `limit` (default 20, max 40) | `{ results: SearchResult[], hasMore, offset, limit }` |
+| GET | `/catalog/{bookId}` | – (catalog `book.id`) | `{ book, userBook: UserBook \| null, myReview: Review \| null, followingReviews: Review[] }`. `followingReviews` are public reviews of this book by people you follow, with `user` (public fields), newest first. 404 if the book doesn't exist. |
 
-> Progress caveat: the API's `currentPage` path validates against the **catalog** `book.pages` and only auto-finishes the book. The web card's stepper uses a different server function that validates against the per-user `pageCount` and also auto-starts the book (moves it to *Reading*). Pick one behaviour for mobile and align the API with it.
+`SearchResult` = `{ id?, key?, isbn, title, author, coverUrl, pages, publishedYear, source: "internal" | "external" }`. Internal results have the catalog `id` (usable with `/catalog/{id}`); external ones have an Open Library `key`. Add either kind with `POST /books`.
+
+> ⚠️ **Changed:** `/books/search` used to return a bare `SearchResult[]` (first 20 only). It now returns the paged object above. Because the external catalog's total isn't known, `hasMore` is `true` whenever the page is full, so the next page can come back empty; stop when `results` is empty. Use `limit=20` (the web's page size) unless you have a reason not to.
+
+**Progress rules** (shared by the API and both web progress controls):
+- `currentPage` is a whole number from 0 to 100,000 and can't exceed the page total: the per-user `pageCount`, else the catalog `book.pages`. If neither is known, any page is accepted.
+- Reaching the total marks the book **Finished** (`finishedAt` = now; `startedAt` filled if empty).
+- Any other page above 0 on a book that isn't *Reading* marks it **Reading** (`startedAt` filled if empty). This includes stepping a *Finished* book back below the total (`finishedAt` is kept).
 
 ### Reviews
 | Method | Path | Body / Query | Returns |
 |---|---|---|---|
 | POST | `/reviews` | `{ bookId (catalog), content, isPrivate? }` | `201 { success }` (creates the review, or updates the existing one) |
-| GET | `/reviews` | `?bookId=` optional | With `bookId`: all **public** reviews of that book plus your own private one, with `user` and `book`, newest first, up to 100. Without it: all of your own reviews, with `book`. |
+| GET | `/reviews` | `?bookId=` optional, `?scope=following` optional (needs `bookId`) | With `bookId`: all **public** reviews of that book plus your own private one, with `user` and `book`, newest first, up to 100. With `bookId&scope=following`: only public reviews by people you follow. Without `bookId`: all of your own reviews, with `book`. |
 | GET | `/reviews/{id}` | – | `Review` (404 if it's someone else's private review) |
 | PUT | `/reviews/{id}` | `{ content, isPrivate? }` | `{ success }` |
 | DELETE | `/reviews/{id}` | – | `{ success }` |
@@ -271,11 +283,25 @@ All dates are ISO 8601 strings.
 | Method | Path | Body / Query | Returns |
 |---|---|---|---|
 | GET | `/users/search` | `q` (at least 2 characters), `limit` (default 20, max 50) | `{ results: [{ id, username, displayName, profilePictureUrl, bio, isFollowing }], hasMore, total, query }` |
+| GET | `/users/{userId}` | – | Public profile (below). 404 for an unknown user. Works for yourself too (`isFollowing: false`). |
+| GET | `/users/{userId}/followers` | `limit` (default 20, max 50), `offset` (max 10,000) | `{ results: (PublicUser & { isFollowing })[], hasMore }`, newest follow first. `isFollowing` = whether **you** follow that user. |
+| GET | `/users/{userId}/following` | same | same |
 | POST | `/social/follow` | `{ userId }` | `201 { success }` |
 | DELETE | `/social/follow/{userId}` | – | `{ success }` |
 | GET | `/feed` | `limit` (default 20, max 100), `offset` (max 1000) | `{ activities: FeedItem[], hasMore, limit, offset }` (or `{ activities: [], hasMore: false, total: 0 }` when you follow nobody) |
 
 ```ts
+interface PublicProfile {
+  user: PublicUser & { bio: string | null };
+  stats: { booksFinishedThisYear: number; finishedCount: number };
+  followerCount: number; followingCount: number; isFollowing: boolean;
+  currentlyReading: UserBook[];   // up to 6, with book
+  recentlyFinished: UserBook[];   // up to 6, by finishedAt
+  favorites: UserBook[];          // up to 6
+  publicCollections: (Omit<Collection, "books">)[];  // with bookCount, by sortOrder
+}
+// Reviews are not part of the profile; private reviews are never exposed anywhere.
+
 type FeedItem =
   | { type: "book"; date: string; user: PublicUser; book: Book;
       data: { status: "reading" | "finished"; rating: number | null; currentPage: number | null; startedAt: string | null; finishedAt: string | null } }
@@ -284,23 +310,37 @@ type FeedItem =
 ```
 
 ### Profile
-| Method | Path | Body | Returns |
+| Method | Path | Body / Query | Returns |
 |---|---|---|---|
 | GET | `/profile` | – | The user row (`id, email, username, bio, displayName, profilePictureUrl, role, createdAt, updatedAt`) plus `isPremium: boolean`, `planName: string \| null` |
-| PUT | `/profile` | `{ username, bio?, displayName?, profilePictureUrl? }` | `{ success }` |
+| PUT | `/profile` | `{ username?, displayName?, bio?, profilePictureUrl? }` | `{ success }`. **Partial update:** only fields present in the body change; `null` or `""` clears `displayName`, `bio` or `profilePictureUrl`. `username` can be changed but not cleared. An empty body → 400. |
+| GET | `/profile/stats` | – | `{ booksFinishedThisYear, pagesReadThisYear, totalBooks, countsByStatus: { want, reading, finished }, favoritesCount }` |
+| GET | `/profile/username-available` | `?username=` (required) | `{ available: true }` or `{ available: false, reason }` (format error or "Username already taken"). Your own current username counts as available. |
+| POST | `/profile/picture-upload-url` | `{ contentType, fileSize }` | `{ uploadUrl, publicUrl, expiresIn: 300 }` |
 
-> ⚠️ `PUT /profile` **replaces every field**: any field you leave out is cleared to null. Always send the full current profile. `username` is required.
+> ⚠️ **Changed:** `PUT /profile` used to replace every field (omitted fields were cleared) and required `username` on every call. It's now a partial update.
 
 ### Collections
 | Method | Path | Body / Query | Returns |
 |---|---|---|---|
-| GET | `/collections` | – | `Collection[]` (with `books` as `UserBook[]`, plus `bookCount`), ordered by `sortOrder` |
-| POST | `/collections` | `{ name, description?, isPublic?, colorTag?, iconName? }` | `201 Collection`. Returns **403** for non-premium users ("Premium subscription required…"). |
+| GET | `/collections` | – | Your `Collection[]` (with `books` as `UserBook[]`, plus `bookCount`), ordered by `sortOrder` |
+| POST | `/collections` | `{ name, description?, isPublic?, colorTag?, iconName? }` | `201 Collection`. **403** for non-premium users ("Premium subscription required…"). |
 | GET | `/collections/{id}` | – | `Collection` (your own collections only) |
 | PUT | `/collections/{id}` | `{ name?, description?, isPublic?, colorTag?, iconName?, coverImageUrl? }` | Updated `Collection` |
 | DELETE | `/collections/{id}` | – | `{ success }` |
 | POST | `/collections/{id}/books` | `{ userBookId }` | `201` collection-book row (400 "Book already in collection") |
 | DELETE | `/collections/{id}/books?userBookId=` | – | `{ success }` |
+| POST | `/collections/{id}/cover-upload-url` | `{ contentType, fileSize }` | `{ uploadUrl, publicUrl, expiresIn: 300 }`. Owner only (404 otherwise). |
+| PUT | `/collections/order` | `{ order: string[] }`: every one of your collection IDs, exactly once, in the new order | `{ success }`. A missing, extra or duplicate ID → 400; an ID that isn't yours → 404. |
+| GET | `/collections/public` | `limit` (default 20, max 50) | Public collections from everyone, newest first, each with `user`, `bookCount`, `followerCount` and `books` (the first 4 as a preview). |
+| GET | `/collections/{idOrSlug}/public` | – | Any public collection, or one of your own private ones, by ID or slug, with `user`, `books`, `bookCount`, `followerCount`, `isFollowing`. Another user's private collection → 404. |
+| POST | `/collections/{id}/follow` | – | `201 { success }`. 400 for your own collection or "Already following"; 404 if it doesn't exist or is private. |
+| DELETE | `/collections/{id}/follow` | – | `{ success }` (404 for an unknown collection) |
+
+### Image uploads
+1. `POST /profile/picture-upload-url` or `POST /collections/{id}/cover-upload-url` with `{ contentType: "image/jpeg" | "image/png" | "image/webp", fileSize: <bytes, ≤ 5 MB> }`.
+2. `PUT` the file to `uploadUrl` within `expiresIn` seconds, with exactly that `Content-Type` and size (the URL is signed for them).
+3. Save `publicUrl` via `PUT /profile { profilePictureUrl }` or `PUT /collections/{id} { coverImageUrl }`. Only URLs issued to you are accepted.
 
 ### Subscriptions
 | Method | Path | Returns |
@@ -324,26 +364,22 @@ type FeedItem =
 | Collection description | up to 1000 characters |
 | colorTag / iconName | string, up to 50 characters |
 | Images | `image/jpeg`, `image/png` or `image/webp`; up to 5 MB |
-| Book search query | trimmed, up to 200 characters |
+| Book search query | trimmed, up to 200 characters; `limit` up to 40, `offset` up to 1000 |
 | User search query | at least 2 characters |
 
 ---
 
 ## 8. Gaps: what the web app does that the API doesn't (yet)
 
-These need new endpoints (or a decision to leave them out of the mobile app):
+The API now covers everything the web app does, except:
 
-1. **Image uploads.** There's no API for presigned upload URLs. The web uses server actions: `generateProfilePictureUploadUrl(contentType, fileSize)` and `generateCollectionCoverUrl(collectionId, contentType, fileSize)`. Both return `{ uploadUrl, publicUrl }`. The client then sends a `PUT` with the file to `uploadUrl` (with exactly that `Content-Type` and size; the URL is valid for 5 minutes) and saves `publicUrl` via `PUT /profile` or `PUT /collections/{id}`. These need `POST /profile/picture-upload-url` and `POST /collections/{id}/cover-upload-url` endpoints.
-2. **Book detail by catalog ID.** `GET /books/{id}` looks up a *UserBook*. There's no endpoint for a catalog book that isn't in your library (for example a search result or a feed item), nor one that returns "my UserBook and my review for catalog book X" in one call. Needed for a Book Detail screen opened from search or the feed.
-3. **Reviews from people you follow** for a book. The web filters to followed users; `GET /reviews?bookId=` returns all public reviews.
-4. **Profile stats** (books finished this year, pages read). These are computed only in the web profile page. The streak isn't implemented anywhere.
-5. **Other users' profiles**, and follower and following lists and counts. Not implemented anywhere.
-6. **Paginated book search.** The server function supports `offset` and `limit`, but the API route only passes `q`.
-7. **Username availability check** before submitting (currently only reported as the error "Username already taken").
-8. **Premium / Collections access check.** Use `GET /profile → isPremium`.
-9. **Checkout and billing.** Stripe Checkout and Portal are web server actions only (see the IAP note in §4.10).
-10. **Collection social features** (following public collections, discovery, reordering) exist as server functions but have no API and no UI.
-11. **Viewing someone else's public collection.** `GET /collections/{id}` returns only your own collections.
+1. **Checkout and billing.** Stripe Checkout and the Customer Portal are web server actions only, and in-app purchase isn't decided yet (see §4.10). Read `isPremium` from `GET /profile` to decide whether to show collection features or the paywall.
+2. **Reading streaks and goals.** Not implemented anywhere (the web streak tile is hard-coded to 0).
+3. **Admin endpoints.** Web only, by design.
+
+Known limitations to design around:
+- **Book search paging** mixes Echo's catalog with Open Library, so `hasMore` is a best guess (see §6) and the boundary between internal and external results can repeat or skip an item between pages. De-duplicate appended results on the client, as the web does.
+- **"Pages read"** uses the catalog page count, not the per-user `pageCount` override, matching the web profile.
 
 ---
 
