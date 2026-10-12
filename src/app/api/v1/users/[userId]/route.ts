@@ -42,7 +42,9 @@ export const GET = withAuth(async (request, { user: viewer, params }) => {
     db
       .select({ count: count() })
       .from(userBooks)
-      .where(and(eq(userBooks.userId, userId), eq(userBooks.status, "finished"))),
+      .where(
+        and(eq(userBooks.userId, userId), eq(userBooks.status, "finished")),
+      ),
     db
       .select({ count: count() })
       .from(follows)
@@ -65,8 +67,13 @@ export const GET = withAuth(async (request, { user: viewer, params }) => {
         bookCount: count(collectionBooks.userBookId),
       })
       .from(collections)
-      .leftJoin(collectionBooks, eq(collectionBooks.collectionId, collections.id))
-      .where(and(eq(collections.userId, userId), eq(collections.isPublic, true)))
+      .leftJoin(
+        collectionBooks,
+        eq(collectionBooks.collectionId, collections.id),
+      )
+      .where(
+        and(eq(collections.userId, userId), eq(collections.isPublic, true)),
+      )
       .groupBy(collections.id)
       .orderBy(asc(collections.sortOrder)),
   ]);

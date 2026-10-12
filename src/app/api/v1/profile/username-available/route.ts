@@ -29,7 +29,10 @@ export const GET = withAuth(async (request, { user }) => {
   });
 
   if (existing && existing.id !== user.id) {
-    return createApiResponse({ available: false, reason: "Username already taken" });
+    return createApiResponse({
+      available: false,
+      reason: "Username already taken",
+    });
   }
 
   return createApiResponse({ available: true });

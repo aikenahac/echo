@@ -27,7 +27,13 @@ export const GET = withAuth(async (request, { user: viewer, params }) => {
     throw new ApiError("User not found", 404);
   }
 
-  const page = await getFollowList(userId, "following", viewer.id, limit, offset);
+  const page = await getFollowList(
+    userId,
+    "following",
+    viewer.id,
+    limit,
+    offset,
+  );
 
   return createApiResponse(page);
 });

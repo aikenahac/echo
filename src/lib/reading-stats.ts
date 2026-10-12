@@ -49,7 +49,10 @@ export async function getProfileShelves(userId: string) {
       limit: SHELF_SIZE,
     }),
     db.query.userBooks.findMany({
-      where: and(eq(userBooks.userId, userId), eq(userBooks.status, "finished")),
+      where: and(
+        eq(userBooks.userId, userId),
+        eq(userBooks.status, "finished"),
+      ),
       with: { book: true },
       orderBy: [sql`${userBooks.finishedAt} desc nulls last`],
       limit: SHELF_SIZE,

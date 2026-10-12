@@ -16,7 +16,10 @@ export const GET = withAuth(async (request, { user }) => {
       .select({
         status: userBooks.status,
         count: count(),
-        favorites: sql<number>`count(*) filter (where ${userBooks.isFavorite})`.mapWith(Number),
+        favorites:
+          sql<number>`count(*) filter (where ${userBooks.isFavorite})`.mapWith(
+            Number,
+          ),
       })
       .from(userBooks)
       .where(eq(userBooks.userId, user.id))
@@ -32,7 +35,8 @@ export const GET = withAuth(async (request, { user }) => {
 
   return createApiResponse({
     ...yearStats,
-    totalBooks: countsByStatus.want + countsByStatus.reading + countsByStatus.finished,
+    totalBooks:
+      countsByStatus.want + countsByStatus.reading + countsByStatus.finished,
     countsByStatus,
     favoritesCount,
   });

@@ -18,7 +18,10 @@ export async function getCatalogBookDetail(
     }),
     userId
       ? db.query.userBooks.findFirst({
-          where: and(eq(userBooks.userId, userId), eq(userBooks.bookId, bookId)),
+          where: and(
+            eq(userBooks.userId, userId),
+            eq(userBooks.bookId, bookId),
+          ),
         })
       : undefined,
     userId
