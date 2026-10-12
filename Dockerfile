@@ -1,7 +1,7 @@
-FROM node:20-alpine AS base
+FROM node:24-alpine AS base
 
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Install pnpm (version pinned by "packageManager" in package.json)
+RUN corepack enable
 
 # Install dependencies only when needed
 FROM base AS deps
@@ -17,15 +17,12 @@ RUN pnpm install --frozen-lockfile
 FROM base AS builder
 WORKDIR /app
 
-# Accept build arguments for environment variables
+# Public (client-side) configuration is inlined at build time.
+# Secrets are NOT build args: they are only needed at runtime (see .env / compose).
 ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
 ARG NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL
 ARG NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL
-ARG CLERK_SECRET_KEY
-ARG DATABASE_URL
-ARG STRIPE_SECRET_KEY
-ARG STRIPE_WEBHOOK_SECRET
-ARG RESEND_API_KEY
+ARG NEXT_PUBLIC_BASE_URL
 
 # Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
@@ -38,55 +35,41 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=$NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
 ENV NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL=$NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL
 ENV NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL=$NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL
-ENV CLERK_SECRET_KEY=$CLERK_SECRET_KEY
-ENV DATABASE_URL=$DATABASE_URL
-ENV STRIPE_SECRET_KEY=$STRIPE_SECRET_KEY
-ENV STRIPE_WEBHOOK_SECRET=$STRIPE_WEBHOOK_SECRET
-ENV RESEND_API_KEY=$RESEND_API_KEY
+ENV NEXT_PUBLIC_BASE_URL=$NEXT_PUBLIC_BASE_URL
 
 # Build the application
 RUN pnpm build
 
-# Compile the migration script
-RUN npx tsc src/db/migrate.ts --outDir dist --module commonjs --moduleResolution node --esModuleInterop --skipLibCheck
+# Compile the migration script and install only its runtime dependencies
+# (same versions as the app) next to it
+RUN pnpm exec tsc src/db/migrate.ts --outDir dist --module commonjs --moduleResolution node --esModuleInterop --skipLibCheck \
+  && cd dist \
+  && echo '{"private":true}' > package.json \
+  && npm install --omit=dev --no-audit --no-fund --no-package-lock \
+    "drizzle-orm@$(node -p "require('../node_modules/drizzle-orm/package.json').version")" \
+    "postgres@$(node -p "require('../node_modules/postgres/package.json').version")"
 
 # Production image, copy all the files and run next
-FROM base AS runner
+FROM node:24-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # Create a non-root user
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-
-# Copy package files for migration dependencies
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/pnpm-lock.yaml ./pnpm-lock.yaml
-
-# Install ONLY production dependencies (including drizzle-kit)
-RUN pnpm install --prod --frozen-lockfile
+RUN addgroup --system --gid 1001 nodejs \
+  && adduser --system --uid 1001 nextjs
 
 # Copy necessary files from builder
-COPY --from=builder /app/public ./public
-
-# Set the correct permission for prerender cache
-RUN mkdir .next
-RUN chown nextjs:nodejs .next
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 
 # Automatically leverage output traces to reduce image size
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Copy migration-related files
-COPY --from=builder --chown=nextjs:nodejs /app/src/db ./src/db
+# Migrations (run by the "migrations" compose service: node dist/migrate.js)
 COPY --from=builder --chown=nextjs:nodejs /app/drizzle ./drizzle
-COPY --from=builder --chown=nextjs:nodejs /app/drizzle.config.ts ./drizzle.config.ts
-COPY --from=builder --chown=nextjs:nodejs /app/dist/migrate.js ./dist/migrate.js
-
-# Change ownership of node_modules
-RUN chown -R nextjs:nodejs /app/node_modules
+COPY --from=builder --chown=nextjs:nodejs /app/dist ./dist
 
 USER nextjs
 
