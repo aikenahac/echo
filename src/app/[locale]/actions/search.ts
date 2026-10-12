@@ -138,10 +138,19 @@ export async function searchBooksHybrid(
   if (results.length < safeLimit) {
     const remainingSlots = safeLimit - results.length;
 
-    // Calculate API page (Open Library uses pages, not offsets)
-    const apiPage = Math.floor(safeOffset / OPEN_LIBRARY_PAGE_SIZE) + 1;
-
-    const externalResults = await searchOpenLibrary(searchTerm, apiPage);
+    // Open Library uses fixed-size pages, not offsets: fetch every page that
+    // overlaps [offset, offset + limit) and skip to the offset within the first
+    const firstPage = Math.floor(safeOffset / OPEN_LIBRARY_PAGE_SIZE) + 1;
+    const lastPage =
+      Math.floor((safeOffset + safeLimit - 1) / OPEN_LIBRARY_PAGE_SIZE) + 1;
+    const pages = await Promise.all(
+      Array.from({ length: lastPage - firstPage + 1 }, (_, i) =>
+        searchOpenLibrary(searchTerm, firstPage + i),
+      ),
+    );
+    const externalResults = pages
+      .flat()
+      .slice(safeOffset % OPEN_LIBRARY_PAGE_SIZE);
 
     // Filter out books already in internal results (by ISBN or title+author)
     const internalIsbns = new Set(
