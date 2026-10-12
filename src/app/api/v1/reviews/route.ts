@@ -1,10 +1,11 @@
 import { NextRequest } from "next/server";
-import { withAuth } from "@/lib/api-handler";
+import { withAuth, ApiError } from "@/lib/api-handler";
 import { createApiResponse } from "@/lib/api-auth";
 import { createOrUpdateReview } from "@/app/[locale]/actions/reviews";
 import { db } from "@/db";
 import { reviews } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { and, desc, eq, or } from "drizzle-orm";
+import { publicUserColumns } from "@/lib/public-user";
 
 /**
  * POST /api/v1/reviews
@@ -16,7 +17,7 @@ export const POST = withAuth(async (request, { user }) => {
   const { bookId, content, isPrivate } = body;
 
   if (!bookId || !content) {
-    throw new Error("Missing required fields: bookId, content");
+    throw new ApiError("Missing required fields: bookId, content");
   }
 
   const result = await createOrUpdateReview(
@@ -26,7 +27,7 @@ export const POST = withAuth(async (request, { user }) => {
   );
 
   if (result.error) {
-    throw new Error(result.error);
+    throw new ApiError(result.error);
   }
 
   return createApiResponse(result, 201);
@@ -47,14 +48,20 @@ export const GET = withAuth(async (request, { user }) => {
   if (bookId) {
     // Get reviews for a specific book (only user's own private reviews + all public)
     query = db.query.reviews.findMany({
-      where: eq(reviews.bookId, bookId),
-      with: { user: true, book: true },
+      where: and(
+        eq(reviews.bookId, bookId),
+        or(eq(reviews.isPrivate, false), eq(reviews.userId, user.id)),
+      ),
+      with: { user: { columns: publicUserColumns }, book: true },
+      orderBy: [desc(reviews.createdAt)],
+      limit: 100,
     });
   } else {
     // Get all user's reviews
     query = db.query.reviews.findMany({
       where: eq(reviews.userId, user.id),
       with: { book: true },
+      orderBy: [desc(reviews.createdAt)],
     });
   }
 

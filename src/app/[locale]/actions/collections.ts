@@ -6,27 +6,82 @@ import {
   collections,
   collectionBooks,
   collectionFollows,
-  users,
   userBooks,
   userSubscriptions,
 } from "@/db/schema";
-import { eq, and, desc, sql } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+import { eq, and, desc, sql, inArray, count } from "drizzle-orm";
+import { after } from "next/server";
+import { revalidateLocalized } from "@/lib/revalidate";
 import {
   generateCollectionCoverUploadUrl,
-  deleteCollectionCover,
+  deleteImage,
+  ownedKeyFromUrl,
+  collectionCoverPrefix,
 } from "@/lib/s3";
+import { validateImageUpload } from "@/lib/image-validation";
+import { publicUserColumns } from "@/lib/public-user";
 
 // Helper function to generate URL-friendly slug
-function generateSlug(name: string, userId: string): string {
+function generateSlug(name: string): string {
   const baseSlug = name
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 
-  // Add a short random string to ensure uniqueness
-  const randomStr = Math.random().toString(36).substring(2, 6);
+  // Add a short random string to ensure uniqueness (slug is also unique in the DB)
+  const randomStr = crypto.randomUUID().replace(/-/g, "").substring(0, 8);
   return `${baseSlug}-${randomStr}`;
+}
+
+type CollectionInput = {
+  name?: string;
+  description?: string;
+  isPublic?: boolean;
+  colorTag?: string;
+  iconName?: string;
+};
+
+/**
+ * Validate collection fields coming from the client and return only the
+ * whitelisted ones. Server action arguments are not type-checked at runtime.
+ */
+function sanitizeCollectionInput(
+  data: CollectionInput
+): { error: string } | { values: CollectionInput } {
+  const values: CollectionInput = {};
+
+  if (data.name !== undefined) {
+    if (typeof data.name !== "string" || !data.name.trim()) {
+      return { error: "Collection name is required" };
+    }
+    if (data.name.length > 100) {
+      return { error: "Collection name is too long" };
+    }
+    values.name = data.name.trim();
+  }
+  if (data.description !== undefined) {
+    if (typeof data.description !== "string" || data.description.length > 1000) {
+      return { error: "Invalid description" };
+    }
+    values.description = data.description;
+  }
+  if (data.isPublic !== undefined) {
+    if (typeof data.isPublic !== "boolean") {
+      return { error: "Invalid visibility" };
+    }
+    values.isPublic = data.isPublic;
+  }
+  for (const field of ["colorTag", "iconName"] as const) {
+    const value = data[field];
+    if (value !== undefined) {
+      if (typeof value !== "string" || value.length > 50) {
+        return { error: `Invalid ${field}` };
+      }
+      values[field] = value;
+    }
+  }
+
+  return { values };
 }
 
 // Helper function to check if user has collection access (paid plan)
@@ -81,6 +136,11 @@ export async function createCollection(data: {
     return { error: "Unauthorized" };
   }
 
+  const input = sanitizeCollectionInput({ ...data, name: data?.name ?? "" });
+  if ("error" in input) {
+    return { error: input.error };
+  }
+
   // Check collection access (requires paid plan)
   const hasAccess = await checkCollectionAccess(userId);
   if (!hasAccess) {
@@ -88,7 +148,8 @@ export async function createCollection(data: {
   }
 
   try {
-    const slug = generateSlug(data.name, userId);
+    const { values } = input;
+    const slug = generateSlug(values.name!);
 
     // Get current max sort order for this user
     const maxSortResult = await db
@@ -102,17 +163,17 @@ export async function createCollection(data: {
       .insert(collections)
       .values({
         userId,
-        name: data.name,
-        description: data.description,
+        name: values.name!,
+        description: values.description,
         slug,
-        isPublic: data.isPublic,
-        colorTag: data.colorTag,
-        iconName: data.iconName,
+        isPublic: values.isPublic ?? false,
+        colorTag: values.colorTag,
+        iconName: values.iconName,
         sortOrder: nextSortOrder,
       })
       .returning();
 
-    revalidatePath("/[locale]/library", "page");
+    revalidateLocalized("/library");
     return { success: true, collection };
   } catch (error) {
     console.error("Error creating collection:", error);
@@ -139,20 +200,41 @@ export async function updateCollection(
     return { error: "Unauthorized" };
   }
 
+  const input = sanitizeCollectionInput(data ?? {});
+  if ("error" in input) {
+    return { error: input.error };
+  }
+
+  // Only accept cover images uploaded by this user (the URL is later used to
+  // derive the S3 key that gets deleted)
+  const coverImageUrl = data?.coverImageUrl;
+  if (
+    coverImageUrl !== undefined &&
+    !ownedKeyFromUrl(coverImageUrl, collectionCoverPrefix(userId))
+  ) {
+    return { error: "Invalid cover image" };
+  }
+
   try {
     // Verify ownership
     const collection = await db.query.collections.findFirst({
-      where: eq(collections.id, collectionId),
+      where: and(eq(collections.id, collectionId), eq(collections.userId, userId)),
     });
 
-    if (!collection || collection.userId !== userId) {
+    if (!collection) {
       return { error: "Collection not found or unauthorized" };
     }
 
+    const updateData: Partial<typeof collections.$inferInsert> = {
+      ...input.values,
+      updatedAt: new Date(),
+    };
+    if (coverImageUrl !== undefined) {
+      updateData.coverImageUrl = coverImageUrl;
+    }
     // Generate new slug if name changed
-    const updateData: any = { ...data, updatedAt: new Date() };
-    if (data.name && data.name !== collection.name) {
-      updateData.slug = generateSlug(data.name, userId);
+    if (input.values.name && input.values.name !== collection.name) {
+      updateData.slug = generateSlug(input.values.name);
     }
 
     const [updated] = await db
@@ -161,8 +243,22 @@ export async function updateCollection(
       .where(eq(collections.id, collectionId))
       .returning();
 
-    revalidatePath("/[locale]/library", "page");
-    revalidatePath(`/[locale]/library/collections/${collection.slug}`, "page");
+    // Clean up the replaced cover image after responding
+    const oldCoverKey = ownedKeyFromUrl(
+      collection.coverImageUrl,
+      collectionCoverPrefix(userId)
+    );
+    if (oldCoverKey && coverImageUrl !== undefined && coverImageUrl !== collection.coverImageUrl) {
+      after(() => deleteImage(oldCoverKey).catch((error) => {
+        console.error("Error deleting old cover image:", error);
+      }));
+    }
+
+    revalidateLocalized(
+      "/library",
+      `/library/collections/${collection.slug}`,
+      `/library/collections/${updated.slug}`
+    );
 
     return { success: true, collection: updated };
   } catch (error) {
@@ -181,29 +277,29 @@ export async function deleteCollection(collectionId: string) {
   }
 
   try {
-    // Verify ownership
-    const collection = await db.query.collections.findFirst({
-      where: eq(collections.id, collectionId),
-    });
+    // Delete collection (cascade will handle collection_books and collection_follows)
+    const [collection] = await db
+      .delete(collections)
+      .where(and(eq(collections.id, collectionId), eq(collections.userId, userId)))
+      .returning();
 
-    if (!collection || collection.userId !== userId) {
+    if (!collection) {
       return { error: "Collection not found or unauthorized" };
     }
 
-    // Delete cover image from S3 if exists
-    if (collection.coverImageUrl) {
-      try {
-        await deleteCollectionCover(collection.coverImageUrl);
-      } catch (error) {
+    // Delete the cover image from S3 after responding. Only keys under this
+    // user's prefix are ever deleted.
+    const coverKey = ownedKeyFromUrl(
+      collection.coverImageUrl,
+      collectionCoverPrefix(userId)
+    );
+    if (coverKey) {
+      after(() => deleteImage(coverKey).catch((error) => {
         console.error("Error deleting cover image:", error);
-        // Continue with deletion even if S3 deletion fails
-      }
+      }));
     }
 
-    // Delete collection (cascade will handle collection_books and collection_follows)
-    await db.delete(collections).where(eq(collections.id, collectionId));
-
-    revalidatePath("/[locale]/library", "page");
+    revalidateLocalized("/library", `/library/collections/${collection.slug}`);
     return { success: true };
   } catch (error) {
     console.error("Error deleting collection:", error);
@@ -221,18 +317,13 @@ export async function getUserCollections() {
   }
 
   try {
+    // Only the book ids are needed (for counts and membership checks)
     const userCollections = await db.query.collections.findMany({
       where: eq(collections.userId, userId),
       orderBy: [collections.sortOrder],
       with: {
         books: {
-          with: {
-            userBook: {
-              with: {
-                book: true,
-              },
-            },
-          },
+          columns: { userBookId: true },
         },
       },
     });
@@ -257,49 +348,26 @@ export async function getCollectionById(identifier: string) {
   const { userId } = await auth();
 
   try {
-    // Check if identifier is a valid UUID format
+    // Look up by ID if the identifier is a UUID, otherwise by slug
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identifier);
 
-    let collection;
-
-    // Try to find by ID if it's a UUID, otherwise by slug
-    if (isUUID) {
-      collection = await db.query.collections.findFirst({
-        where: eq(collections.id, identifier),
-        with: {
-          user: true,
-          books: {
-            with: {
-              userBook: {
-                with: {
-                  book: true,
-                },
+    const collection = await db.query.collections.findFirst({
+      where: isUUID
+        ? eq(collections.id, identifier)
+        : eq(collections.slug, identifier),
+      with: {
+        user: { columns: publicUserColumns },
+        books: {
+          with: {
+            userBook: {
+              with: {
+                book: true,
               },
             },
           },
-          follows: true,
         },
-      });
-    }
-
-    if (!collection) {
-      collection = await db.query.collections.findFirst({
-        where: eq(collections.slug, identifier),
-        with: {
-          user: true,
-          books: {
-            with: {
-              userBook: {
-                with: {
-                  book: true,
-                },
-              },
-            },
-          },
-          follows: true,
-        },
-      });
-    }
+      },
+    });
 
     if (!collection) {
       return { error: "Collection not found" };
@@ -310,25 +378,29 @@ export async function getCollectionById(identifier: string) {
       return { error: "Unauthorized to view this collection" };
     }
 
-    // Check if current user is following (if authenticated)
-    let isFollowing = false;
-    if (userId) {
-      const follow = await db.query.collectionFollows.findFirst({
-        where: and(
-          eq(collectionFollows.userId, userId),
-          eq(collectionFollows.collectionId, collection.id)
-        ),
-      });
-      isFollowing = !!follow;
-    }
+    const [[followers], follow] = await Promise.all([
+      db
+        .select({ count: count() })
+        .from(collectionFollows)
+        .where(eq(collectionFollows.collectionId, collection.id)),
+      // Check if current user is following (if authenticated)
+      userId
+        ? db.query.collectionFollows.findFirst({
+            where: and(
+              eq(collectionFollows.userId, userId),
+              eq(collectionFollows.collectionId, collection.id)
+            ),
+          })
+        : undefined,
+    ]);
 
     return {
       success: true,
       collection: {
         ...collection,
         bookCount: collection.books.length,
-        followerCount: collection.follows.length,
-        isFollowing,
+        followerCount: followers?.count ?? 0,
+        isFollowing: !!follow,
       },
     };
   } catch (error) {
@@ -351,47 +423,44 @@ export async function addBookToCollection(
   }
 
   try {
-    // Verify collection ownership
-    const collection = await db.query.collections.findFirst({
-      where: eq(collections.id, collectionId),
-    });
+    // Verify collection and book ownership
+    const [collection, userBook] = await Promise.all([
+      db.query.collections.findFirst({
+        where: and(eq(collections.id, collectionId), eq(collections.userId, userId)),
+      }),
+      db.query.userBooks.findFirst({
+        where: and(eq(userBooks.id, userBookId), eq(userBooks.userId, userId)),
+      }),
+    ]);
 
-    if (!collection || collection.userId !== userId) {
+    if (!collection) {
       return { error: "Collection not found or unauthorized" };
     }
 
-    // Verify userBook belongs to user
-    const userBook = await db.query.userBooks.findFirst({
-      where: eq(userBooks.id, userBookId),
-    });
-
-    if (!userBook || userBook.userId !== userId) {
+    if (!userBook) {
       return { error: "Book not found in your library" };
     }
 
-    // Check if book is already in collection
-    const existing = await db.query.collectionBooks.findFirst({
-      where: and(
-        eq(collectionBooks.collectionId, collectionId),
-        eq(collectionBooks.userBookId, userBookId)
-      ),
-    });
+    // Add book to collection (unique on collection + book)
+    const [added] = await db
+      .insert(collectionBooks)
+      .values({
+        collectionId,
+        userBookId,
+        notes,
+      })
+      .onConflictDoNothing({
+        target: [collectionBooks.collectionId, collectionBooks.userBookId],
+      })
+      .returning();
 
-    if (existing) {
+    if (!added) {
       return { error: "Book already in collection" };
     }
 
-    // Add book to collection
-    await db.insert(collectionBooks).values({
-      collectionId,
-      userBookId,
-      notes,
-    });
+    revalidateLocalized("/library", `/library/collections/${collection.slug}`);
 
-    revalidatePath("/[locale]/library", "page");
-    revalidatePath(`/[locale]/library/collections/${collection.slug}`, "page");
-
-    return { success: true };
+    return { success: true, collectionBook: added };
   } catch (error) {
     console.error("Error adding book to collection:", error);
     return { error: "Failed to add book to collection" };
@@ -413,10 +482,10 @@ export async function removeBookFromCollection(
   try {
     // Verify collection ownership
     const collection = await db.query.collections.findFirst({
-      where: eq(collections.id, collectionId),
+      where: and(eq(collections.id, collectionId), eq(collections.userId, userId)),
     });
 
-    if (!collection || collection.userId !== userId) {
+    if (!collection) {
       return { error: "Collection not found or unauthorized" };
     }
 
@@ -430,8 +499,7 @@ export async function removeBookFromCollection(
         )
       );
 
-    revalidatePath("/[locale]/library", "page");
-    revalidatePath(`/[locale]/library/collections/${collection.slug}`, "page");
+    revalidateLocalized("/library", `/library/collections/${collection.slug}`);
 
     return { success: true };
   } catch (error) {
@@ -444,7 +512,19 @@ export async function removeBookFromCollection(
  * Get all books in a collection
  */
 export async function getCollectionBooks(collectionId: string) {
+  const { userId } = await auth();
+
   try {
+    // Only the owner can see a private collection's books
+    const collection = await db.query.collections.findFirst({
+      where: eq(collections.id, collectionId),
+      columns: { userId: true, isPublic: true },
+    });
+
+    if (!collection || (!collection.isPublic && collection.userId !== userId)) {
+      return { error: "Collection not found" };
+    }
+
     const books = await db.query.collectionBooks.findMany({
       where: eq(collectionBooks.collectionId, collectionId),
       with: {
@@ -492,25 +572,21 @@ export async function followCollection(collectionId: string) {
       return { error: "Cannot follow your own collection" };
     }
 
-    // Check if already following
-    const existing = await db.query.collectionFollows.findFirst({
-      where: and(
-        eq(collectionFollows.userId, userId),
-        eq(collectionFollows.collectionId, collectionId)
-      ),
-    });
+    // Add follow
+    const [created] = await db
+      .insert(collectionFollows)
+      .values({
+        userId,
+        collectionId,
+      })
+      .onConflictDoNothing()
+      .returning();
 
-    if (existing) {
+    if (!created) {
       return { error: "Already following this collection" };
     }
 
-    // Add follow
-    await db.insert(collectionFollows).values({
-      userId,
-      collectionId,
-    });
-
-    revalidatePath(`/[locale]/library/collections/${collection.slug}`, "page");
+    revalidateLocalized(`/library/collections/${collection.slug}`);
     return { success: true };
   } catch (error) {
     console.error("Error following collection:", error);
@@ -542,7 +618,7 @@ export async function unfollowCollection(collectionId: string) {
     });
 
     if (collection) {
-      revalidatePath(`/[locale]/library/collections/${collection.slug}`, "page");
+      revalidateLocalized(`/library/collections/${collection.slug}`);
     }
 
     return { success: true };
@@ -560,9 +636,9 @@ export async function getPublicCollections(limit: number = 20) {
     const publicCollections = await db.query.collections.findMany({
       where: eq(collections.isPublic, true),
       orderBy: [desc(collections.createdAt)],
-      limit,
+      limit: Math.min(Math.max(Math.trunc(limit) || 20, 1), 50),
       with: {
-        user: true,
+        user: { columns: publicUserColumns },
         books: {
           limit: 4, // Show first 4 books as preview
           with: {
@@ -573,15 +649,33 @@ export async function getPublicCollections(limit: number = 20) {
             },
           },
         },
-        follows: true,
       },
     });
+
+    const ids = publicCollections.map((col) => col.id);
+    const [bookCounts, followerCounts] = ids.length
+      ? await Promise.all([
+          db
+            .select({ id: collectionBooks.collectionId, count: count() })
+            .from(collectionBooks)
+            .where(inArray(collectionBooks.collectionId, ids))
+            .groupBy(collectionBooks.collectionId),
+          db
+            .select({ id: collectionFollows.collectionId, count: count() })
+            .from(collectionFollows)
+            .where(inArray(collectionFollows.collectionId, ids))
+            .groupBy(collectionFollows.collectionId),
+        ])
+      : [[], []];
+
+    const bookCountById = new Map(bookCounts.map((row) => [row.id, row.count]));
+    const followerCountById = new Map(followerCounts.map((row) => [row.id, row.count]));
 
     // Transform to include counts
     const collectionsWithMeta = publicCollections.map((col) => ({
       ...col,
-      bookCount: col.books.length,
-      followerCount: col.follows.length,
+      bookCount: bookCountById.get(col.id) ?? 0,
+      followerCount: followerCountById.get(col.id) ?? 0,
     }));
 
     return { success: true, collections: collectionsWithMeta };
@@ -596,11 +690,17 @@ export async function getPublicCollections(limit: number = 20) {
  */
 export async function generateCollectionCoverUrl(
   collectionId: string,
-  fileExtension: string = "jpg"
+  contentType: string,
+  fileSize: number
 ) {
   const { userId } = await auth();
   if (!userId) {
     return { error: "Unauthorized" };
+  }
+
+  const validationError = validateImageUpload(contentType, fileSize);
+  if (validationError) {
+    return { error: validationError };
   }
 
   try {
@@ -617,7 +717,8 @@ export async function generateCollectionCoverUrl(
     const { uploadUrl, publicUrl, key } = await generateCollectionCoverUploadUrl(
       userId,
       collectionId,
-      fileExtension
+      contentType,
+      fileSize
     );
 
     return {
@@ -644,22 +745,22 @@ export async function updateCollectionOrder(
     return { error: "Unauthorized" };
   }
 
-  try {
-    // Verify ownership
-    const collection = await db.query.collections.findFirst({
-      where: eq(collections.id, collectionId),
-    });
+  if (!Number.isInteger(newSortOrder)) {
+    return { error: "Invalid sort order" };
+  }
 
-    if (!collection || collection.userId !== userId) {
+  try {
+    const [updated] = await db
+      .update(collections)
+      .set({ sortOrder: newSortOrder, updatedAt: new Date() })
+      .where(and(eq(collections.id, collectionId), eq(collections.userId, userId)))
+      .returning({ id: collections.id });
+
+    if (!updated) {
       return { error: "Collection not found or unauthorized" };
     }
 
-    await db
-      .update(collections)
-      .set({ sortOrder: newSortOrder, updatedAt: new Date() })
-      .where(eq(collections.id, collectionId));
-
-    revalidatePath("/[locale]/library", "page");
+    revalidateLocalized("/library");
     return { success: true };
   } catch (error) {
     console.error("Error updating collection order:", error);

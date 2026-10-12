@@ -4,9 +4,14 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
-import { assignFreePlanToUser } from "./subscriptions";
-import { generateProfilePictureUploadUrl as generateS3UploadUrl } from "@/lib/s3";
+import { revalidateLocalized } from "@/lib/revalidate";
+import { ensureFreePlan } from "@/lib/provisioning";
+import {
+  generateProfilePictureUploadUrl as generateS3UploadUrl,
+  ownedKeyFromUrl,
+  profilePicturePrefix,
+} from "@/lib/s3";
+import { validateImageUpload } from "@/lib/image-validation";
 
 /**
  * Update user profile
@@ -70,6 +75,18 @@ export async function updateProfile(
       return { error: "Display name must be at most 100 characters long" };
     }
 
+    if (bio && bio.length > 1000) {
+      return { error: "Bio must be at most 1000 characters long" };
+    }
+
+    // Only accept profile pictures uploaded by this user
+    if (
+      profilePictureUrl &&
+      !ownedKeyFromUrl(profilePictureUrl, profilePicturePrefix(userId))
+    ) {
+      return { error: "Invalid profile picture" };
+    }
+
     // Upsert user profile (insert or update)
     await db
       .insert(users)
@@ -94,9 +111,9 @@ export async function updateProfile(
       });
 
     // Assign free plan to new users
-    await assignFreePlanToUser(userId);
+    await ensureFreePlan(userId);
 
-    revalidatePath("/profile");
+    revalidateLocalized("/profile");
 
     return { success: true };
   } catch (error) {
@@ -108,7 +125,10 @@ export async function updateProfile(
 /**
  * Generate a presigned URL for uploading a profile picture
  */
-export async function generateProfilePictureUploadUrl(fileExtension: string) {
+export async function generateProfilePictureUploadUrl(
+  contentType: string,
+  fileSize: number
+) {
   const { userId } = await auth();
 
   if (!userId) {
@@ -116,15 +136,15 @@ export async function generateProfilePictureUploadUrl(fileExtension: string) {
   }
 
   try {
-    // Validate file extension
-    const validExtensions = ["jpg", "jpeg", "png", "webp"];
-    if (!validExtensions.includes(fileExtension.toLowerCase())) {
-      return { error: "Invalid file type. Supported: JPG, PNG, WEBP" };
+    const validationError = validateImageUpload(contentType, fileSize);
+    if (validationError) {
+      return { error: validationError };
     }
 
     const { uploadUrl, publicUrl, key } = await generateS3UploadUrl(
       userId,
-      fileExtension
+      contentType,
+      fileSize
     );
 
     return {

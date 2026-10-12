@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { withAuth } from "@/lib/api-handler";
+import { withAuth, ApiError } from "@/lib/api-handler";
 import { createApiResponse } from "@/lib/api-auth";
 import { unfollowUser } from "@/app/[locale]/actions/social";
 
@@ -13,7 +13,7 @@ export const DELETE = withAuth(async (request, { user, params }) => {
   const result = await unfollowUser(userId);
 
   if (result.error) {
-    throw new Error(result.error);
+    throw new ApiError(result.error);
   }
 
   return createApiResponse(result);

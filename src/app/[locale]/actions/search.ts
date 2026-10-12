@@ -1,12 +1,15 @@
 "use server";
 
+import { auth } from "@clerk/nextjs/server";
+import { after } from "next/server";
 import { db } from "@/db";
 import { books } from "@/db/schema";
-import { or, ilike, and, eq } from "drizzle-orm";
+import { or, ilike, and, eq, asc } from "drizzle-orm";
 import {
   searchBooks as searchOpenLibrary,
   type OpenLibraryBook,
 } from "@/lib/books";
+import { escapeLike } from "@/lib/utils";
 
 export interface SearchResult {
   id?: string; // UUID for internal books
@@ -20,52 +23,54 @@ export interface SearchResult {
   source: "internal" | "external";
 }
 
+const MAX_LIMIT = 40;
+const OPEN_LIBRARY_PAGE_SIZE = 20;
+
 /**
  * Save external book results to the database to build our catalog
  */
 async function saveExternalBooksToDatabase(
   externalBooks: OpenLibraryBook[],
 ): Promise<void> {
-  for (const book of externalBooks) {
-    try {
-      const isbn = book.isbn?.[0] || null;
-      const title = book.title;
-      const author = book.author_name?.[0] || "Unknown Author";
-      const coverUrl = book.cover_i
-        ? `https://covers.openlibrary.org/b/id/${book.cover_i}-L.jpg`
-        : null;
-      const pages = book.number_of_pages_median || null;
-      const publishedYear = book.first_publish_year || null;
+  const rows = externalBooks.map((book) => ({
+    isbn: book.isbn?.[0] || null,
+    title: book.title,
+    author: book.author_name?.[0] || "Unknown Author",
+    coverUrl: book.cover_i
+      ? `https://covers.openlibrary.org/b/id/${book.cover_i}-L.jpg`
+      : null,
+    pages: book.number_of_pages_median || null,
+    publishedYear: book.first_publish_year || null,
+  }));
 
-      // Check if book already exists
-      let existingBook = null;
+  // Books with an ISBN are deduplicated by the unique constraint
+  const withIsbn = rows.filter((row) => row.isbn);
+  if (withIsbn.length > 0) {
+    await db
+      .insert(books)
+      .values(withIsbn)
+      .onConflictDoNothing({ target: books.isbn });
+  }
 
-      if (isbn) {
-        // If book has ISBN, check by ISBN
-        existingBook = await db.query.books.findFirst({
-          where: eq(books.isbn, isbn),
-        });
-      } else {
-        // If no ISBN, check by title and author to avoid duplicates
-        existingBook = await db.query.books.findFirst({
-          where: and(eq(books.title, title), eq(books.author, author)),
-        });
-      }
-
-      // Only insert if book doesn't exist
-      if (!existingBook) {
-        await db.insert(books).values({
-          isbn,
-          title,
-          author,
-          coverUrl,
-          pages,
-          publishedYear,
-        });
-      }
-    } catch (error) {
-      // Log error but continue processing other books
-      console.error("Error saving book to database:", error);
+  // Books without an ISBN are deduplicated by title + author
+  const withoutIsbn = rows.filter((row) => !row.isbn);
+  if (withoutIsbn.length > 0) {
+    const existing = await db
+      .select({ title: books.title, author: books.author })
+      .from(books)
+      .where(
+        or(
+          ...withoutIsbn.map((row) =>
+            and(eq(books.title, row.title), eq(books.author, row.author)),
+          ),
+        ),
+      );
+    const existingKeys = new Set(existing.map((b) => `${b.title}|${b.author}`));
+    const newRows = withoutIsbn.filter(
+      (row) => !existingKeys.has(`${row.title}|${row.author}`),
+    );
+    if (newRows.length > 0) {
+      await db.insert(books).values(newRows);
     }
   }
 }
@@ -76,18 +81,27 @@ async function saveExternalBooksToDatabase(
  *
  * @param query - Search term
  * @param offset - Pagination offset (default: 0)
- * @param limit - Number of results per page (default: 20)
+ * @param limit - Number of results per page (default: 20, max: 40)
  */
 export async function searchBooksHybrid(
   query: string,
   offset: number = 0,
   limit: number = 20,
 ): Promise<SearchResult[]> {
-  if (!query.trim()) {
+  // Search writes to the catalog, so only signed-in users may use it
+  const { userId } = await auth();
+  if (!userId) {
     return [];
   }
 
-  const searchTerm = query.trim();
+  if (typeof query !== "string" || !query.trim()) {
+    return [];
+  }
+
+  const searchTerm = query.trim().slice(0, 200);
+  const safeOffset = Math.max(0, Math.trunc(Number(offset)) || 0);
+  const safeLimit = Math.min(Math.max(1, Math.trunc(Number(limit)) || 20), MAX_LIMIT);
+  const pattern = `%${escapeLike(searchTerm)}%`;
   const results: SearchResult[] = [];
 
   // Step 1: Search internal database
@@ -96,13 +110,15 @@ export async function searchBooksHybrid(
     .from(books)
     .where(
       or(
-        ilike(books.title, `%${searchTerm}%`),
-        ilike(books.author, `%${searchTerm}%`),
-        ilike(books.isbn, `%${searchTerm}%`),
+        ilike(books.title, pattern),
+        ilike(books.author, pattern),
+        ilike(books.isbn, pattern),
       ),
     )
-    .limit(limit)
-    .offset(offset);
+    // Stable order so offset pagination doesn't repeat or skip rows
+    .orderBy(asc(books.title), asc(books.id))
+    .limit(safeLimit)
+    .offset(safeOffset);
 
   // Add internal results
   results.push(
@@ -119,13 +135,13 @@ export async function searchBooksHybrid(
   );
 
   // Step 2: If we have fewer than the limit, supplement with API results
-  if (results.length < limit) {
-    const remainingSlots = limit - results.length;
+  if (results.length < safeLimit) {
+    const remainingSlots = safeLimit - results.length;
 
     // Calculate API page (Open Library uses pages, not offsets)
-    const apiPage = Math.floor(offset / 20) + 1;
+    const apiPage = Math.floor(safeOffset / OPEN_LIBRARY_PAGE_SIZE) + 1;
 
-    const externalResults = await searchOpenLibrary(searchTerm);
+    const externalResults = await searchOpenLibrary(searchTerm, apiPage);
 
     // Filter out books already in internal results (by ISBN or title+author)
     const internalIsbns = new Set(
@@ -145,11 +161,13 @@ export async function searchBooksHybrid(
       );
     });
 
-    // Save external results to database in the background
+    // Save external results to the database after the response is sent
     if (uniqueExternalResults.length > 0) {
-      saveExternalBooksToDatabase(uniqueExternalResults).catch((error) => {
-        console.error("Background save failed:", error);
-      });
+      after(() =>
+        saveExternalBooksToDatabase(uniqueExternalResults).catch((error) => {
+          console.error("Background save failed:", error);
+        }),
+      );
     }
 
     // Add external results up to remaining slots

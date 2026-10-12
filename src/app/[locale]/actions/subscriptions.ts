@@ -4,12 +4,12 @@ import { auth } from "@clerk/nextjs/server";
 import { db } from "@/db";
 import { users, userSubscriptions, subscriptionPlans } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
-import Stripe from "stripe";
+import { revalidateLocalized } from "@/lib/revalidate";
+import { getStripe } from "@/lib/stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-11-17.clover",
-});
+// Free plans never expire; use a far-future period end
+const farFuture = () =>
+  new Date(new Date().setFullYear(new Date().getFullYear() + 100));
 
 /**
  * Create a Stripe Checkout session for subscription upgrade
@@ -19,14 +19,21 @@ export async function createCheckoutSession(planId: string) {
   if (!userId) return { error: "Unauthorized" };
 
   try {
-    // Get user and plan
-    const user = await db.query.users.findFirst({
-      where: eq(users.id, userId),
-    });
-
-    const plan = await db.query.subscriptionPlans.findFirst({
-      where: eq(subscriptionPlans.id, planId),
-    });
+    // Get user, plan and existing subscription (for the Stripe customer ID)
+    const [user, plan, existingSubscription] = await Promise.all([
+      db.query.users.findFirst({
+        where: eq(users.id, userId),
+      }),
+      db.query.subscriptionPlans.findFirst({
+        where: and(
+          eq(subscriptionPlans.id, planId),
+          eq(subscriptionPlans.isActive, true)
+        ),
+      }),
+      db.query.userSubscriptions.findFirst({
+        where: eq(userSubscriptions.userId, userId),
+      }),
+    ]);
 
     if (!plan) {
       return { error: "Plan not found" };
@@ -36,12 +43,9 @@ export async function createCheckoutSession(planId: string) {
       return { error: "This plan does not require checkout" };
     }
 
-    // Get or create Stripe customer ID
-    // Check if user has existing subscription with customer ID
-    const existingSubscription = await db.query.userSubscriptions.findFirst({
-      where: eq(userSubscriptions.userId, userId),
-    });
+    const stripe = getStripe();
 
+    // Reuse the user's Stripe customer if they have one
     let customerId = existingSubscription?.stripeCustomerId;
     if (!customerId) {
       // Create new Stripe customer (will be saved to userSubscriptions by webhook)
@@ -56,7 +60,6 @@ export async function createCheckoutSession(planId: string) {
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: "subscription",
-      payment_method_types: ["card"],
       line_items: [
         {
           price: plan.stripePriceId,
@@ -95,7 +98,7 @@ export async function createPortalSession() {
       return { error: "No Stripe customer found" };
     }
 
-    const session = await stripe.billingPortal.sessions.create({
+    const session = await getStripe().billingPortal.sessions.create({
       customer: subscription.stripeCustomerId,
       return_url: `${process.env.NEXT_PUBLIC_BASE_URL}/subscription`,
     });
@@ -175,126 +178,45 @@ export async function upgradeToFreePlan(planId: string) {
       return { error: "Plan not found" };
     }
 
-    // Verify it's actually a free plan (no Stripe price ID)
-    if (plan.stripePriceId) {
+    // Only public, active, genuinely free plans can be self-assigned.
+    // Internal or lifetime plans without a Stripe price must be granted by an admin.
+    if (
+      plan.stripePriceId ||
+      plan.price !== 0 ||
+      plan.interval !== "free" ||
+      !plan.isActive ||
+      plan.isInternal
+    ) {
       return { error: "This plan requires payment" };
     }
 
-    // Check if user already has a subscription
-    const existingSubscription = await db.query.userSubscriptions.findFirst({
-      where: eq(userSubscriptions.userId, userId),
-      with: { plan: true },
-    });
-
-    if (existingSubscription) {
-      // Update existing subscription
-      await db
-        .update(userSubscriptions)
-        .set({
-          planId: plan.id,
-          status: "active",
-          currentPeriodStart: new Date(),
-          currentPeriodEnd: new Date(new Date().setFullYear(new Date().getFullYear() + 100)),
-          cancelAtPeriodEnd: false,
-          updatedAt: new Date(),
-        })
-        .where(eq(userSubscriptions.userId, userId));
-    } else {
-      // Create new subscription
-      await db.insert(userSubscriptions).values({
+    // Create or update the user's subscription
+    await db
+      .insert(userSubscriptions)
+      .values({
         userId,
         planId: plan.id,
         status: "active",
         currentPeriodStart: new Date(),
-        currentPeriodEnd: new Date(new Date().setFullYear(new Date().getFullYear() + 100)),
+        currentPeriodEnd: farFuture(),
         cancelAtPeriodEnd: false,
+      })
+      .onConflictDoUpdate({
+        target: userSubscriptions.userId,
+        set: {
+          planId: plan.id,
+          status: "active",
+          currentPeriodStart: new Date(),
+          currentPeriodEnd: farFuture(),
+          cancelAtPeriodEnd: false,
+          updatedAt: new Date(),
+        },
       });
-    }
 
-    revalidatePath("/subscription");
+    revalidateLocalized("/subscription");
     return { success: true };
   } catch (error) {
     console.error("Error upgrading to free plan:", error);
     return { error: "Failed to upgrade plan" };
   }
 }
-
-/**
- * Get the free plan (or create it if it doesn't exist)
- * Finds plans by interval type "free", not by price
- */
-export async function getOrCreateFreePlan() {
-  try {
-    // Try to find existing free plan by interval type
-    let freePlan = await db.query.subscriptionPlans.findFirst({
-      where: and(
-        eq(subscriptionPlans.interval, "free"),
-        eq(subscriptionPlans.isActive, true)
-      ),
-      orderBy: (plans, { asc }) => [asc(plans.sortOrder)],
-    });
-
-    // Create free plan if it doesn't exist
-    if (!freePlan) {
-      [freePlan] = await db
-        .insert(subscriptionPlans)
-        .values({
-          name: "Free",
-          price: 0,
-          interval: "free",
-          isActive: true,
-          isInternal: false,
-          sortOrder: 0,
-        })
-        .returning();
-    }
-
-    return { plan: freePlan };
-  } catch (error) {
-    console.error("Error getting/creating free plan:", error);
-    return { error: "Failed to get free plan" };
-  }
-}
-
-/**
- * Assign free plan to a user
- */
-export async function assignFreePlanToUser(userId: string) {
-  try {
-    // Check if user already has a subscription
-    const existingSubscription = await db.query.userSubscriptions.findFirst({
-      where: eq(userSubscriptions.userId, userId),
-    });
-
-    if (existingSubscription) {
-      return { subscription: existingSubscription };
-    }
-
-    // Get or create free plan
-    const freePlanResult = await getOrCreateFreePlan();
-    if ("error" in freePlanResult || !freePlanResult.plan) {
-      return { error: "Failed to get free plan" };
-    }
-
-    // Create subscription for user
-    const [subscription] = await db
-      .insert(userSubscriptions)
-      .values({
-        userId,
-        planId: freePlanResult.plan.id,
-        status: "active",
-        currentPeriodStart: new Date(),
-        currentPeriodEnd: new Date(new Date().setFullYear(new Date().getFullYear() + 100)), // Far future for free plan
-        cancelAtPeriodEnd: false,
-      })
-      .returning();
-
-    return { subscription };
-  } catch (error) {
-    console.error("Error assigning free plan to user:", error);
-    return { error: "Failed to assign free plan" };
-  }
-}
-
-// Helper functions
-// Period helpers removed — no longer used by subscription usage tracking.

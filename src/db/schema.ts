@@ -8,8 +8,9 @@ import {
   uuid,
   primaryKey,
   index,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 
 // Enums
 export const readingStatusEnum = pgEnum("reading_status", [
@@ -51,8 +52,7 @@ export const users = pgTable(
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => ({
-    emailIdx: index("users_email_idx").on(table.email),
-    usernameIdx: index("users_username_idx").on(table.username),
+    // email and username are already indexed by their unique constraints
     roleIdx: index("users_role_idx").on(table.role),
   }),
 );
@@ -71,8 +71,20 @@ export const books = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => ({
-    isbnIdx: index("books_isbn_idx").on(table.isbn),
-    titleIdx: index("books_title_idx").on(table.title),
+    // isbn is already indexed by its unique constraint.
+    // Trigram indexes back the `ilike '%query%'` book search.
+    titleTrgmIdx: index("books_title_trgm_idx").using(
+      "gin",
+      sql`${table.title} gin_trgm_ops`,
+    ),
+    authorTrgmIdx: index("books_author_trgm_idx").using(
+      "gin",
+      sql`${table.author} gin_trgm_ops`,
+    ),
+    titleAuthorIdx: index("books_title_author_idx").on(
+      table.title,
+      table.author,
+    ),
   }),
 );
 
@@ -98,11 +110,13 @@ export const userBooks = pgTable(
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => ({
-    userIdIdx: index("user_books_user_id_idx").on(table.userId),
     bookIdIdx: index("user_books_book_id_idx").on(table.bookId),
-    statusIdx: index("user_books_status_idx").on(table.status),
-    favoriteIdx: index("user_books_favorite_idx").on(table.isFavorite),
-    userBookIdx: index("user_books_user_book_idx").on(
+    userStatusIdx: index("user_books_user_status_idx").on(
+      table.userId,
+      table.status,
+    ),
+    // A book can only be in a user's library once (also covers lookups by user)
+    userBookIdx: uniqueIndex("user_books_user_book_idx").on(
       table.userId,
       table.bookId,
     ),
@@ -126,7 +140,11 @@ export const reviews = pgTable(
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => ({
-    userIdIdx: index("reviews_user_id_idx").on(table.userId),
+    // One review per user per book (also covers lookups by user)
+    userBookIdx: uniqueIndex("reviews_user_book_idx").on(
+      table.userId,
+      table.bookId,
+    ),
     bookIdIdx: index("reviews_book_id_idx").on(table.bookId),
   }),
 );
@@ -145,7 +163,7 @@ export const follows = pgTable(
   },
   (table) => ({
     pk: primaryKey({ columns: [table.followerId, table.followingId] }),
-    followerIdx: index("follows_follower_idx").on(table.followerId),
+    // Lookups by follower are covered by the primary key
     followingIdx: index("follows_following_idx").on(table.followingId),
   }),
 );
@@ -216,14 +234,20 @@ export const userSubscriptions = pgTable(
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => ({
-    userIdIdx: index("user_subscriptions_user_id_idx").on(table.userId),
+    // user_id and stripe_subscription_id are indexed by their unique constraints
     statusIdx: index("user_subscriptions_status_idx").on(table.status),
-    stripeSubIdx: index("user_subscriptions_stripe_sub_idx").on(
-      table.stripeSubscriptionId,
+    stripeCustomerIdx: index("user_subscriptions_stripe_customer_idx").on(
+      table.stripeCustomerId,
     ),
   }),
 );
 
+// Processed Stripe webhook events (for idempotency - Stripe retries deliveries)
+export const stripeEvents = pgTable("stripe_events", {
+  id: text("id").primaryKey(), // Stripe event ID
+  type: text("type").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
 
 // Collections table (Premium feature)
 export const collections = pgTable(
@@ -245,10 +269,14 @@ export const collections = pgTable(
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => ({
-    userIdIdx: index("collections_user_id_idx").on(table.userId),
-    slugIdx: index("collections_slug_idx").on(table.slug),
-    userSlugIdx: index("collections_user_slug_idx").on(table.userId, table.slug),
-    isPublicIdx: index("collections_is_public_idx").on(table.isPublic),
+    userSortIdx: index("collections_user_sort_idx").on(
+      table.userId,
+      table.sortOrder,
+    ),
+    slugIdx: uniqueIndex("collections_slug_idx").on(table.slug),
+    publicCreatedIdx: index("collections_public_created_idx")
+      .on(table.createdAt.desc())
+      .where(sql`${table.isPublic}`),
   }),
 );
 
@@ -267,13 +295,11 @@ export const collectionBooks = pgTable(
     notes: text("notes"),
   },
   (table) => ({
-    collectionIdIdx: index("collection_books_collection_id_idx").on(
-      table.collectionId,
-    ),
     userBookIdIdx: index("collection_books_user_book_id_idx").on(
       table.userBookId,
     ),
-    uniqueCollectionBook: index("collection_books_unique_idx").on(
+    // Also covers lookups by collection
+    uniqueCollectionBook: uniqueIndex("collection_books_unique_idx").on(
       table.collectionId,
       table.userBookId,
     ),
@@ -294,7 +320,7 @@ export const collectionFollows = pgTable(
   },
   (table) => ({
     pk: primaryKey({ columns: [table.userId, table.collectionId] }),
-    userIdIdx: index("collection_follows_user_id_idx").on(table.userId),
+    // Lookups by user are covered by the primary key
     collectionIdIdx: index("collection_follows_collection_id_idx").on(
       table.collectionId,
     ),

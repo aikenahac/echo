@@ -12,11 +12,19 @@ import {
 } from "@/db/schema";
 import { eq, desc, asc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import Stripe from "stripe";
+import { getStripe } from "@/lib/stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2024-11-20.acacia" as any,
-});
+/**
+ * Check that a Stripe price ID exists. `prices.retrieve` throws on unknown IDs.
+ */
+async function isValidStripePrice(priceId: string) {
+  try {
+    await getStripe().prices.retrieve(priceId);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Update a user's role (admin only)
@@ -275,8 +283,7 @@ export async function createSubscriptionPlan(data: {
   try {
     // Validate Stripe IDs if provided
     if (data.stripePriceId) {
-      const price = await stripe.prices.retrieve(data.stripePriceId);
-      if (!price) {
+      if (!(await isValidStripePrice(data.stripePriceId))) {
         return { error: "Invalid Stripe Price ID" };
       }
     }
@@ -324,8 +331,7 @@ export async function updateSubscriptionPlan(
   try {
     // Validate Stripe IDs if provided
     if (data.stripePriceId) {
-      const price = await stripe.prices.retrieve(data.stripePriceId);
-      if (!price) {
+      if (!(await isValidStripePrice(data.stripePriceId))) {
         return { error: "Invalid Stripe Price ID" };
       }
     }
@@ -380,32 +386,25 @@ export async function grantPremiumSubscription(
   const currentUser = await requireRole(["admin"]);
 
   try {
-    // Check if user already has a subscription
-    const existing = await db.query.userSubscriptions.findFirst({
-      where: eq(userSubscriptions.userId, targetUserId),
-    });
-
-    if (existing) {
-      // Update existing subscription
-      await db
-        .update(userSubscriptions)
-        .set({
+    // Create or update the user's subscription
+    await db
+      .insert(userSubscriptions)
+      .values({
+        userId: targetUserId,
+        planId,
+        status: "active",
+        currentPeriodStart: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: userSubscriptions.userId,
+        set: {
           planId,
           status: "active",
           currentPeriodStart: new Date(),
           currentPeriodEnd: null, // Manual grants don't expire
           updatedAt: new Date(),
-        })
-        .where(eq(userSubscriptions.userId, targetUserId));
-    } else {
-      // Create new subscription
-      await db.insert(userSubscriptions).values({
-        userId: targetUserId,
-        planId,
-        status: "active",
-        currentPeriodStart: new Date(),
+        },
       });
-    }
 
     await db.insert(auditLogs).values({
       userId: currentUser.id,
@@ -466,31 +465,25 @@ export async function revokeUserSubscription(targetUserId: string) {
       return { error: "Free plan not found" };
     }
 
-    // Update user's subscription to free tier
-    const existing = await db.query.userSubscriptions.findFirst({
-      where: eq(userSubscriptions.userId, targetUserId),
-    });
-
-    if (existing) {
-      await db
-        .update(userSubscriptions)
-        .set({
+    // Downgrade the user's subscription to the free tier (or create one)
+    await db
+      .insert(userSubscriptions)
+      .values({
+        userId: targetUserId,
+        planId: freePlan.id,
+        status: "active",
+        currentPeriodStart: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: userSubscriptions.userId,
+        set: {
           planId: freePlan.id,
           status: "canceled",
           stripeSubscriptionId: null,
           canceledAt: new Date(),
           updatedAt: new Date(),
-        })
-        .where(eq(userSubscriptions.userId, targetUserId));
-    } else {
-      // Create free subscription
-      await db.insert(userSubscriptions).values({
-        userId: targetUserId,
-        planId: freePlan.id,
-        status: "active",
-        currentPeriodStart: new Date(),
+        },
       });
-    }
 
     await db.insert(auditLogs).values({
       userId: currentUser.id,

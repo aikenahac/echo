@@ -4,8 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { db } from "@/db";
 import { follows, users } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
-import { assignFreePlanToUser } from "./subscriptions";
+import { revalidateLocalized } from "@/lib/revalidate";
 
 /**
  * Follow a user
@@ -22,48 +21,30 @@ export async function followUser(followingId: string) {
   }
 
   try {
-    // Ensure both users exist in database
-    await db
-      .insert(users)
-      .values({
-        id: userId,
-        email: "",
-      })
-      .onConflictDoNothing();
-
-    await db
-      .insert(users)
-      .values({
-        id: followingId,
-        email: "",
-      })
-      .onConflictDoNothing();
-
-    // Assign free plan to new users
-    await assignFreePlanToUser(userId);
-    await assignFreePlanToUser(followingId);
-
-    // Check if already following
-    const existing = await db.query.follows.findFirst({
-      where: and(
-        eq(follows.followerId, userId),
-        eq(follows.followingId, followingId),
-      ),
+    // Only follow users that actually exist
+    const target = await db.query.users.findFirst({
+      where: eq(users.id, followingId),
+      columns: { id: true },
     });
 
-    if (existing) {
+    if (!target) {
+      return { error: "User not found" };
+    }
+
+    const [created] = await db
+      .insert(follows)
+      .values({
+        followerId: userId,
+        followingId,
+      })
+      .onConflictDoNothing()
+      .returning();
+
+    if (!created) {
       return { error: "Already following this user" };
     }
 
-    // Create follow relationship
-    await db.insert(follows).values({
-      followerId: userId,
-      followingId,
-    });
-
-    revalidatePath("/users/search");
-    revalidatePath("/profile/following");
-    revalidatePath("/profile/followers");
+    revalidateLocalized("/users/search", "/profile", "/feed");
 
     return { success: true };
   } catch (error) {
@@ -92,9 +73,7 @@ export async function unfollowUser(followingId: string) {
         ),
       );
 
-    revalidatePath("/users/search");
-    revalidatePath("/profile/following");
-    revalidatePath("/profile/followers");
+    revalidateLocalized("/users/search", "/profile", "/feed");
 
     return { success: true };
   } catch (error) {

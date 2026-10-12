@@ -1,4 +1,4 @@
-import { withAuth } from "@/lib/api-handler";
+import { withAuth, ApiError } from "@/lib/api-handler";
 import { createApiResponse } from "@/lib/api-auth";
 import { updateProfile } from "@/app/[locale]/actions/profile";
 import { db } from "@/db";
@@ -10,7 +10,6 @@ import { eq } from "drizzle-orm";
  * Get current user's profile
  */
 export const GET = withAuth(async (request, { user }) => {
-  console.log({ user });
   const profile = await db.query.users.findFirst({
     where: eq(users.id, user.id),
     with: {
@@ -23,7 +22,7 @@ export const GET = withAuth(async (request, { user }) => {
   });
 
   if (!profile) {
-    throw new Error("Profile not found");
+    throw new ApiError("Profile not found", 404);
   }
 
   // Calculate isPremium: user has an active subscription with a paid plan
@@ -38,8 +37,6 @@ export const GET = withAuth(async (request, { user }) => {
 
   // Return profile with isPremium field, excluding subscription details
   const { subscription, ...profileData } = profile;
-
-  console.log(JSON.stringify(subscription, null, 2));
 
   return createApiResponse({
     ...profileData,
@@ -58,7 +55,7 @@ export const PUT = withAuth(async (request, { user }) => {
   const { username, bio, displayName, profilePictureUrl } = body;
 
   if (!username) {
-    throw new Error("Missing required field: username");
+    throw new ApiError("Missing required field: username");
   }
 
   const result = await updateProfile(
@@ -69,7 +66,7 @@ export const PUT = withAuth(async (request, { user }) => {
   );
 
   if (result.error) {
-    throw new Error(result.error);
+    throw new ApiError(result.error);
   }
 
   return createApiResponse(result);

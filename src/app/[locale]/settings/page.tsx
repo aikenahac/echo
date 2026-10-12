@@ -1,26 +1,23 @@
-import { auth } from "@clerk/nextjs/server";
 import { redirect } from "@/i18n/routing";
-import { db } from "@/db";
-import { users, userSubscriptions } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { getViewer } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 
-export default async function SettingsPage({ params }: { params: { locale: string } }) {
-  const { userId } = await auth();
-  if (!userId) {
-    redirect({ href: "/", locale: params.locale });
+export default async function SettingsPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+
+  // Cached per request (also used by the layout)
+  const user = await getViewer();
+  if (!user) {
+    return redirect({ href: "/", locale });
   }
 
-  const user = await db.query.users.findFirst({
-    where: eq(users.id, userId!),
-  });
-
-  const subscription = await db.query.userSubscriptions.findFirst({
-    where: eq(userSubscriptions.userId, userId!),
-    with: { plan: true },
-  });
+  const subscription = user.subscription;
 
   return (
     <div className="container mx-auto px-4 py-12 max-w-4xl">

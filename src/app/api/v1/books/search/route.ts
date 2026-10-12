@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { withAuth } from "@/lib/api-handler";
+import { withAuth, ApiError } from "@/lib/api-handler";
 import { createApiResponse } from "@/lib/api-auth";
 import { searchBooksHybrid } from "@/app/[locale]/actions/search";
 
@@ -14,7 +14,7 @@ export const GET = withAuth(async (request, { user }) => {
   const query = searchParams.get("q");
 
   if (!query) {
-    throw new Error("Missing required query parameter: q");
+    throw new ApiError("Missing required query parameter: q");
   }
 
   const results = await searchBooksHybrid(query);

@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 import { updateProfile, generateProfilePictureUploadUrl } from "@/app/[locale]/actions/profile";
-import { isValidImageType, isValidImageSize } from "@/lib/s3";
+import { isValidImageType, isValidImageSize } from "@/lib/image-validation";
 import { useRouter } from "@/i18n/routing";
 import type { users } from "@/db/schema";
 import type { InferSelectModel } from "drizzle-orm";
@@ -49,8 +49,7 @@ export function EditProfileForm({ user }: EditProfileFormProps) {
       }
 
       // Get presigned URL
-      const ext = file.name.split(".").pop() || "jpg";
-      const result = await generateProfilePictureUploadUrl(ext);
+      const result = await generateProfilePictureUploadUrl(file.type, file.size);
 
       if (result.error || !result.uploadUrl) {
         toast.error(result.error || "Failed to generate upload URL");

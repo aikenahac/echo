@@ -1,5 +1,4 @@
 import { ClerkProvider } from "@clerk/nextjs";
-import { auth, currentUser } from "@clerk/nextjs/server";
 import { EB_Garamond, IBM_Plex_Mono } from "next/font/google";
 import { Toaster } from "sonner";
 import { Navigation } from "@/components/navigation";
@@ -9,12 +8,9 @@ import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
 import { routing } from "@/i18n/routing";
 import { notFound } from "next/navigation";
-import { db } from "@/db";
-import { users, userSubscriptions } from "@/db/schema";
-import { eq } from "drizzle-orm";
 import "../globals.css";
 import { Metadata } from "next";
-import { assignFreePlanToUser } from "./actions/subscriptions";
+import { getViewer, isPaidPlan } from "@/lib/auth";
 
 const eb_garamond = EB_Garamond({
   subsets: ["latin"],
@@ -124,6 +120,22 @@ export const metadata: Metadata = {
   },
 };
 
+// Message namespaces used via `useTranslations` in client components.
+// Add a namespace here when a client component starts using it.
+const CLIENT_MESSAGE_NAMESPACES = [
+  "common",
+  "book",
+  "bookCard",
+  "collections",
+  "library",
+  "navigation",
+  "premium",
+  "profile",
+  "search",
+  "toast",
+  "validation",
+];
+
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
 }
@@ -148,51 +160,22 @@ export default async function LocaleLayout({
     notFound();
   }
 
-  // Providing all messages to the client side is the easiest way to get started
-  const messages = await getMessages();
+  // Only send the namespaces used by client components to the browser.
+  // Server components read messages on the server and don't need them here.
+  const allMessages = await getMessages();
+  const messages = Object.fromEntries(
+    CLIENT_MESSAGE_NAMESPACES.filter((ns) => ns in allMessages).map((ns) => [
+      ns,
+      allMessages[ns],
+    ])
+  );
 
   // Check if user needs to set username and has admin access
-  const { userId } = await auth();
-  let hasUsername = true;
-  let hasAdminAccess = false;
-  let hasPaidPlan = false;
-
-  if (userId) {
-    // Get email from Clerk
-    const clerkUser = await currentUser();
-    const email = clerkUser?.emailAddresses[0]?.emailAddress || "";
-
-    // Ensure user exists in database and has a free plan assigned
-    await db
-      .insert(users)
-      .values({
-        id: userId,
-        email: email,
-      })
-      .onConflictDoUpdate({
-        target: users.id,
-        set: {
-          email: email, // Update email if it changed
-        },
-      });
-
-    // Auto-assign free plan to new users
-    await assignFreePlanToUser(userId);
-
-    const user = await db.query.users.findFirst({
-      where: eq(users.id, userId),
-    });
-    hasUsername = !!user?.username;
-    hasAdminAccess = user?.role === "moderator" || user?.role === "admin";
-
-    // Check if user has a non-free plan (paid or lifetime)
-    const subscription = await db.query.userSubscriptions.findFirst({
-      where: eq(userSubscriptions.userId, userId),
-      with: { plan: true },
-    });
-    // User has a paid plan if they have a subscription with a non-free plan (including free lifetime plans)
-    hasPaidPlan = !!(subscription?.plan && (subscription.plan.price > 0 || subscription.plan.stripePriceId !== null || subscription.plan.interval === "lifetime"));
-  }
+  const viewer = await getViewer();
+  const hasUsername = !viewer || !!viewer.username;
+  const hasAdminAccess = viewer?.role === "moderator" || viewer?.role === "admin";
+  // User has a paid plan if they have a subscription with a non-free plan (including free lifetime plans)
+  const hasPaidPlan = isPaidPlan(viewer?.subscription?.plan);
 
   return (
     <ClerkProvider>

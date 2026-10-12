@@ -860,7 +860,7 @@ export const apiEndpoints: ApiEndpoint[] = [
               user: {
                 id: "user_456",
                 username: "bookworm",
-                email: "user@example.com",
+                displayName: "Book Worm",
               },
               book: {
                 id: "uuid...",
@@ -880,7 +880,7 @@ export const apiEndpoints: ApiEndpoint[] = [
               user: {
                 id: "user_789",
                 username: "reader123",
-                email: "reader@example.com",
+                displayName: null,
               },
               book: {
                 id: "uuid...",
@@ -915,7 +915,7 @@ export const apiEndpoints: ApiEndpoint[] = [
     method: "GET",
     path: "/api/v1/users/search",
     category: "Social",
-    description: "Search for users by username or email",
+    description: "Search for users by username or display name",
     requiresAuth: true,
     queryParams: [
       {
@@ -940,14 +940,14 @@ export const apiEndpoints: ApiEndpoint[] = [
             {
               id: "user_456",
               username: "bookworm",
-              email: "user@example.com",
+              displayName: "Book Worm",
               bio: "I love reading!",
               isFollowing: true,
             },
             {
               id: "user_789",
               username: "reader123",
-              email: "reader@example.com",
+              displayName: null,
               bio: null,
               isFollowing: false,
             },

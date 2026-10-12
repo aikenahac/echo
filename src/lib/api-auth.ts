@@ -5,6 +5,7 @@ import { clerkClient } from "@clerk/nextjs/server";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { ensureFreePlan } from "@/lib/provisioning";
 
 /**
  * Create a user in the database from Clerk user data
@@ -29,15 +30,23 @@ async function ensureUserExists(userId: string) {
     return null;
   }
 
-  // Create user in database
-  const [newUser] = await db.insert(users).values({
-    id: clerkUser.id,
-    email: clerkUser.emailAddresses[0]?.emailAddress || "",
-    username: clerkUser.username || null,
-    bio: "",
-  }).returning();
+  // Create user in database. Concurrent first requests may race here, so
+  // ignore the conflict and read the row back.
+  await db
+    .insert(users)
+    .values({
+      id: clerkUser.id,
+      email: clerkUser.emailAddresses[0]?.emailAddress || "",
+      username: clerkUser.username || null,
+      bio: "",
+    })
+    .onConflictDoNothing({ target: users.id });
 
-  return newUser;
+  await ensureFreePlan(userId);
+
+  return db.query.users.findFirst({
+    where: eq(users.id, userId),
+  });
 }
 
 /**
@@ -72,8 +81,10 @@ export async function authenticateApiRequest(request: NextRequest) {
         console.log("No sub claim in verified token");
       }
     } catch (error) {
-      console.error("Bearer token verification failed:", error);
-      console.error("Error details:", error instanceof Error ? error.message : error);
+      console.warn(
+        "Bearer token verification failed:",
+        error instanceof Error ? error.message : error,
+      );
       // Continue to try session-based auth as fallback
     }
   }

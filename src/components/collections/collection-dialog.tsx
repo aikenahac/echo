@@ -90,11 +90,12 @@ export function CollectionDialog({
         throw new Error("No file to upload");
       }
 
-      // Get file extension
-      const extension = file.name.split(".").pop() || "jpg";
-
       // Generate presigned URL
-      const result = await generateCollectionCoverUrl(collection!.id, extension);
+      const result = await generateCollectionCoverUrl(
+        collection!.id,
+        file.type,
+        file.size
+      );
 
       if (result.error || !result.uploadUrl || !result.publicUrl) {
         throw new Error(result.error || "Failed to generate upload URL");
@@ -186,10 +187,10 @@ export function CollectionDialog({
           const file = (window as any).__pendingUploadFile as File;
           if (file && result.collection) {
             try {
-              const extension = file.name.split(".").pop() || "jpg";
               const uploadResult = await generateCollectionCoverUrl(
                 result.collection.id,
-                extension
+                file.type,
+                file.size
               );
 
               if (uploadResult.uploadUrl && uploadResult.publicUrl) {

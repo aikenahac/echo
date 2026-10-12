@@ -10,6 +10,9 @@ const isProtectedRoute = createRouteMatcher([
   "/:locale/feed(.*)",
   "/:locale/books/search(.*)",
   "/:locale/users/search(.*)",
+  "/:locale/settings(.*)",
+  "/:locale/subscription(.*)",
+  "/:locale/admin(.*)",
 ]);
 
 const isApiRoute = createRouteMatcher(["/api(.*)"]);
@@ -21,14 +24,13 @@ export default clerkMiddleware(async (auth, req) => {
     return;
   }
 
-  // Run next-intl middleware for non-API routes
-  const intlResponse = intlMiddleware(req);
-
+  // Check auth first so unauthenticated requests skip the intl work
   if (isProtectedRoute(req)) {
     await auth.protect();
   }
 
-  return intlResponse;
+  // Run next-intl middleware for non-API routes
+  return intlMiddleware(req);
 });
 
 export const config = {

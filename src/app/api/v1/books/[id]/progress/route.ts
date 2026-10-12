@@ -1,4 +1,4 @@
-import { withAuth } from "@/lib/api-handler";
+import { withAuth, ApiError } from "@/lib/api-handler";
 import { createApiResponse } from "@/lib/api-auth";
 import {
   updateReadingProgress,
@@ -19,7 +19,7 @@ export const PUT = withAuth(async (request, { user, params }) => {
   if (pageCount !== undefined) {
     const result = await updateBookPageCount(id, pageCount);
     if (result.error) {
-      throw new Error(result.error);
+      throw new ApiError(result.error);
     }
 
     return createApiResponse(result);
@@ -29,10 +29,10 @@ export const PUT = withAuth(async (request, { user, params }) => {
   if (currentPage !== undefined) {
     const result = await updateReadingProgress(id, currentPage);
     if (result.error) {
-      throw new Error(result.error);
+      throw new ApiError(result.error);
     }
     return createApiResponse(result);
   }
 
-  throw new Error("Missing required field: currentPage or pageCount");
+  throw new ApiError("Missing required field: currentPage or pageCount");
 });

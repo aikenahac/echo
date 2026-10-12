@@ -1,4 +1,4 @@
-import { withAuth } from "@/lib/api-handler";
+import { withAuth, ApiError } from "@/lib/api-handler";
 import { createApiResponse } from "@/lib/api-auth";
 import { addBookToLibrary } from "@/app/[locale]/actions/books";
 import { db } from "@/db";
@@ -14,14 +14,14 @@ export const POST = withAuth(async (request, { user }) => {
   const { bookData, status, isFavorite } = body;
 
   if (!bookData || !status) {
-    throw new Error("Missing required fields: bookData, status");
+    throw new ApiError("Missing required fields: bookData, status");
   }
 
   // Reuse existing server action
   const result = await addBookToLibrary(bookData, status, isFavorite);
 
   if (result.error) {
-    throw new Error(result.error);
+    throw new ApiError(result.error);
   }
 
   return createApiResponse(result, 201);

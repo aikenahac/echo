@@ -2,13 +2,15 @@
 
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/db";
-import { books, userBooks, users } from "@/db/schema";
+import { books, userBooks } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+import { revalidateLocalized } from "@/lib/revalidate";
 import type { NormalizedBook } from "@/lib/books";
-import { assignFreePlanToUser } from "./subscriptions";
 
 export type ReadingStatus = "want" | "reading" | "finished";
+
+const isValidPageNumber = (value: number) =>
+  Number.isInteger(value) && value >= 0 && value <= 100_000;
 
 /**
  * Add a book to the user's library
@@ -26,26 +28,14 @@ export async function addBookToLibrary(
 
 
   try {
-    // Ensure user exists in our database
-    await db
-      .insert(users)
-      .values({
-        id: userId,
-        email: "", // Will be updated from Clerk webhook
-      })
-      .onConflictDoNothing();
-
-    // Assign free plan to new users
-    await assignFreePlanToUser(userId);
-
-    // Check if book already exists in our database
+    // Find or create the book. Concurrent inserts of the same ISBN are
+    // resolved by the unique constraint.
     let existingBook = bookData.isbn
       ? await db.query.books.findFirst({
           where: eq(books.isbn, bookData.isbn),
         })
       : null;
 
-    // If book doesn't exist, create it
     if (!existingBook) {
       const [newBook] = await db
         .insert(books)
@@ -57,23 +47,20 @@ export async function addBookToLibrary(
           pages: bookData.pages,
           publishedYear: bookData.publishedYear,
         })
+        .onConflictDoNothing({ target: books.isbn })
         .returning();
-      existingBook = newBook;
+      existingBook =
+        newBook ??
+        (await db.query.books.findFirst({
+          where: eq(books.isbn, bookData.isbn!),
+        }));
     }
 
-    // Check if user already has this book
-    const existingUserBook = await db.query.userBooks.findFirst({
-      where: and(
-        eq(userBooks.userId, userId),
-        eq(userBooks.bookId, existingBook.id),
-      ),
-    });
-
-    if (existingUserBook) {
-      return { error: "Book already in your library" };
+    if (!existingBook) {
+      return { error: "Failed to add book to library" };
     }
 
-    // Add book to user's library
+    // Add book to user's library (unique on user + book)
     const [userBook] = await db
       .insert(userBooks)
       .values({
@@ -86,12 +73,14 @@ export async function addBookToLibrary(
         pageCount: existingBook.pages,
         currentPage: status === "finished" ? existingBook.pages || 0 : 0,
       })
+      .onConflictDoNothing({ target: [userBooks.userId, userBooks.bookId] })
       .returning();
 
-    // Usage tracking removed — nothing to increment
+    if (!userBook) {
+      return { error: "Book already in your library" };
+    }
 
-    revalidatePath("/library");
-    revalidatePath("/books/search");
+    revalidateLocalized("/library", "/books/search");
 
     return { success: true, userBook };
   } catch (error) {
@@ -146,8 +135,7 @@ export async function updateBookStatus(
       .set(updateData)
       .where(eq(userBooks.id, userBookId));
 
-    revalidatePath("/library");
-    revalidatePath(`/books/${userBook.bookId}`);
+    revalidateLocalized("/library", `/books/${userBook.bookId}`);
 
     return { success: true };
   } catch (error) {
@@ -167,6 +155,10 @@ export async function updateBookPageCount(
 
   if (!userId) {
     return { error: "Unauthorized" };
+  }
+
+  if (!isValidPageNumber(pageCount)) {
+    return { error: "Invalid page count" };
   }
 
   try {
@@ -192,8 +184,7 @@ export async function updateBookPageCount(
       .set(updateData)
       .where(eq(userBooks.id, userBookId));
 
-    revalidatePath("/library");
-    revalidatePath(`/books/${userBook.bookId}`);
+    revalidateLocalized("/library", `/books/${userBook.bookId}`);
 
     return { success: true };
   } catch (error) {
@@ -213,6 +204,10 @@ export async function updateBookCurrentPage(
 
   if (!userId) {
     return { error: "Unauthorized" };
+  }
+
+  if (!isValidPageNumber(currentPage)) {
+    return { error: "Invalid page number" };
   }
 
   try {
@@ -244,8 +239,7 @@ export async function updateBookCurrentPage(
       .set(updateData)
       .where(eq(userBooks.id, userBookId));
 
-    revalidatePath("/library");
-    revalidatePath(`/books/${userBook.bookId}`);
+    revalidateLocalized("/library", `/books/${userBook.bookId}`);
 
     return { success: true };
   } catch (error) {
@@ -265,18 +259,16 @@ export async function removeBookFromLibrary(userBookId: string) {
   }
 
   try {
-    const userBook = await db.query.userBooks.findFirst({
-      where: and(eq(userBooks.id, userBookId), eq(userBooks.userId, userId)),
-    });
+    const [userBook] = await db
+      .delete(userBooks)
+      .where(and(eq(userBooks.id, userBookId), eq(userBooks.userId, userId)))
+      .returning({ bookId: userBooks.bookId });
 
     if (!userBook) {
       return { error: "Book not found in your library" };
     }
 
-    await db.delete(userBooks).where(eq(userBooks.id, userBookId));
-
-    revalidatePath("/library");
-    revalidatePath(`/books/${userBook.bookId}`);
+    revalidateLocalized("/library", `/books/${userBook.bookId}`);
 
     return { success: true };
   } catch (error) {
@@ -296,6 +288,10 @@ export async function updateReadingProgress(
 
   if (!userId) {
     return { error: "Unauthorized" };
+  }
+
+  if (!isValidPageNumber(currentPage)) {
+    return { error: "Invalid page number" };
   }
 
   try {
@@ -334,8 +330,7 @@ export async function updateReadingProgress(
       .set(updateData)
       .where(eq(userBooks.id, userBookId));
 
-    revalidatePath("/library");
-    revalidatePath(`/books/${userBook.bookId}`);
+    revalidateLocalized("/library", `/books/${userBook.bookId}`);
 
     return { success: true };
   } catch (error) {
@@ -354,29 +349,25 @@ export async function rateBook(userBookId: string, rating: number) {
     return { error: "Unauthorized" };
   }
 
-  if (rating < 1 || rating > 5) {
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
     return { error: "Rating must be between 1 and 5" };
   }
 
   try {
-    const userBook = await db.query.userBooks.findFirst({
-      where: and(eq(userBooks.id, userBookId), eq(userBooks.userId, userId)),
-    });
-
-    if (!userBook) {
-      return { error: "Book not found in your library" };
-    }
-
-    await db
+    const [userBook] = await db
       .update(userBooks)
       .set({
         rating,
         updatedAt: new Date(),
       })
-      .where(eq(userBooks.id, userBookId));
+      .where(and(eq(userBooks.id, userBookId), eq(userBooks.userId, userId)))
+      .returning({ bookId: userBooks.bookId });
 
-    revalidatePath("/library");
-    revalidatePath(`/books/${userBook.bookId}`);
+    if (!userBook) {
+      return { error: "Book not found in your library" };
+    }
+
+    revalidateLocalized("/library", `/books/${userBook.bookId}`);
 
     return { success: true };
   } catch (error) {
@@ -399,25 +390,20 @@ export async function toggleBookFavorite(
   }
 
   try {
-    const userBook = await db.query.userBooks.findFirst({
-      where: and(eq(userBooks.id, userBookId), eq(userBooks.userId, userId)),
-    });
-
-    if (!userBook) {
-      return { error: "Book not found in your library" };
-    }
-
-    await db
+    const [userBook] = await db
       .update(userBooks)
       .set({
         isFavorite,
         updatedAt: new Date(),
       })
-      .where(eq(userBooks.id, userBookId));
+      .where(and(eq(userBooks.id, userBookId), eq(userBooks.userId, userId)))
+      .returning({ bookId: userBooks.bookId });
 
-    revalidatePath("/library");
-    revalidatePath("/profile");
-    revalidatePath(`/books/${userBook.bookId}`);
+    if (!userBook) {
+      return { error: "Book not found in your library" };
+    }
+
+    revalidateLocalized("/library", "/profile", `/books/${userBook.bookId}`);
 
     return { success: true };
   } catch (error) {

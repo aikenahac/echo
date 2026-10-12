@@ -1,58 +1,82 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { db } from "@/db";
-import { users, userSubscriptions, subscriptionPlans } from "@/db/schema";
+import {
+  users,
+  userSubscriptions,
+  subscriptionPlans,
+  stripeEvents,
+} from "@/db/schema";
 import { eq } from "drizzle-orm";
 import {
   sendWelcomeToPremiumEmail,
   sendPaymentFailedEmail,
   sendSubscriptionCanceledEmail,
 } from "@/lib/email";
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-11-17.clover",
-} as Stripe.StripeConfig);
-
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+import { getStripe } from "@/lib/stripe";
+import { isPaidPlan } from "@/lib/auth";
 
 // Force this route to be dynamic and disable caching
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
+type SubscriptionStatus =
+  | "active"
+  | "canceled"
+  | "past_due"
+  | "unpaid"
+  | "trialing"
+  | "incomplete";
+
 export async function POST(req: NextRequest) {
   const body = await req.text();
-  const signature = req.headers.get("stripe-signature")!;
+  const signature = req.headers.get("stripe-signature");
+
+  if (!signature) {
+    return NextResponse.json({ error: "Missing signature" }, { status: 400 });
+  }
 
   let event: Stripe.Event;
 
   try {
-    event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+    event = getStripe().webhooks.constructEvent(
+      body,
+      signature,
+      process.env.STRIPE_WEBHOOK_SECRET!,
+    );
   } catch (err) {
     console.error("Webhook signature verification failed:", err);
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+  }
+
+  // Stripe may deliver the same event more than once: process each event once
+  const [newEvent] = await db
+    .insert(stripeEvents)
+    .values({ id: event.id, type: event.type })
+    .onConflictDoNothing()
+    .returning();
+
+  if (!newEvent) {
+    return NextResponse.json({ received: true, duplicate: true });
   }
 
   try {
     switch (event.type) {
       case "customer.subscription.created":
       case "customer.subscription.updated":
-        await handleSubscriptionUpdate(
-          event.data.object as Stripe.Subscription,
-        );
+        await handleSubscriptionUpdate(event.data.object);
         break;
 
       case "customer.subscription.deleted":
-        await handleSubscriptionDeleted(
-          event.data.object as Stripe.Subscription,
-        );
+        await handleSubscriptionDeleted(event.data.object);
         break;
 
       case "invoice.payment_succeeded":
-        await handlePaymentSucceeded(event.data.object as Stripe.Invoice);
+        await handlePaymentSucceeded(event.data.object);
         break;
 
       case "invoice.payment_failed":
-        await handlePaymentFailed(event.data.object as Stripe.Invoice);
+        await handlePaymentFailed(event.data.object);
         break;
 
       default:
@@ -62,6 +86,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ received: true });
   } catch (err) {
     console.error("Error processing webhook:", err);
+    // Forget the event so Stripe's retry gets processed
+    await db.delete(stripeEvents).where(eq(stripeEvents.id, event.id));
     return NextResponse.json(
       { error: "Webhook processing failed" },
       { status: 500 },
@@ -69,94 +95,108 @@ export async function POST(req: NextRequest) {
   }
 }
 
-async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
-  const customerId = typeof subscription.customer === "string" ? subscription.customer : subscription.customer?.id || "";
+const idOf = (value: string | { id: string } | null | undefined) =>
+  typeof value === "string" ? value : value?.id ?? null;
 
-  // Try to get userId from subscription metadata first
-  let userId = subscription.metadata.userId;
-
-  // If no userId in metadata, look it up by customer ID
-  if (!userId) {
-    console.log("No userId in subscription metadata, looking up by customerId:", customerId);
-    const existingSub = await db.query.userSubscriptions.findFirst({
-      where: eq(userSubscriptions.stripeCustomerId, customerId),
+/**
+ * Find our subscription row for a Stripe subscription: by metadata user ID,
+ * then by Stripe subscription ID, then by Stripe customer ID.
+ */
+async function findSubscriptionRow(subscription: Stripe.Subscription) {
+  const userId = subscription.metadata.userId;
+  if (userId) {
+    const row = await db.query.userSubscriptions.findFirst({
+      where: eq(userSubscriptions.userId, userId),
+      with: { plan: true },
     });
-
-    if (!existingSub) {
-      console.error("No subscription found for Stripe customer:", customerId);
-      return;
-    }
-
-    userId = existingSub.userId;
-    console.log("Found userId from customer lookup:", userId);
+    return { userId, row };
   }
 
-  // Find the plan by Stripe price ID
-  const priceId = subscription.items.data[0].price.id;
-  console.log("Looking up plan for priceId:", priceId);
-
-  const plan = await db.query.subscriptionPlans.findFirst({
-    where: eq(subscriptionPlans.stripePriceId, priceId),
+  const bySubscription = await db.query.userSubscriptions.findFirst({
+    where: eq(userSubscriptions.stripeSubscriptionId, subscription.id),
+    with: { plan: true },
   });
+  if (bySubscription) return { userId: bySubscription.userId, row: bySubscription };
 
-  if (!plan) {
-    console.error("No plan found for price ID:", priceId);
-    console.error("Available plans:", await db.query.subscriptionPlans.findMany());
+  const customerId = idOf(subscription.customer);
+  if (customerId) {
+    const byCustomer = await db.query.userSubscriptions.findFirst({
+      where: eq(userSubscriptions.stripeCustomerId, customerId),
+      with: { plan: true },
+    });
+    if (byCustomer) return { userId: byCustomer.userId, row: byCustomer };
+  }
+
+  return { userId: null, row: undefined };
+}
+
+async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
+  const customerId = idOf(subscription.customer);
+  const { userId, row: existingSubscription } =
+    await findSubscriptionRow(subscription);
+
+  if (!userId) {
+    console.error("No user found for Stripe subscription:", subscription.id);
     return;
   }
 
-  console.log("Found plan:", plan.name);
+  const isActive =
+    subscription.status === "active" || subscription.status === "trialing";
 
-  // Upsert subscription
-  const existingSubscription = await db.query.userSubscriptions.findFirst({
-    where: eq(userSubscriptions.userId, userId),
-  });
-
-  if (existingSubscription) {
-    await db
-      .update(userSubscriptions)
-      .set({
-        planId: plan.id,
-        stripeSubscriptionId: subscription.id,
-        stripeCustomerId: customerId,
-        status: subscription.status as "active" | "canceled" | "past_due" | "unpaid" | "trialing" | "incomplete",
-        currentPeriodStart: "current_period_start" in subscription && typeof subscription.current_period_start === "number"
-          ? new Date(subscription.current_period_start * 1000)
-          : null,
-        currentPeriodEnd: "current_period_end" in subscription && typeof subscription.current_period_end === "number"
-          ? new Date(subscription.current_period_end * 1000)
-          : null,
-        cancelAtPeriodEnd: "cancel_at_period_end" in subscription ? Boolean(subscription.cancel_at_period_end) : false,
-        updatedAt: new Date(),
-      })
-      .where(eq(userSubscriptions.userId, userId));
-  } else {
-    await db.insert(userSubscriptions).values({
-      userId,
-      planId: plan.id,
-      stripeSubscriptionId: subscription.id,
-      stripeCustomerId: customerId,
-      status: subscription.status as "active" | "canceled" | "past_due" | "unpaid" | "trialing" | "incomplete",
-      currentPeriodStart: "current_period_start" in subscription && typeof subscription.current_period_start === "number"
-        ? new Date(subscription.current_period_start * 1000)
-        : null,
-      currentPeriodEnd: "current_period_end" in subscription && typeof subscription.current_period_end === "number"
-        ? new Date(subscription.current_period_end * 1000)
-        : null,
-      cancelAtPeriodEnd: "cancel_at_period_end" in subscription ? Boolean(subscription.cancel_at_period_end) : false,
-    });
+  // Ignore stale events from an older subscription that has been replaced
+  if (
+    existingSubscription?.stripeSubscriptionId &&
+    existingSubscription.stripeSubscriptionId !== subscription.id &&
+    !isActive
+  ) {
+    console.log("Ignoring event for replaced subscription:", subscription.id);
+    return;
   }
 
-  console.log("✅ Subscription synced successfully for user:", userId, "- Plan:", plan.name, "- Status:", subscription.status);
+  // Since API version 2025-03-31, billing periods live on subscription items
+  const item = subscription.items.data[0];
+  if (!item) {
+    console.error("Subscription has no items:", subscription.id);
+    return;
+  }
 
-  // Send welcome email for new premium users (only if this is a new subscription with active/trialing status)
-  const isPremium = subscription.status === "active" || subscription.status === "trialing";
-  if (isPremium && !existingSubscription) {
+  // Find the plan by Stripe price ID
+  const plan = await db.query.subscriptionPlans.findFirst({
+    where: eq(subscriptionPlans.stripePriceId, item.price.id),
+  });
+
+  if (!plan) {
+    console.error("No plan found for price ID:", item.price.id);
+    return;
+  }
+
+  const values = {
+    planId: plan.id,
+    stripeSubscriptionId: subscription.id,
+    stripeCustomerId: customerId,
+    status: subscription.status as SubscriptionStatus,
+    currentPeriodStart: new Date(item.current_period_start * 1000),
+    currentPeriodEnd: new Date(item.current_period_end * 1000),
+    cancelAtPeriodEnd: subscription.cancel_at_period_end,
+  };
+
+  await db
+    .insert(userSubscriptions)
+    .values({ userId, ...values })
+    .onConflictDoUpdate({
+      target: userSubscriptions.userId,
+      set: { ...values, updatedAt: new Date() },
+    });
+
+  console.log("Subscription synced for user:", userId, "- Plan:", plan.name, "- Status:", subscription.status);
+
+  // Send welcome email when the user moves from a free plan to an active paid plan
+  if (isActive && isPaidPlan(plan) && !isPaidPlan(existingSubscription?.plan)) {
     const user = await db.query.users.findFirst({
       where: eq(users.id, userId),
     });
 
-    if (user) {
+    if (user?.email) {
       try {
         await sendWelcomeToPremiumEmail(user.email, user.username || "there");
       } catch (emailError) {
@@ -167,43 +207,36 @@ async function handleSubscriptionUpdate(subscription: Stripe.Subscription) {
 }
 
 async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
-  const userId = subscription.metadata.userId;
+  const { userId, row: userSub } = await findSubscriptionRow(subscription);
 
-  if (!userId) return;
+  if (!userId || !userSub) return;
 
-  // Get subscription details before deletion
-  const userSub = await db.query.userSubscriptions.findFirst({
-    where: eq(userSubscriptions.userId, userId),
+  // Ignore deletions of a subscription the user no longer has
+  if (userSub.stripeSubscriptionId && userSub.stripeSubscriptionId !== subscription.id) {
+    return;
+  }
+
+  // Cancel and downgrade the user to the free tier
+  const freePlan = await db.query.subscriptionPlans.findFirst({
+    where: eq(subscriptionPlans.interval, "free"),
   });
 
-  // Update subscription to canceled
   await db
     .update(userSubscriptions)
     .set({
       status: "canceled",
       canceledAt: new Date(),
       updatedAt: new Date(),
+      ...(freePlan ? { planId: freePlan.id } : {}),
     })
     .where(eq(userSubscriptions.userId, userId));
-
-  // Downgrade user to free tier
-  const freePlan = await db.query.subscriptionPlans.findFirst({
-    where: eq(subscriptionPlans.interval, "free"),
-  });
-
-  if (freePlan) {
-    await db
-      .update(userSubscriptions)
-      .set({ planId: freePlan.id })
-      .where(eq(userSubscriptions.userId, userId));
-  }
 
   // Send cancellation email
   const user = await db.query.users.findFirst({
     where: eq(users.id, userId),
   });
 
-  if (user && userSub?.currentPeriodEnd) {
+  if (user?.email && userSub.currentPeriodEnd) {
     try {
       await sendSubscriptionCanceledEmail(
         user.email,
@@ -216,27 +249,30 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   }
 }
 
+function invoiceSubscriptionId(invoice: Stripe.Invoice) {
+  return idOf(invoice.parent?.subscription_details?.subscription);
+}
+
 async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
-  // Update subscription status if needed
-  if ("subscription" in invoice && typeof invoice.subscription === "string") {
-    const subscription = await stripe.subscriptions.retrieve(
-      invoice.subscription,
-    );
-    await handleSubscriptionUpdate(subscription);
-  }
+  // Re-sync the subscription (status, period) after a successful payment
+  const subscriptionId = invoiceSubscriptionId(invoice);
+  if (!subscriptionId) return;
+
+  const subscription = await getStripe().subscriptions.retrieve(subscriptionId);
+  await handleSubscriptionUpdate(subscription);
 }
 
 async function handlePaymentFailed(invoice: Stripe.Invoice) {
-  const customerId = typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id || "";
+  const subscriptionId = invoiceSubscriptionId(invoice);
+  if (!subscriptionId) return;
 
-  // Find subscription by customer ID
+  // Only mark the subscription the invoice belongs to as past due
   const subscription = await db.query.userSubscriptions.findFirst({
-    where: eq(userSubscriptions.stripeCustomerId, customerId),
+    where: eq(userSubscriptions.stripeSubscriptionId, subscriptionId),
   });
 
   if (!subscription) return;
 
-  // Update subscription status to past_due
   await db
     .update(userSubscriptions)
     .set({
@@ -250,7 +286,7 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
     where: eq(users.id, subscription.userId),
   });
 
-  if (!user) return;
+  if (!user?.email) return;
 
   // Send payment failed email
   try {
