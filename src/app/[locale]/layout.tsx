@@ -1,8 +1,7 @@
 import { ClerkProvider } from "@clerk/nextjs";
-import { EB_Garamond, IBM_Plex_Mono } from "next/font/google";
+import { Archivo } from "next/font/google";
 import { Toaster } from "sonner";
-import { Navigation } from "@/components/navigation";
-import { Footer } from "@/components/footer";
+import { AppMain, Navigation } from "@/components/navigation";
 import { UsernameSetupDialog } from "@/components/username-setup-dialog";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
@@ -11,23 +10,14 @@ import { notFound } from "next/navigation";
 import "../globals.css";
 import { Metadata } from "next";
 import { getViewer, isPaidPlan } from "@/lib/auth";
+import { getAppearance } from "@/lib/appearance";
 
-const eb_garamond = EB_Garamond({
-  subsets: ["latin"],
-  weight: ["600"],
-  variable: "--display-family",
-});
-
-const eb_garamond_body = EB_Garamond({
-  subsets: ["latin"],
-  weight: ["400"],
-  variable: "--body-family",
-});
-
-const ibm_plex_mono = IBM_Plex_Mono({
-  subsets: ["latin"],
-  weight: ["400"],
-  variable: "--font-mono",
+// Archivo with the width axis: the display face is set at wdth 62 (condensed)
+// through `font-stretch` in the font-disp utility.
+const archivo = Archivo({
+  subsets: ["latin", "latin-ext"],
+  axes: ["wdth"],
+  variable: "--font-archivo",
 });
 
 export const metadata: Metadata = {
@@ -176,22 +166,30 @@ export default async function LocaleLayout({
   const hasAdminAccess = viewer?.role === "moderator" || viewer?.role === "admin";
   // User has a paid plan if they have a subscription with a non-free plan (including free lifetime plans)
   const hasPaidPlan = isPaidPlan(viewer?.subscription?.plan);
+  const appearance = await getAppearance();
 
   return (
     <ClerkProvider>
-      <html lang={locale}>
+      <html
+        lang={locale}
+        data-theme={appearance === "system" ? undefined : appearance}
+        className={archivo.variable}
+      >
         <head>
           <script defer data-domain="echobook.club" src="https://plausible.aerio.cloud/js/script.outbound-links.pageview-props.tagged-events.js"></script>
         </head>
-        <body
-          className={`${eb_garamond.variable} ${eb_garamond_body.variable} ${ibm_plex_mono.variable} antialiased`}
-        >
+        <body>
           <NextIntlClientProvider messages={messages}>
             <Navigation hasAdminAccess={hasAdminAccess} hasPaidPlan={hasPaidPlan} />
-            <main>{children}</main>
-            <Footer />
+            <AppMain>{children}</AppMain>
             <UsernameSetupDialog hasUsername={hasUsername} />
-            <Toaster richColors />
+            <Toaster
+              position="top-center"
+              toastOptions={{
+                className:
+                  "!rounded-2xl !border-rule !bg-paper !text-ink !font-sans !text-[15px]",
+              }}
+            />
           </NextIntlClientProvider>
         </body>
       </html>

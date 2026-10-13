@@ -1,195 +1,220 @@
 "use client";
 
-import { Show, SignInButton, UserButton } from "@clerk/nextjs";
 import { Link } from "@/i18n/routing";
-import { Search, Library, Activity, User, ChevronDown, ChevronUp, Shield, CreditCard, Users, Tag } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
-import { Button } from "./ui/button";
-import Image from "next/image";
+import { cn } from "@/lib/utils";
+import { EchoMark, Icon, type IconName } from "@/components/echo/icons";
 
 interface NavigationProps {
   hasAdminAccess?: boolean;
   hasPaidPlan?: boolean;
 }
 
-export function Navigation({ hasAdminAccess = false, hasPaidPlan = false }: NavigationProps) {
+// Paths that render without the app chrome (signed-out pages and first run).
+const BARE_PATHS = [
+  /^\/[a-z]{2}\/?$/,
+  /^\/[a-z]{2}\/(sign-in|sign-up|reset-password|sso-callback|pricing|documents)(\/|$)/,
+];
+
+export function isBarePath(pathname: string) {
+  return BARE_PATHS.some((re) => re.test(pathname));
+}
+
+type NavItem = {
+  href: string;
+  icon: IconName;
+  label: string;
+  match: (path: string) => boolean;
+};
+
+/**
+ * App chrome. Wide screens get a left rail; phones get the floating capsule tab
+ * bar (Library · Friends · You) with Search as its own round button.
+ */
+export function Navigation({
+  hasAdminAccess = false,
+  hasPaidPlan = false,
+}: NavigationProps) {
   const t = useTranslations("navigation");
   const pathname = usePathname();
-  const [isMobileNavExpanded, setIsMobileNavExpanded] = useState(false);
 
-  const navItems = [
-    {
-      href: "/books/search",
-      icon: Search,
-      label: t("search"),
-      match: (path: string) => path.includes("/books/search"),
-    },
+  if (isBarePath(pathname)) return null;
+
+  const tabs: NavItem[] = [
     {
       href: "/library",
-      icon: Library,
+      icon: "books",
       label: t("library"),
-      match: (path: string) => path.includes("/library"),
+      match: (p) => p.includes("/library"),
     },
     {
       href: "/feed",
-      icon: Activity,
+      icon: "friends",
       label: t("feed"),
-      match: (path: string) => path.includes("/feed"),
-    },
-    {
-      href: "/users/search",
-      icon: Users,
-      label: t("findUsers"),
-      match: (path: string) => path.includes("/users/search"),
+      match: (p) => p.includes("/feed"),
     },
     {
       href: "/profile",
-      icon: User,
+      icon: "me",
       label: t("profile"),
-      match: (path: string) => path.includes("/profile"),
+      match: (p) => p.includes("/profile") || p.includes("/settings"),
     },
   ];
+  const search: NavItem = {
+    href: "/search",
+    icon: "search",
+    label: t("search"),
+    match: (p) => p.includes("/search"),
+  };
 
-  // Show Settings for paid users, Premium for others
-  if (!hasPaidPlan)  {
-    navItems.push({
+  const secondary: NavItem[] = [];
+  if (!hasPaidPlan) {
+    secondary.push({
       href: "/subscription",
-      icon: CreditCard,
+      icon: "premium",
       label: t("premium"),
-      match: (path: string) => path.includes("/subscription"),
+      match: (p) => p.includes("/subscription"),
     });
   }
-
-  // Add admin link if user has admin access
   if (hasAdminAccess) {
-    navItems.push({
+    secondary.push({
       href: "/admin",
-      icon: Shield,
+      icon: "shield",
       label: t("admin"),
-      match: (path: string) => path.includes("/admin"),
+      match: (p) => p.includes("/admin"),
     });
   }
-
-  const activeNav = navItems.find((item) => item.match(pathname));
+  secondary.push({
+    href: "/settings",
+    icon: "gear",
+    label: t("settings"),
+    match: (p) => p.includes("/settings"),
+  });
 
   return (
-    <nav className="border-b">
-      <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <Link href="/" className="flex items-center">
-            <Image
-              src="/echo.svg"
-              alt="Echo"
-              width={93}
-              height={43}
-              className="h-8 w-auto"
-              priority
+    <>
+      {/* Wide screens: left rail */}
+      <nav
+        aria-label={t("main")}
+        className="fixed inset-y-0 left-0 z-40 hidden w-[88px] flex-col items-center border-r-[0.5px] border-rule bg-paper py-6 lg:flex xl:w-[232px] xl:items-stretch xl:px-4"
+      >
+        <Link
+          href="/library"
+          className="mb-8 flex items-center gap-2.5 xl:px-3"
+          aria-label="Echo"
+        >
+          <EchoMark height={34} />
+          <span className="font-disp hidden text-[26px] leading-none xl:inline">
+            Echo
+          </span>
+        </Link>
+        <ul className="flex flex-col gap-1">
+          {[...tabs, search].map((item) => (
+            <RailItem key={item.href} item={item} active={item.match(pathname)} />
+          ))}
+        </ul>
+        <ul className="mt-auto flex flex-col gap-1">
+          {secondary.map((item) => (
+            <RailItem
+              key={item.href}
+              item={item}
+              active={item.match(pathname)}
+              quiet
             />
-          </Link>
+          ))}
+        </ul>
+      </nav>
 
-          {/* Desktop Navigation */}
-          <Show when="signed-in">
-            <div className="hidden md:flex items-center gap-6">
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className="flex items-center gap-2 text-sm hover:text-primary transition-colors"
-                  >
-                    <Icon className="h-4 w-4" />
-                    {item.label}
-                  </Link>
-                );
-              })}
-              <UserButton />
-            </div>
-          </Show>
-
-          <Show when="signed-out">
-            <div className="flex items-center gap-4">
-              <Link
-                href="/pricing"
-                className="flex items-center gap-2 text-sm hover:text-primary transition-colors"
-              >
-                <Tag className="h-4 w-4" />
-                {t("pricing")}
-              </Link>
-              <SignInButton mode="modal">
-                <button className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90">
-                  {t("signIn")}
-                </button>
-              </SignInButton>
-            </div>
-          </Show>
-        </div>
-
-        {/* Mobile Navigation */}
-        <Show when="signed-in">
-          <div className="md:hidden pb-2">
-            {!isMobileNavExpanded && activeNav && (
-              <div className="flex items-center justify-between py-2">
+      {/* Phones and tablets: floating tab bar + search button */}
+      <nav
+        aria-label={t("main")}
+        className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex gap-2.5 px-5 pb-[max(16px,env(safe-area-inset-bottom))] lg:hidden"
+      >
+        <ul className="glass pointer-events-auto mx-auto flex h-[62px] w-full max-w-[460px] flex-1 items-center rounded-full px-[5px]">
+          {tabs.map((item) => {
+            const active = item.match(pathname);
+            return (
+              <li key={item.href} className="flex-1">
                 <Link
-                  href={activeNav.href}
-                  className="flex items-center gap-2 text-sm"
+                  href={item.href}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "flex flex-col items-center gap-0.5 rounded-[26px] pt-1.5 pb-[5px] text-[10px] font-semibold",
+                    active
+                      ? "bg-pink-ink/10 text-pink-ink dark:bg-pink-ink/15"
+                      : "text-ink",
+                  )}
                 >
-                  <activeNav.icon className="h-4 w-4" />
-                  {activeNav.label}
+                  <Icon name={item.icon} size={24} />
+                  {item.label}
                 </Link>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setIsMobileNavExpanded(true)}
-                  className="h-8 w-8 p-0"
-                >
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-              </div>
-            )}
+              </li>
+            );
+          })}
+        </ul>
+        <Link
+          href={search.href}
+          aria-label={search.label}
+          aria-current={search.match(pathname) ? "page" : undefined}
+          className={cn(
+            "glass pointer-events-auto grid size-[62px] flex-none place-items-center rounded-full",
+            search.match(pathname) ? "text-pink-ink" : "text-ink",
+          )}
+        >
+          <Icon name="search" size={24} />
+        </Link>
+      </nav>
+    </>
+  );
+}
 
-            {isMobileNavExpanded && (
-              <div className="pb-2">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium">{t("mobile")}</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setIsMobileNavExpanded(false)}
-                    className="h-8 w-8 p-0"
-                  >
-                    <ChevronUp className="h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="flex flex-col gap-2">
-                  {navItems.map((item) => {
-                    const Icon = item.icon;
-                    const isActive = item.match(pathname);
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => setIsMobileNavExpanded(false)}
-                        className={`flex items-center gap-2 text-sm transition-colors py-2 px-2 rounded-md ${
-                          isActive
-                            ? "bg-primary/10 text-primary"
-                            : "hover:bg-accent"
-                        }`}
-                      >
-                        <Icon className="h-4 w-4" />
-                        {item.label}
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-        </Show>
-      </div>
-    </nav>
+function RailItem({
+  item,
+  active,
+  quiet,
+}: {
+  item: NavItem;
+  active: boolean;
+  quiet?: boolean;
+}) {
+  return (
+    <li>
+      <Link
+        href={item.href}
+        aria-current={active ? "page" : undefined}
+        title={item.label}
+        className={cn(
+          "flex flex-col items-center gap-1 rounded-2xl px-2 py-2 text-[11px] font-semibold transition-colors xl:flex-row xl:gap-3 xl:px-3 xl:py-2.5 xl:font-semibold",
+          quiet ? "xl:text-[15px]" : "xl:text-[17px]",
+          active
+            ? "bg-pink-ink/10 text-pink-ink dark:bg-pink-ink/15"
+            : cn("hover:bg-tint", quiet ? "text-ink-2" : "text-ink"),
+        )}
+      >
+        <Icon name={item.icon} size={quiet ? 22 : 24} />
+        <span>{item.label}</span>
+      </Link>
+    </li>
+  );
+}
+
+/**
+ * Wraps page content so it clears the rail (wide) or the floating tab bar
+ * (phones). Bare pages render edge to edge.
+ */
+export function AppMain({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const bare = isBarePath(pathname);
+  return (
+    <main
+      className={cn(
+        "min-h-dvh",
+        !bare &&
+          "pb-[calc(110px+env(safe-area-inset-bottom))] lg:pb-16 lg:pl-[88px] xl:pl-[232px]",
+      )}
+    >
+      {children}
+    </main>
   );
 }

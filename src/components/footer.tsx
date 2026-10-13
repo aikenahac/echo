@@ -1,5 +1,6 @@
 import { Link } from "@/i18n/routing";
 import { useTranslations } from "next-intl";
+import { EchoMark } from "@/components/echo/icons";
 
 // X (Twitter) logo - lucide no longer ships brand icons
 function XLogo({ className }: { className?: string }) {
@@ -19,44 +20,30 @@ export function Footer() {
   const t = useTranslations("footer");
 
   return (
-    <footer className="border-t bg-background">
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
-          <div className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} Echo.
-          </div>
-          <div className="flex items-center gap-6">
-            <div className="flex gap-6 text-sm">
-              <Link
-                href="/documents/privacy-policy"
-                className="text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {t("privacyPolicy")}
-              </Link>
-              <Link
-                href="/documents/terms-of-service"
-                className="text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {t("termsOfService")}
-              </Link>
-              <Link
-                href="/documents"
-                className="text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {t("legalDocuments")}
-              </Link>
-            </div>
-            <div className="h-4 w-px bg-border" />
-            <a
-              href="https://x.com/aikenahac"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-muted-foreground hover:text-foreground transition-colors"
-              aria-label={t("followTwitter")}
-            >
-              <XLogo className="h-4 w-4" />
-            </a>
-          </div>
+    <footer className="hairline-t">
+      <div className="mx-auto flex max-w-[1180px] flex-col gap-4 px-5 py-8 text-[13px] text-ink-2 md:flex-row md:items-center md:justify-between md:px-10">
+        <div className="flex items-center gap-2">
+          <EchoMark height={20} />© {new Date().getFullYear()} Echo
+        </div>
+        <div className="flex items-center gap-5">
+          <Link href="/documents/privacy-policy" className="hover:text-ink">
+            {t("privacyPolicy")}
+          </Link>
+          <Link href="/documents/terms-of-service" className="hover:text-ink">
+            {t("termsOfService")}
+          </Link>
+          <Link href="/documents" className="hover:text-ink">
+            {t("legalDocuments")}
+          </Link>
+          <a
+            href="https://x.com/aikenahac"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-ink"
+            aria-label={t("followTwitter")}
+          >
+            <XLogo className="h-4 w-4" />
+          </a>
         </div>
       </div>
     </footer>

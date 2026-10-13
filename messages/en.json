@@ -17,15 +17,16 @@
     "home": "Echo",
     "search": "Search",
     "library": "Library",
-    "feed": "Feed",
+    "feed": "Friends",
     "findUsers": "Find Users",
-    "profile": "Profile",
+    "profile": "You",
     "signIn": "Sign In",
     "premium": "Premium",
     "admin": "Admin",
     "pricing": "Pricing",
     "mobile": "Navigation",
-    "settings": "Settings"
+    "settings": "Settings",
+    "main": "Main"
   },
   "home": {
     "welcome": "Welcome to Echo",
@@ -264,9 +265,9 @@
     }
   },
   "footer": {
-    "privacyPolicy": "Privacy Policy",
-    "termsOfService": "Terms of Service",
-    "legalDocuments": "Legal Documents",
+    "privacyPolicy": "Privacy",
+    "termsOfService": "Terms",
+    "legalDocuments": "Documents",
     "copyright": "© {year} Echo",
     "followTwitter": "Follow on X (Twitter)"
   },
@@ -376,7 +377,7 @@
       "viewPlans": "View Premium Plans",
       "maybeLater": "Maybe Later"
     },
-      "limit": {
+    "limit": {
       "reached": "Limit Reached",
       "approaching": "Approaching Limit",
       "message": "You've added books to your library.",
@@ -472,7 +473,6 @@
       "failed": "Failed to upgrade plan"
     }
   },
-  
   "bookCard": {
     "noCover": "No cover",
     "pages": "pages",
@@ -520,7 +520,6 @@
   "usersSearch": {
     "title": "Search Users"
   },
-  
   "settings": {
     "title": "Settings",
     "description": "Manage your account settings and preferences",
