@@ -383,3 +383,43 @@ export async function toggleBookFavorite(
     return { error: "Failed to update favorite status" };
   }
 }
+
+/**
+ * Undo finishing a book: back to reading at the given page, with the finish
+ * date cleared (the library's Undo after the FINISHED stamp)
+ */
+export async function reopenBook(userBookId: string, currentPage: number) {
+  const { userId } = await auth();
+
+  if (!userId) {
+    return { error: "Unauthorized" };
+  }
+
+  if (!isValidPageNumber(currentPage)) {
+    return { error: "Invalid page number" };
+  }
+
+  try {
+    const [userBook] = await db
+      .update(userBooks)
+      .set({
+        status: "reading",
+        currentPage,
+        finishedAt: null,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(userBooks.id, userBookId), eq(userBooks.userId, userId)))
+      .returning({ bookId: userBooks.bookId });
+
+    if (!userBook) {
+      return { error: "Book not found in your library" };
+    }
+
+    revalidateLocalized("/library", `/books/${userBook.bookId}`);
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error reopening book:", error);
+    return { error: "Failed to reopen book" };
+  }
+}

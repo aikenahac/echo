@@ -15,6 +15,7 @@ export function Cover({
   priority,
   sizes,
   shadow = true,
+  fluid,
   children,
 }: {
   src?: string | null;
@@ -26,6 +27,8 @@ export function Cover({
   priority?: boolean;
   sizes?: string;
   shadow?: boolean;
+  /** Fill the parent's width; `width` then only sizes the fallback type. */
+  fluid?: boolean;
   children?: React.ReactNode;
 }) {
   const fallbackSize = width >= 120 ? 22 : width >= 70 ? 17 : width >= 44 ? 12 : 8;
@@ -36,7 +39,7 @@ export function Cover({
         className,
       )}
       style={{
-        width,
+        width: fluid ? "100%" : width,
         boxShadow: shadow ? "var(--cover-shadow)" : undefined,
       }}
     >

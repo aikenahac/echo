@@ -384,7 +384,13 @@
       "empty": "No collections yet",
       "emptyPremium": "Collections are a premium feature",
       "createFirst": "Create your first collection",
-      "upgradePremium": "Upgrade to Premium"
+      "upgradePremium": "Upgrade to Premium",
+      "sheetTitle": "Add to collection",
+      "sheetSub": "{title} · tap to add or remove",
+      "meta": "{count, plural, one {# book} other {# books}} · {visibility}",
+      "public": "public",
+      "private": "private",
+      "newCollection": "New collection"
     },
     "toast": {
       "created": "Collection created successfully",
@@ -751,5 +757,73 @@
       "codeIncomplete": "Enter all 6 digits."
     },
     "or": "or"
+  },
+  "shelf": {
+    "title": "Library",
+    "shelves": {
+      "reading": "Reading",
+      "want": "Want",
+      "finished": "Finished",
+      "favourites": "Favourites"
+    },
+    "shelfLabel": "Shelves",
+    "grid": "Grid view",
+    "list": "List view",
+    "ofPages": "of {total} pages",
+    "toGo": "{count} to go",
+    "noPageCount": "Set the page count",
+    "nextPage": "Next page",
+    "previousPage": "Previous page",
+    "pageCounter": "Current page of {title}",
+    "pageHint": "Drag, scroll or use the arrow keys to change the page",
+    "editPages": "Edit pages",
+    "currentPage": "Current page",
+    "pageCount": "Page count",
+    "save": "Save",
+    "finished": "Finished",
+    "rateIt": "Rate it",
+    "rated": "Rated {rating}",
+    "undo": "Undo",
+    "done": "Done",
+    "alsoReading": "Also reading",
+    "lastOpened": "last opened {date}",
+    "collections": "Collections",
+    "newCollection": "New collection",
+    "booksCount": "{count, plural, one {# book} other {# books}}",
+    "summary": "{count, plural, one {# book} other {# books}} · {thisYear} this year",
+    "summaryPlain": "{count, plural, one {# book} other {# books}}",
+    "notRated": "Not rated",
+    "sort": {
+      "label": "Sort",
+      "recent": "Recently finished",
+      "added": "Recently added",
+      "title": "Title",
+      "author": "Author",
+      "rating": "Rating"
+    },
+    "empty": {
+      "readingTitle": "What are you reading?",
+      "readingBody": "Add the book you have open. Echo keeps your page from here on.",
+      "findBook": "Find a book",
+      "friendsNote": "People you follow show up in Friends when they start or finish a book.",
+      "findReaders": "Find readers",
+      "want": "Nothing on your want list yet. Books you mark Want land here.",
+      "finished": "Finished books land here, with your rating and the day you closed them.",
+      "favourites": "Tap the heart on a book to keep it here."
+    },
+    "actions": {
+      "more": "More for {title}",
+      "status": "Move to",
+      "favourite": "Add to Favourites",
+      "unfavourite": "Remove from Favourites",
+      "addToCollection": "Add to collection",
+      "remove": "Remove from library",
+      "removeConfirmTitle": "Remove {title}?",
+      "removeConfirm": "Your page, rating and review for this book will be deleted.",
+      "cancel": "Cancel"
+    },
+    "errors": {
+      "save": "Couldn't save. Try again."
+    }
   }
 }
