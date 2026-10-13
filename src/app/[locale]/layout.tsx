@@ -128,6 +128,8 @@ const CLIENT_MESSAGE_NAMESPACES = [
   "friends",
   "shelf",
   "toast",
+  "you",
+  "settingsPage",
   "validation",
 ];
 

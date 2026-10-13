@@ -95,10 +95,12 @@ export function ToolbarGroup({
 export function ToolbarButton({
   className,
   label,
+  asChild,
   ...props
-}: React.ComponentProps<"button"> & { label: string }) {
+}: React.ComponentProps<"button"> & { label: string; asChild?: boolean }) {
+  const Comp = asChild ? Slot : "button";
   return (
-    <button
+    <Comp
       aria-label={label}
       title={label}
       className={cn(

@@ -2,10 +2,9 @@ import { withAuth, ApiError, actionError } from "@/lib/api-handler";
 import { createApiResponse } from "@/lib/api-auth";
 import { updateProfileFields } from "@/app/[locale]/actions/profile";
 import { db } from "@/db";
-import { users, userSubscriptions } from "@/db/schema";
+import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { clerkClient } from "@clerk/nextjs/server";
-import { getStripe } from "@/lib/stripe";
+import { AccountDeletionError, deleteUserAccount } from "@/lib/account";
 
 /**
  * GET /api/v1/profile
@@ -84,33 +83,14 @@ export const PUT = withAuth(async (request) => {
  * Required for in-app account deletion (App Store guideline 5.1.1(v)).
  */
 export const DELETE = withAuth(async (request, { user }) => {
-  const subscription = await db.query.userSubscriptions.findFirst({
-    where: eq(userSubscriptions.userId, user.id),
-  });
-
-  if (
-    subscription?.stripeSubscriptionId &&
-    ["active", "trialing", "past_due", "unpaid", "incomplete"].includes(
-      subscription.status,
-    )
-  ) {
-    try {
-      await getStripe().subscriptions.cancel(subscription.stripeSubscriptionId);
-    } catch (error) {
-      console.error(
-        "Error cancelling subscription on account deletion:",
-        error,
-      );
-      throw new ApiError("Could not cancel your subscription. Try again.", 500);
+  try {
+    await deleteUserAccount(user.id);
+  } catch (error) {
+    if (error instanceof AccountDeletionError) {
+      throw new ApiError(error.message, 500);
     }
+    throw error;
   }
-
-  // Delete the data first: if the Clerk call then fails, the client is still
-  // signed in and can retry (the next request re-provisions an empty row).
-  await db.delete(users).where(eq(users.id, user.id));
-
-  const client = await clerkClient();
-  await client.users.deleteUser(user.id);
 
   return createApiResponse({ success: true });
 });

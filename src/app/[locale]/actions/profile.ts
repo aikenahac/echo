@@ -13,6 +13,7 @@ import {
 } from "@/lib/s3";
 import { validateImageUpload } from "@/lib/image-validation";
 import { usernameFormatError } from "@/lib/username";
+import { AccountDeletionError, deleteUserAccount } from "@/lib/account";
 
 /**
  * Update user profile
@@ -284,4 +285,28 @@ export async function checkUsernameAvailable(
   }
 
   return { available: true };
+}
+
+/**
+ * Permanently delete the current user's account (Settings › Delete account)
+ */
+export async function deleteAccount() {
+  const { userId } = await auth();
+
+  if (!userId) {
+    return { error: "Unauthorized" };
+  }
+
+  try {
+    await deleteUserAccount(userId);
+    return { success: true };
+  } catch (error) {
+    console.error("Error deleting account:", error);
+    return {
+      error:
+        error instanceof AccountDeletionError
+          ? error.message
+          : "Failed to delete account",
+    };
+  }
 }
