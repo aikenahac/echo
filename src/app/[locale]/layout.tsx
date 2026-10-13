@@ -124,6 +124,7 @@ const CLIENT_MESSAGE_NAMESPACES = [
   "premium",
   "profile",
   "search",
+  "find",
   "shelf",
   "toast",
   "validation",

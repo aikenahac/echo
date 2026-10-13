@@ -868,5 +868,31 @@
       "deleted": "Review deleted",
       "rating": "Your rating"
     }
+  },
+  "find": {
+    "title": "Search",
+    "tabs": {
+      "books": "Books",
+      "readers": "Readers"
+    },
+    "tabsLabel": "Search for",
+    "placeholderBooks": "Title, author or ISBN",
+    "placeholderReaders": "Name or username",
+    "clear": "Clear",
+    "fromCatalog": "From Echo's catalog",
+    "fromOpenLibrary": "From Open Library",
+    "pp": "{count} pp",
+    "inLibrary": "{status}",
+    "inLibraryRated": "{status} · rated {rating}",
+    "loadMore": "Load more",
+    "loading": "Searching…",
+    "noBooks": "Nothing matches “{query}”. Try the author's name or an ISBN.",
+    "booksHint": "Find the book you have open, or the next one.",
+    "readersHint": "Type at least 2 characters to find readers by name or username.",
+    "readersCount": "{count, plural, one {# reader matches} other {# readers match}} “{query}”",
+    "noReaders": "No readers match “{query}”.",
+    "follow": "Follow",
+    "following": "Following",
+    "added": "Added to {shelf}"
   }
 }
