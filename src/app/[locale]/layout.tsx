@@ -115,6 +115,7 @@ export const metadata: Metadata = {
 const CLIENT_MESSAGE_NAMESPACES = [
   "common",
   "book",
+  "auth",
   "bookCard",
   "collections",
   "library",

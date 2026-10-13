@@ -1,106 +1,79 @@
-import { Show } from "@clerk/nextjs";
-import { Link } from "@/i18n/routing";
-import { Book, Users, TrendingUp } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { auth } from "@clerk/nextjs/server";
+import { getTranslations } from "next-intl/server";
+import { Link, redirect } from "@/i18n/routing";
+import { EchoMark } from "@/components/echo/icons";
+import { CoverFan } from "@/components/auth/cover-fan";
+import { OAuthButtons } from "@/components/auth/oauth-buttons";
 
-export default function HomePage() {
-  const t = useTranslations("home");
-  const tNav = useTranslations("navigation");
+export default async function WelcomePage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  const { userId } = await auth();
+  if (userId) redirect({ href: "/library", locale });
+
+  const t = await getTranslations("auth");
+  const tNav = await getTranslations("navigation");
+
+  const legal = t.rich("legal", {
+    terms: (chunks) => (
+      <Link href="/documents/terms-of-service" className="underline underline-offset-2">
+        {chunks}
+      </Link>
+    ),
+    privacy: (chunks) => (
+      <Link href="/documents/privacy-policy" className="underline underline-offset-2">
+        {chunks}
+      </Link>
+    ),
+  });
 
   return (
-    <div className="container mx-auto px-4 py-16">
-      <Show when="signed-out">
-        <div className="max-w-4xl mx-auto text-center space-y-8">
-          <h1 className="text-5xl font-bold mb-4">{t("welcome")}</h1>
-          <p className="text-xl text-muted-foreground mb-8">{t("tagline")}</p>
+    <div className="on-field min-h-dvh bg-field">
+      <div className="mx-auto flex min-h-dvh max-w-[1180px] flex-col px-5 pt-[max(20px,env(safe-area-inset-top))] pb-[max(20px,env(safe-area-inset-bottom))] md:px-10">
+        <header className="flex h-12 items-center justify-between">
+          <span className="flex items-center gap-2.5">
+            <EchoMark height={28} className="hidden md:block" />
+            <span className="font-disp text-[22px] leading-none md:text-[26px]">Echo</span>
+          </span>
+          <nav className="flex items-center gap-5 text-[15px] font-semibold">
+            <Link href="/pricing" className="hover:underline">
+              {tNav("pricing")}
+            </Link>
+            <Link href="/sign-in" className="hidden hover:underline md:inline">
+              {t("signIn.title")}
+            </Link>
+          </nav>
+        </header>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12">
-            <div className="p-6 border rounded-lg">
-              <Book className="h-12 w-12 mx-auto mb-4 text-primary" />
-              <h3 className="text-lg font-semibold mb-2">
-                {t("features.track.title")}
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                {t("features.track.description")}
-              </p>
-            </div>
-            <div className="p-6 border rounded-lg">
-              <Users className="h-12 w-12 mx-auto mb-4 text-primary" />
-              <h3 className="text-lg font-semibold mb-2">
-                {t("features.connect.title")}
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                {t("features.connect.description")}
-              </p>
-            </div>
-            <div className="p-6 border rounded-lg">
-              <TrendingUp className="h-12 w-12 mx-auto mb-4 text-primary" />
-              <h3 className="text-lg font-semibold mb-2">
-                {t("features.achieve.title")}
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                {t("features.achieve.description")}
-              </p>
+        <div className="flex flex-1 flex-col lg:grid lg:grid-cols-[1fr_1fr] lg:items-center lg:gap-16">
+          <div className="order-1 flex flex-1 items-center justify-center py-6 max-[700px]:hidden lg:order-2 lg:py-0">
+            <CoverFan width={150} className="md:hidden" />
+            <CoverFan width={210} className="hidden md:flex" />
+          </div>
+
+          <div className="order-2 flex flex-col lg:order-1 lg:py-16">
+            <h1 className="font-disp plate text-[64px] leading-[.9] tracking-[-0.6px] text-balance max-[700px]:mt-10 max-[700px]:text-[52px] md:text-[96px] xl:text-[112px]">
+              {t("headline")}
+            </h1>
+            <p className="mt-5 max-w-[30ch] text-[17px] leading-6 text-on-field-2 md:text-[20px] md:leading-7">
+              {t("sub")}
+            </p>
+            <div className="mt-8 w-full md:max-w-[400px]">
+              <OAuthButtons />
+              <Link
+                href="/sign-in"
+                className="mt-2 flex h-12 items-center justify-center text-[17px] font-semibold hover:underline"
+              >
+                {t("useEmail")}
+              </Link>
+              <p className="mt-3 text-center text-[13px] text-on-field-2">{legal}</p>
             </div>
           </div>
         </div>
-      </Show>
-
-      <Show when="signed-in">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-4xl font-bold mb-8">{t("welcomeBack")}</h1>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Link
-              href="/library"
-              className="p-8 border rounded-lg hover:border-primary transition-colors"
-            >
-              <Book className="h-10 w-10 mb-4 text-primary" />
-              <h2 className="text-2xl font-semibold mb-2">
-                {t("quickLinks.library.title")}
-              </h2>
-              <p className="text-muted-foreground">
-                {t("quickLinks.library.description")}
-              </p>
-            </Link>
-            <Link
-              href="/books/search"
-              className="p-8 border rounded-lg hover:border-primary transition-colors"
-            >
-              <Book className="h-10 w-10 mb-4 text-primary" />
-              <h2 className="text-2xl font-semibold mb-2">
-                {t("quickLinks.search.title")}
-              </h2>
-              <p className="text-muted-foreground">
-                {t("quickLinks.search.description")}
-              </p>
-            </Link>
-            <Link
-              href="/feed"
-              className="p-8 border rounded-lg hover:border-primary transition-colors"
-            >
-              <TrendingUp className="h-10 w-10 mb-4 text-primary" />
-              <h2 className="text-2xl font-semibold mb-2">
-                {t("quickLinks.feed.title")}
-              </h2>
-              <p className="text-muted-foreground">
-                {t("quickLinks.feed.description")}
-              </p>
-            </Link>
-            <Link
-              href="/profile"
-              className="p-8 border rounded-lg hover:border-primary transition-colors"
-            >
-              <Users className="h-10 w-10 mb-4 text-primary" />
-              <h2 className="text-2xl font-semibold mb-2">
-                {t("quickLinks.profile.title")}
-              </h2>
-              <p className="text-muted-foreground">
-                {t("quickLinks.profile.description")}
-              </p>
-            </Link>
-          </div>
-        </div>
-      </Show>
+      </div>
     </div>
   );
 }

@@ -251,3 +251,37 @@ export async function generateProfilePictureUploadUrl(
     return { error: "Failed to generate upload URL" };
   }
 }
+
+/**
+ * Whether the current user can take a username (format rules plus uniqueness;
+ * their own current username counts as available)
+ */
+export async function checkUsernameAvailable(
+  username: string,
+): Promise<{ available: boolean; reason?: string }> {
+  const { userId } = await auth();
+
+  if (!userId) {
+    return { available: false, reason: "Unauthorized" };
+  }
+
+  if (typeof username !== "string") {
+    return { available: false, reason: "Invalid username" };
+  }
+
+  const formatError = usernameFormatError(username);
+  if (formatError) {
+    return { available: false, reason: formatError };
+  }
+
+  const existing = await db.query.users.findFirst({
+    where: eq(users.username, username),
+    columns: { id: true },
+  });
+
+  if (existing && existing.id !== userId) {
+    return { available: false, reason: "Username already taken" };
+  }
+
+  return { available: true };
+}

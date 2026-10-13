@@ -26,7 +26,7 @@ export function FieldInput({
   const inputId = id ?? autoId;
   const describedBy = error || hint ? `${inputId}-desc` : undefined;
   const box = cn(
-    "flex w-full items-center gap-2 rounded-xl border bg-paper px-4 text-[17px] text-ink transition-colors focus-within:border-ink",
+    "flex w-full items-center gap-2 rounded-xl border bg-input-bg px-4 text-[17px] text-ink transition-colors focus-within:border-ink",
     error ? "border-negative focus-within:border-negative" : "border-rule",
     multiline ? "items-start py-3" : "h-[52px]",
   );

@@ -28,43 +28,6 @@
     "settings": "Settings",
     "main": "Main"
   },
-  "home": {
-    "welcome": "Welcome to Echo",
-    "tagline": "Track your reading journey, discover new books, and connect with fellow readers.",
-    "welcomeBack": "Welcome back!",
-    "features": {
-      "track": {
-        "title": "Track Your Reading",
-        "description": "Organize your books into shelves, track progress, and rate what you've read."
-      },
-      "connect": {
-        "title": "Connect with Readers",
-        "description": "Follow friends, share reviews, and discover what others are reading."
-      },
-      "achieve": {
-        "title": "Achieve Your Goals",
-        "description": "Set reading goals, build streaks, and celebrate your progress."
-      }
-    },
-    "quickLinks": {
-      "library": {
-        "title": "My Library",
-        "description": "View and manage your book collection"
-      },
-      "search": {
-        "title": "Search Books",
-        "description": "Discover and add new books to your library"
-      },
-      "feed": {
-        "title": "Activity Feed",
-        "description": "See what your friends are reading"
-      },
-      "profile": {
-        "title": "My Profile",
-        "description": "View your reading stats and achievements"
-      }
-    }
-  },
   "search": {
     "title": "Search Books",
     "placeholder": "Search for books by title, author, or ISBN...",
@@ -187,7 +150,13 @@
       "usernameLabel": "Username",
       "usernamePlaceholder": "Enter your username",
       "continue": "Continue",
-      "saving": "Saving..."
+      "saving": "Saving…",
+      "headline": "What should other readers call you?",
+      "available": "Available",
+      "checking": "Checking…",
+      "help": "3 to 30 characters: letters, numbers, underscores or dots. It shows next to your reviews and on your profile.",
+      "previewAction": "started reading",
+      "previewMeta": "Your next book · just now"
     }
   },
   "feed": {
@@ -719,5 +688,68 @@
   },
   "progressTracker": {
     "title": "Progress"
+  },
+  "auth": {
+    "back": "Back",
+    "headline": "Every page, counted.",
+    "sub": "Log where you stopped, rate what you finish, and see what your friends are reading.",
+    "continueApple": "Continue with Apple",
+    "continueGoogle": "Continue with Google",
+    "useEmail": "Use email instead",
+    "haveAccount": "Already have an account?",
+    "legal": "By continuing you agree to the <terms>Terms</terms> and <privacy>Privacy Policy</privacy>.",
+    "email": "Email",
+    "password": "Password",
+    "newPassword": "New password",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "signIn": {
+      "title": "Sign in",
+      "submit": "Sign in",
+      "forgot": "Forgot password?",
+      "footer": "New to Echo?",
+      "footerLink": "Create an account"
+    },
+    "signUp": {
+      "title": "Create an account",
+      "sub": "Free, with no limit on books. Premium only adds collections.",
+      "submit": "Create account",
+      "footer": "Already have an account?",
+      "footerLink": "Sign in",
+      "rule": "8 characters or more"
+    },
+    "verify": {
+      "title": "Check your email",
+      "sub": "We sent a 6-digit code to <email></email>. It expires in 10 minutes.",
+      "code": "Verification code",
+      "resendIn": "Resend code in {time}",
+      "resend": "Resend code",
+      "sent": "A new code is on its way.",
+      "changeEmail": "Change email",
+      "wrongAddress": "Wrong address?",
+      "submit": "Verify"
+    },
+    "secondFactor": {
+      "title": "Confirm it's you",
+      "sub": "We sent a 6-digit code to <email></email> to confirm this device."
+    },
+    "reset": {
+      "title": "Reset password",
+      "sub": "Enter your email and we'll send you a code to set a new password.",
+      "send": "Send code",
+      "setTitle": "Set a new password",
+      "setSub": "Enter the code we sent to <email></email>, then choose a new password.",
+      "save": "Save and sign in",
+      "noCode": "No code?",
+      "sendAgain": "Send it again"
+    },
+    "errors": {
+      "generic": "Something went wrong. Try again.",
+      "emailRequired": "Enter your email address.",
+      "passwordRequired": "Enter your password.",
+      "passwordShort": "Use 8 characters or more.",
+      "codeIncomplete": "Enter all 6 digits."
+    },
+    "or": "or"
   }
 }
