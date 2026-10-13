@@ -53,7 +53,7 @@ export function PremiumPaywallDialog({
             {BENEFITS.map((b) => (
               <li
                 key={b}
-                className="flex gap-3 border-t border-[var(--on-field-rule)] py-3 text-[17px] leading-[22px] tracking-[-0.3px] max-[700px]:[&:nth-child(n+4)]:hidden"
+                className="flex gap-3 border-t border-[var(--on-field-rule)] py-3 text-[17px] leading-[22px] tracking-[-0.3px] [@media(max-height:700px)]:[&:nth-child(n+4)]:hidden"
               >
                 <Icon name="check" size={20} strokeWidth={2.2} className="mt-px" />
                 {t(`benefits.${b}`)}

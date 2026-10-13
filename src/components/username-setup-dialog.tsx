@@ -132,7 +132,7 @@ export function UsernameSetupDialog({ hasUsername }: UsernameSetupDialogProps) {
 
             <div
               aria-hidden
-              className="mt-10 flex -rotate-[1.5deg] items-center gap-3 rounded-xl bg-paper p-3.5 text-ink shadow-[0_12px_24px_-14px_rgba(70,8,36,.45)] max-[760px]:hidden"
+              className="mt-10 flex -rotate-[1.5deg] items-center gap-3 rounded-xl bg-paper p-3.5 text-ink shadow-[0_12px_24px_-14px_rgba(70,8,36,.45)] [@media(max-height:760px)]:hidden"
             >
               <AvatarTile name={handle} size={36} />
               <div className="min-w-0 text-[15px] leading-5">

@@ -49,13 +49,13 @@ export default async function WelcomePage({
         </header>
 
         <div className="flex flex-1 flex-col lg:grid lg:grid-cols-[1fr_1fr] lg:items-center lg:gap-16">
-          <div className="order-1 flex flex-1 items-center justify-center py-6 max-[700px]:hidden lg:order-2 lg:py-0">
+          <div className="order-1 flex flex-1 items-center justify-center py-6 [@media(max-height:700px)]:hidden lg:order-2 lg:py-0">
             <CoverFan width={150} className="md:hidden" />
             <CoverFan width={210} className="hidden md:flex" />
           </div>
 
           <div className="order-2 flex flex-col lg:order-1 lg:py-16">
-            <h1 className="font-disp plate text-[64px] leading-[.9] tracking-[-0.6px] text-balance max-[700px]:mt-10 max-[700px]:text-[52px] md:text-[96px] xl:text-[112px]">
+            <h1 className="font-disp plate text-[64px] leading-[.9] tracking-[-0.6px] text-balance [@media(max-height:700px)]:mt-10 [@media(max-height:700px)]:text-[52px] md:text-[96px] xl:text-[112px]">
               {t("headline")}
             </h1>
             <p className="mt-5 max-w-[30ch] text-[17px] leading-6 text-on-field-2 md:text-[20px] md:leading-7">
