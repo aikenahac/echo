@@ -894,5 +894,21 @@
     "follow": "Follow",
     "following": "Following",
     "added": "Added to {shelf}"
+  },
+  "friends": {
+    "title": "Friends",
+    "findReaders": "Find readers",
+    "startedReading": "started reading",
+    "finished": "finished",
+    "reviewed": "reviewed",
+    "pages": "{count} pages",
+    "now": "now",
+    "minutes": "{count} min",
+    "hours": "{count} h",
+    "yesterday": "Yesterday",
+    "emptyTitle": "Nobody here yet",
+    "empty": "Follow a few readers and their started, finished and reviewed books show up here.",
+    "loading": "Loading…",
+    "end": "That's everything from the last while."
   }
 }

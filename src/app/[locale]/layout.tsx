@@ -125,6 +125,7 @@ const CLIENT_MESSAGE_NAMESPACES = [
   "profile",
   "search",
   "find",
+  "friends",
   "shelf",
   "toast",
   "validation",

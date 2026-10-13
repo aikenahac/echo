@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { follows, users } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { revalidateLocalized } from "@/lib/revalidate";
+import { getFeedPage } from "@/lib/feed";
 
 /**
  * Follow a user
@@ -80,4 +81,29 @@ export async function unfollowUser(followingId: string) {
     console.error("Error unfollowing user:", error);
     return { error: "Failed to unfollow user" };
   }
+}
+
+const FEED_PAGE_SIZE = 20;
+const FEED_MAX_OFFSET = 1000;
+
+/**
+ * The next page of the Friends feed (infinite scroll)
+ */
+export async function loadFeedPage(offset: number) {
+  const { userId } = await auth();
+
+  if (!userId) {
+    return { error: "Unauthorized", activities: [], hasMore: false };
+  }
+
+  const safeOffset = Math.min(
+    FEED_MAX_OFFSET,
+    Math.max(0, Math.trunc(Number(offset)) || 0),
+  );
+  const { activities, hasMore } = await getFeedPage(
+    userId,
+    safeOffset,
+    FEED_PAGE_SIZE,
+  );
+  return { activities, hasMore };
 }
