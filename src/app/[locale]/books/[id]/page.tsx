@@ -1,8 +1,25 @@
+import { cache } from "react";
 import { auth } from "@clerk/nextjs/server";
 import { notFound } from "next/navigation";
-import { BookDetails } from "@/components/book-details";
+import { BookDetail } from "@/components/book/book-detail";
 import { getCatalogBookDetail } from "@/lib/book-detail";
 import { isUuid } from "@/lib/utils";
+
+// Shared by generateMetadata and the page within one request
+const getDetail = cache(getCatalogBookDetail);
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const { userId } = await auth();
+  const detail = isUuid(id) ? await getDetail(id, userId) : null;
+  return detail
+    ? { title: `${detail.book.title} · ${detail.book.author}` }
+    : {};
+}
 
 export default async function BookDetailPage({
   params,
@@ -12,21 +29,19 @@ export default async function BookDetailPage({
   const { id } = await params;
   const { userId } = await auth();
 
-  const detail = isUuid(id) ? await getCatalogBookDetail(id, userId) : null;
+  const detail = isUuid(id) ? await getDetail(id, userId) : null;
 
   if (!detail) {
     notFound();
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <BookDetails
-        book={detail.book}
-        userBook={detail.userBook}
-        userReview={detail.myReview}
-        friendReviews={detail.followingReviews}
-        isAuthenticated={!!userId}
-      />
-    </div>
+    <BookDetail
+      book={detail.book}
+      userBook={detail.userBook}
+      myReview={detail.myReview}
+      followingReviews={detail.followingReviews}
+      isAuthenticated={!!userId}
+    />
   );
 }

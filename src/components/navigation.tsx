@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { EchoMark, Icon, type IconName } from "@/components/echo/icons";
 
 interface NavigationProps {
+  signedIn: boolean;
   hasAdminAccess?: boolean;
   hasPaidPlan?: boolean;
 }
@@ -33,13 +34,14 @@ type NavItem = {
  * bar (Library · Friends · You) with Search as its own round button.
  */
 export function Navigation({
+  signedIn,
   hasAdminAccess = false,
   hasPaidPlan = false,
 }: NavigationProps) {
   const t = useTranslations("navigation");
   const pathname = usePathname();
 
-  if (isBarePath(pathname)) return null;
+  if (!signedIn || isBarePath(pathname)) return null;
 
   const tabs: NavItem[] = [
     {
@@ -203,9 +205,15 @@ function RailItem({
  * Wraps page content so it clears the rail (wide) or the floating tab bar
  * (phones). Bare pages render edge to edge.
  */
-export function AppMain({ children }: { children: React.ReactNode }) {
+export function AppMain({
+  children,
+  signedIn,
+}: {
+  children: React.ReactNode;
+  signedIn: boolean;
+}) {
   const pathname = usePathname();
-  const bare = isBarePath(pathname);
+  const bare = !signedIn || isBarePath(pathname);
   return (
     <main
       className={cn(

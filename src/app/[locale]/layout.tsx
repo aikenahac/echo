@@ -118,6 +118,7 @@ const CLIENT_MESSAGE_NAMESPACES = [
   "auth",
   "bookCard",
   "collections",
+  "detail",
   "library",
   "navigation",
   "premium",
@@ -182,8 +183,8 @@ export default async function LocaleLayout({
         </head>
         <body>
           <NextIntlClientProvider messages={messages}>
-            <Navigation hasAdminAccess={hasAdminAccess} hasPaidPlan={hasPaidPlan} />
-            <AppMain>{children}</AppMain>
+            <Navigation signedIn={!!viewer} hasAdminAccess={hasAdminAccess} hasPaidPlan={hasPaidPlan} />
+            <AppMain signedIn={!!viewer}>{children}</AppMain>
             <UsernameSetupDialog hasUsername={hasUsername} />
             <Toaster
               position="top-center"

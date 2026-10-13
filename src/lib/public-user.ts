@@ -8,3 +8,11 @@ export const publicUserColumns = {
   displayName: true,
   profilePictureUrl: true,
 } as const;
+
+/** A user as selected with publicUserColumns. */
+export type PublicUser = {
+  id: string;
+  username: string | null;
+  displayName: string | null;
+  profilePictureUrl: string | null;
+};

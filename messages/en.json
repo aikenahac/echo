@@ -825,5 +825,48 @@
     "errors": {
       "save": "Couldn't save. Try again."
     }
+  },
+  "detail": {
+    "back": "Back",
+    "favourite": "Add to Favourites",
+    "unfavourite": "Remove from Favourites",
+    "addToCollection": "Add to collection",
+    "more": "More",
+    "remove": "Remove from library",
+    "pages": "{count} pages",
+    "yourRating": "Your rating",
+    "rateThis": "Rate this book",
+    "readInDays": "{days, plural, one {Read in # day} other {Read in # days}}",
+    "readRange": "{start} to {end}",
+    "startedOn": "Started {date}",
+    "addTo": "Add to your library",
+    "statusMenu": "Change status",
+    "yourReview": "Your review",
+    "edit": "Edit",
+    "write": "Write a review",
+    "noReview": "Say what stayed with you. Only you see it if you keep it private.",
+    "public": "Public",
+    "private": "Private",
+    "fromFollowing": "From people you follow",
+    "noFollowingReviews": "No one you follow has reviewed this yet.",
+    "signIn": "Sign in to keep your page, rate it and write a review.",
+    "signInButton": "Sign in",
+    "editor": {
+      "title": "Your review",
+      "finishedOn": "Finished {date}",
+      "placeholder": "What stayed with you?",
+      "counter": "{count} / 10,000",
+      "privateLabel": "Private",
+      "privateHelpOn": "Only you can see this review.",
+      "privateHelpOff": "Public reviews show on the book and in your followers' Friends feed.",
+      "delete": "Delete review",
+      "deleteConfirmTitle": "Delete your review?",
+      "deleteConfirm": "This can't be undone.",
+      "cancel": "Cancel",
+      "save": "Save",
+      "saved": "Review saved",
+      "deleted": "Review deleted",
+      "rating": "Your rating"
+    }
   }
 }
