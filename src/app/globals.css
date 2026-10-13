@@ -247,3 +247,36 @@
     transition-duration: 1ms !important;
   }
 }
+
+/* Long-form legal text (src/app/[locale]/documents) */
+@layer components {
+  .legal :where(h1) {
+    font-family: var(--font-disp);
+    font-stretch: 62%;
+    font-weight: 900;
+    word-spacing: 0.14em;
+    font-size: 44px;
+    line-height: 0.95;
+    letter-spacing: -0.4px;
+  }
+  .legal :where(h2) {
+    font-family: var(--font-disp);
+    font-stretch: 62%;
+    font-weight: 800;
+    word-spacing: 0.14em;
+    font-size: 28px;
+    line-height: 1.05;
+    margin-top: 0.5em;
+  }
+  .legal :where(h3) {
+    font-size: 17px;
+    font-weight: 600;
+  }
+  .legal :where(p, li) {
+    font-size: 17px;
+    line-height: 1.5;
+  }
+  .legal :where(a) {
+    color: var(--pink-ink);
+  }
+}

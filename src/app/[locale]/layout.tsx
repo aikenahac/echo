@@ -113,27 +113,19 @@ export const metadata: Metadata = {
 // Message namespaces used via `useTranslations` in client components.
 // Add a namespace here when a client component starts using it.
 const CLIENT_MESSAGE_NAMESPACES = [
-  "common",
-  "book",
   "auth",
-  "bookCard",
-  "collections",
   "coll",
-  "paywall",
-  "plans",
+  "collections",
   "detail",
-  "library",
-  "navigation",
-  "premium",
-  "profile",
-  "search",
   "find",
   "friends",
-  "shelf",
-  "toast",
-  "you",
+  "navigation",
+  "paywall",
+  "plans",
+  "profile",
   "settingsPage",
-  "validation",
+  "shelf",
+  "you",
 ];
 
 export function generateStaticParams() {

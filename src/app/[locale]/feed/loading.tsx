@@ -1,23 +1,20 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
-// Mirrors the feed layout: title + list of activity cards
 export default function FeedLoading() {
   return (
-    <div className="container mx-auto px-4 py-8 max-w-2xl">
-      <Skeleton className="h-9 w-48 mb-8" />
-      <div className="space-y-6">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="border rounded-lg p-6 space-y-3">
-            <div className="flex items-start gap-4">
-              <Skeleton className="w-16 h-24 shrink-0" />
-              <div className="flex-1 space-y-2">
-                <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-5 w-40" />
-                <Skeleton className="h-6 w-3/4" />
-                <Skeleton className="h-4 w-1/3" />
+    <div aria-busy className="mx-auto w-full max-w-[760px] px-5 pt-3 md:px-10 md:pt-10">
+      <Skeleton className="h-11 w-40" />
+      <div className="mt-6">
+        {[0, 1, 2, 3].map((i) => (
+          <div key={i} className="flex gap-3 py-[18px] [&+div]:hairline-t">
+            <Skeleton className="size-9 rounded" />
+            <div className="flex-1">
+              <Skeleton className="h-4 w-2/3" />
+              <div className="mt-3 flex items-end gap-3">
+                <Skeleton className="aspect-[2/3] w-14 rounded-[2px]" />
+                <Skeleton className="h-6 w-1/2" />
               </div>
             </div>
-            <Skeleton className="h-3 w-36" />
           </div>
         ))}
       </div>
