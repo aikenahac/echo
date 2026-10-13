@@ -1,13 +1,9 @@
 import { cache } from "react";
 import { auth } from "@clerk/nextjs/server";
 import { notFound } from "next/navigation";
-import {
-  getCollectionById,
-  getUserCollections,
-  hasCollectionAccess,
-} from "@/app/[locale]/actions/collections";
-import { CollectionIsland } from "@/components/collections/collection-island";
 import { Metadata } from "next";
+import { getCollectionById } from "@/app/[locale]/actions/collections";
+import { CollectionDetail } from "@/components/collections/collection-detail";
 import { getLibraryLayout } from "@/lib/library-layout";
 
 // Deduplicate the lookup between generateMetadata and the page
@@ -28,8 +24,10 @@ export async function generateMetadata({
   }
 
   return {
-    title: `${result.collection.name} | Echo Reads`,
-    description: result.collection.description || `View ${result.collection.name} collection`,
+    title: result.collection.name,
+    description:
+      result.collection.description ||
+      `View ${result.collection.name} collection`,
   };
 }
 
@@ -45,14 +43,10 @@ export default async function CollectionPage({
     notFound();
   }
 
-  // Fetch collection by slug along with the sidebar data
-  const [result, collectionsResult, collectionAccess, layout] =
-    await Promise.all([
-      getCollection(slug),
-      getUserCollections(),
-      hasCollectionAccess(),
-      getLibraryLayout(),
-    ]);
+  const [result, layout] = await Promise.all([
+    getCollection(slug),
+    getLibraryLayout(),
+  ]);
 
   if (result.error || !result.collection) {
     notFound();
@@ -68,11 +62,22 @@ export default async function CollectionPage({
   const isOwner = userId === collection.userId;
 
   return (
-    <CollectionIsland
-      collection={collection}
+    <CollectionDetail
+      collection={{
+        id: collection.id,
+        name: collection.name,
+        description: collection.description,
+        isPublic: collection.isPublic,
+        colorTag: collection.colorTag,
+        iconName: collection.iconName,
+        coverImageUrl: collection.coverImageUrl,
+      }}
+      books={collection.books.map((cb) => cb.userBook)}
       isOwner={isOwner}
-      collections={collectionsResult.collections ?? []}
-      hasCollectionAccess={collectionAccess.hasAccess}
+      ownerName={
+        collection.user.displayName || collection.user.username || ""
+      }
+      isFollowing={collection.isFollowing}
       initialLayout={layout}
     />
   );

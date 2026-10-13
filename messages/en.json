@@ -979,5 +979,91 @@
     "deleteConfirm": "Delete account",
     "cancel": "Cancel",
     "version": "Echo for the web"
+  },
+  "coll": {
+    "back": "Back",
+    "more": "More",
+    "edit": "Edit collection",
+    "makePublic": "Make public",
+    "makePrivate": "Make private",
+    "delete": "Delete collection",
+    "deleteTitle": "Delete “{name}”?",
+    "deleteBody": "The books stay in your library. Only the collection goes.",
+    "cancel": "Cancel",
+    "private": "Private",
+    "public": "Public",
+    "by": "by {name}",
+    "meta": "{visibility} · {count, plural, one {# book} other {# books}}",
+    "empty": "No books here yet. Add one from a book's page or the ⋯ menu in your library.",
+    "removeFromCollection": "Remove from collection",
+    "follow": "Follow",
+    "following": "Following",
+    "editor": {
+      "newTitle": "New collection",
+      "editTitle": "Edit collection",
+      "save": "Save",
+      "cover": "Add a cover image",
+      "coverChange": "Change cover image",
+      "coverRemove": "Remove",
+      "coverHint": "JPG, PNG or WEBP, up to 5 MB",
+      "name": "Name",
+      "namePlaceholder": "Winter rereads",
+      "description": "Description",
+      "counter": "{count} / 1000",
+      "colour": "Colour",
+      "icon": "Icon",
+      "moreIcons": "More",
+      "public": "Public",
+      "publicHelp": "Anyone with the link can see a public collection.",
+      "delete": "Delete collection",
+      "nameRequired": "Give the collection a name.",
+      "coverInvalid": "Use a JPG, PNG or WEBP image up to 5 MB.",
+      "created": "Collection created",
+      "saved": "Collection saved"
+    }
+  },
+  "paywall": {
+    "headline": "Shelves you name yourself.",
+    "benefits": {
+      "collections": "Collections with your own name, colour, icon and cover",
+      "share": "Make one public and share its link",
+      "free": "Every book you own is still free, without limits",
+      "support": "Priority support and early features"
+    },
+    "price": "<b>€1.99 a month</b> or €19.99 once, for life.",
+    "continue": "See plans",
+    "later": "Maybe later",
+    "close": "Close"
+  },
+  "plans": {
+    "title": "Premium",
+    "pricingTitle": "Pricing",
+    "freeName": "Free",
+    "freeLine": "Every feature for tracking: unlimited books, pages, ratings, reviews and friends.",
+    "freePrice": "€0",
+    "premiumLine": "Everything in Free, plus collections.",
+    "perMonth": "a month",
+    "perYear": "a year",
+    "once": "once, for life",
+    "current": "Current",
+    "choose": "Continue",
+    "claim": "Claim",
+    "processing": "Opening checkout…",
+    "startFree": "Start free",
+    "signIn": "Sign in",
+    "claimed": "Plan updated",
+    "failed": "Couldn't open checkout. Try again.",
+    "faqTitle": "Questions",
+    "success": {
+      "title": "Welcome to Premium.",
+      "body": "Collections are open. Name a shelf after a season, a friend or a feeling.",
+      "library": "Go to your library"
+    },
+    "canceled": {
+      "title": "No charge made.",
+      "body": "Checkout was cancelled. Your library is exactly as you left it.",
+      "back": "See plans again",
+      "library": "Back to the library"
+    }
   }
 }

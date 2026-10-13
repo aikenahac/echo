@@ -14,7 +14,7 @@ import { Sheet, SheetContent } from "@/components/echo/sheet";
 import { CollectionTile } from "@/components/library/collection-tile";
 import { PremiumPaywallDialog } from "@/components/premium-paywall-dialog";
 import { cn } from "@/lib/utils";
-import { CollectionDialog } from "./collection-dialog";
+import { CollectionEditor } from "./collection-editor";
 
 type SheetCollection = {
   id: string;
@@ -160,13 +160,11 @@ export function AddToCollectionSheet({
           )}
         </SheetContent>
       </Sheet>
-      <CollectionDialog
+      <CollectionEditor
+        key={String(creating)}
         open={creating}
         onOpenChange={setCreating}
-        onSuccess={() => {
-          setCreating(false);
-          load();
-        }}
+        onSaved={() => load()}
       />
       <PremiumPaywallDialog open={paywall} onOpenChange={setPaywall} />
     </>

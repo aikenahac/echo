@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useFormatter, useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/routing";
-import { CollectionDialog } from "@/components/collections/collection-dialog";
+import { CollectionEditor } from "@/components/collections/collection-editor";
 import { PremiumPaywallDialog } from "@/components/premium-paywall-dialog";
 import { Capsule } from "@/components/echo/buttons";
 import { Cover } from "@/components/echo/cover";
@@ -118,11 +118,11 @@ export function CollectionsStrip({
           </button>
         </li>
       </ul>
-      <CollectionDialog
+      <CollectionEditor
+        key={String(creating)}
         open={creating}
         onOpenChange={setCreating}
-        onSuccess={(saved) => {
-          setCreating(false);
+        onSaved={(saved) => {
           if (saved?.slug) router.push(`/library/collections/${saved.slug}`);
           else router.refresh();
         }}

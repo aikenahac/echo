@@ -1,15 +1,22 @@
-import { Check, Crown, Sparkles, BookOpen, Users, Palette } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Link } from "@/i18n/routing";
 import { auth } from "@clerk/nextjs/server";
-import { redirect } from "@/i18n/routing";
 import { getTranslations } from "next-intl/server";
+import { asc, and, eq } from "drizzle-orm";
+import { db } from "@/db";
+import { subscriptionPlans } from "@/db/schema";
+import { Link, redirect } from "@/i18n/routing";
+import { Capsule } from "@/components/echo/buttons";
+import { EchoMark } from "@/components/echo/icons";
+import { Footer } from "@/components/footer";
+import { PremiumPitch } from "@/components/plans/premium-pitch";
+import { formatPlanPrice } from "@/components/plans/plan-price";
 
 export const metadata = {
-  title: "Pricing - Echo Reads",
-  description: "Choose the perfect plan for your reading journey. Start free — unlimited books for everyone, or upgrade for additional features and support.",
+  title: "Pricing",
+  description:
+    "Echo is free, with no limit on books. Premium adds collections you name yourself.",
 };
+
+const FAQ = ["upgrade", "limit", "refunds", "payment"] as const;
 
 export default async function PricingPage({
   params,
@@ -17,262 +24,86 @@ export default async function PricingPage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const t = await getTranslations("pricing");
 
-  // Check if user is authenticated
+  // Signed-in readers pick a plan on the subscription page
   const { userId } = await auth();
-
-  // If user is logged in, redirect to subscription page
   if (userId) {
     redirect({ href: "/subscription", locale });
   }
 
+  const [t, tFaq, plans] = await Promise.all([
+    getTranslations("plans"),
+    getTranslations("pricing.faq"),
+    db.query.subscriptionPlans.findMany({
+      where: and(
+        eq(subscriptionPlans.isActive, true),
+        eq(subscriptionPlans.isInternal, false),
+      ),
+      orderBy: [asc(subscriptionPlans.sortOrder)],
+    }),
+  ]);
+  const paid = plans.filter((p) => p.price > 0);
+
   return (
-    <div className="min-h-screen bg-linear-to-b from-background to-muted/20">
-      <div className="container mx-auto px-4 py-16 max-w-7xl">
-        {/* Header */}
-        <div className="text-center mb-16">
-          <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-            {t("title")}
-          </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            {t("subtitle")}
-          </p>
-        </div>
-
-        {/* Pricing Cards */}
-        <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-          {/* Free Plan */}
-          <Card className="relative border-2">
-            <CardHeader>
-              <div className="flex items-center gap-2 mb-2">
-                <BookOpen className="h-5 w-5 text-muted-foreground" />
-                <CardTitle className="text-2xl">{t("free.name")}</CardTitle>
-              </div>
-              <CardDescription>{t("free.tagline")}</CardDescription>
-              <div className="mt-4">
-                <span className="text-4xl font-bold">{t("free.price")}</span>
-                <span className="text-muted-foreground ml-2">{t("free.period")}</span>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <ul className="space-y-3">
-                <li className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                  <span>
-                    <strong>{t("free.features.books")}</strong>
-                    <p className="text-sm text-muted-foreground">{t("free.features.booksDesc")}</p>
-                  </span>
+    <>
+      <section className="on-field bg-field">
+        <div className="mx-auto w-full max-w-[1180px] px-5 pt-[max(20px,env(safe-area-inset-top))] pb-12 md:px-10 md:pb-20">
+          <header className="flex h-12 items-center justify-between">
+            <Link href="/" className="flex items-center gap-2.5">
+              <EchoMark height={28} />
+              <span className="font-disp text-[22px] leading-none md:text-[26px]">Echo</span>
+            </Link>
+            <Link href="/sign-in" className="text-[15px] font-semibold hover:underline">
+              {t("signIn")}
+            </Link>
+          </header>
+          <div className="mt-10 grid gap-12 md:mt-16 lg:grid-cols-[1.2fr_1fr] lg:items-end lg:gap-20">
+            <PremiumPitch />
+            <div>
+              <ul>
+                <li className="border-t border-[var(--on-field-rule)] py-4">
+                  <div className="flex items-baseline justify-between gap-4">
+                    <span className="font-disp text-[28px] font-extrabold">{t("freeName")}</span>
+                    <span className="text-[17px] font-semibold tnum">{t("freePrice")}</span>
+                  </div>
+                  <p className="mt-1 text-[15px] leading-5 text-on-field-2">{t("freeLine")}</p>
                 </li>
-                <li className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                  <span>
-                    <strong>{t("free.features.stats")}</strong>
-                    <p className="text-sm text-muted-foreground">{t("free.features.statsDesc")}</p>
-                  </span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                  <span>
-                    <strong>{t("free.features.reviews")}</strong>
-                    <p className="text-sm text-muted-foreground">{t("free.features.reviewsDesc")}</p>
-                  </span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                  <span>
-                    <strong>{t("free.features.social")}</strong>
-                    <p className="text-sm text-muted-foreground">{t("free.features.socialDesc")}</p>
-                  </span>
-                </li>
+                {paid.map((plan) => {
+                  const { price, per } = formatPlanPrice(plan, (k) => t(k));
+                  return (
+                    <li key={plan.id} className="border-t border-[var(--on-field-rule)] py-4">
+                      <div className="flex items-baseline justify-between gap-4">
+                        <span className="font-disp text-[28px] font-extrabold">{plan.name}</span>
+                        <span className="text-right text-[17px] font-semibold tnum">
+                          {price} <span className="font-normal text-on-field-2">{per}</span>
+                        </span>
+                      </div>
+                      <p className="mt-1 text-[15px] leading-5 text-on-field-2">{t("premiumLine")}</p>
+                    </li>
+                  );
+                })}
               </ul>
-            </CardContent>
-            <CardFooter>
-              <Button asChild className="w-full" variant="outline" size="lg">
-                <Link href="/sign-up">{t("free.cta")}</Link>
-              </Button>
-            </CardFooter>
-          </Card>
-
-          {/* Premium Plan */}
-          <Card className="relative border-2 border-primary shadow-lg shadow-primary/20">
-            {/* Premium Badge */}
-            <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-              <div className="bg-primary text-primary-foreground px-4 py-1 rounded-full text-sm font-semibold flex items-center gap-1">
-                <Crown className="h-4 w-4" />
-                {t("premium.badge")}
-              </div>
+              <Capsule asChild variant="field" size="lg" className="mt-4 w-full">
+                <Link href="/sign-up">{t("startFree")}</Link>
+              </Capsule>
             </div>
-
-            <CardHeader>
-              <div className="flex items-center gap-2 mb-2">
-                <Sparkles className="h-5 w-5 text-primary" />
-                <CardTitle className="text-2xl">{t("premium.name")}</CardTitle>
-              </div>
-              <CardDescription>{t("premium.tagline")}</CardDescription>
-              <div className="mt-4">
-                <span className="text-4xl font-bold">{t("premium.price")}</span>
-                <span className="text-muted-foreground ml-2">{t("premium.period")}</span>
-              </div>
-              <p className="text-sm text-muted-foreground mt-2">
-                {t("premium.lifetime")}
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 mb-4">
-                <p className="text-sm font-semibold text-primary flex items-center gap-2">
-                  <Sparkles className="h-4 w-4" />
-                  {t("premium.includes")}
-                </p>
-              </div>
-              <ul className="space-y-3">
-                <li className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                  <span>
-                    <strong className="text-primary">{t("premium.features.collections")}</strong>
-                    <p className="text-sm text-muted-foreground">{t("premium.features.collectionsDesc")}</p>
-                  </span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                  <span>
-                    <strong className="text-primary">{t("premium.features.support")}</strong>
-                    <p className="text-sm text-muted-foreground">{t("premium.features.supportDesc")}</p>
-                  </span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                  <span>
-                    <strong className="text-primary">{t("premium.features.earlyAccess")}</strong>
-                    <p className="text-sm text-muted-foreground">{t("premium.features.earlyAccessDesc")}</p>
-                  </span>
-                </li>
-              </ul>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Feature Comparison */}
-        <div className="mt-20 max-w-4xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-8">{t("comparison.title")}</h2>
-          <Card>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left p-4 font-semibold">{t("comparison.headers.feature")}</th>
-                      <th className="text-center p-4 font-semibold">{t("comparison.headers.free")}</th>
-                      <th className="text-center p-4 font-semibold bg-primary/5">
-                        <div className="flex items-center justify-center gap-2">
-                          <Crown className="h-4 w-4 text-primary" />
-                          {t("comparison.headers.premium")}
-                        </div>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr className="border-b">
-                      <td className="p-4">{t("comparison.rows.booksPerYear")}</td>
-                      <td className="text-center p-4">{t("comparison.rows.unlimited")}</td>
-                      <td className="text-center p-4 bg-primary/5 font-semibold text-primary">{t("comparison.rows.unlimited")}</td>
-                    </tr>
-                    <tr className="border-b">
-                      <td className="p-4">{t("comparison.rows.tracking")}</td>
-                      <td className="text-center p-4"><Check className="h-5 w-5 mx-auto text-primary" /></td>
-                      <td className="text-center p-4 bg-primary/5"><Check className="h-5 w-5 mx-auto text-primary" /></td>
-                    </tr>
-                    <tr className="border-b">
-                      <td className="p-4">{t("comparison.rows.reviews")}</td>
-                      <td className="text-center p-4"><Check className="h-5 w-5 mx-auto text-primary" /></td>
-                      <td className="text-center p-4 bg-primary/5"><Check className="h-5 w-5 mx-auto text-primary" /></td>
-                    </tr>
-                    <tr className="border-b">
-                      <td className="p-4">{t("comparison.rows.social")}</td>
-                      <td className="text-center p-4"><Check className="h-5 w-5 mx-auto text-primary" /></td>
-                      <td className="text-center p-4 bg-primary/5"><Check className="h-5 w-5 mx-auto text-primary" /></td>
-                    </tr>
-                    <tr className="border-b">
-                      <td className="p-4 flex items-center gap-2">
-                        <Palette className="h-4 w-4 text-muted-foreground" />
-                        {t("comparison.rows.collections")}
-                      </td>
-                      <td className="text-center p-4 text-muted-foreground">-</td>
-                      <td className="text-center p-4 bg-primary/5"><Check className="h-5 w-5 mx-auto text-primary" /></td>
-                    </tr>
-                    <tr className="border-b">
-                      <td className="p-4 flex items-center gap-2">
-                        <Users className="h-4 w-4 text-muted-foreground" />
-                        {t("comparison.rows.support")}
-                      </td>
-                      <td className="text-center p-4 text-muted-foreground">-</td>
-                      <td className="text-center p-4 bg-primary/5"><Check className="h-5 w-5 mx-auto text-primary" /></td>
-                    </tr>
-                    <tr>
-                      <td className="p-4 flex items-center gap-2">
-                        <Sparkles className="h-4 w-4 text-muted-foreground" />
-                        {t("comparison.rows.earlyAccess")}
-                      </td>
-                      <td className="text-center p-4 text-muted-foreground">-</td>
-                      <td className="text-center p-4 bg-primary/5"><Check className="h-5 w-5 mx-auto text-primary" /></td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* FAQ Section */}
-        <div className="mt-20 max-w-3xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-8">{t("faq.title")}</h2>
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">{t("faq.questions.upgrade.title")}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  {t("faq.questions.upgrade.answer")}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">{t("faq.questions.limit.title")}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  {t("faq.questions.limit.answer")}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">{t("faq.questions.refunds.title")}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  {t("faq.questions.refunds.answer")}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">{t("faq.questions.payment.title")}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">
-                  {t("faq.questions.payment.answer")}
-                </p>
-              </CardContent>
-            </Card>
           </div>
         </div>
-      </div>
-    </div>
+      </section>
+      <section className="mx-auto w-full max-w-[760px] px-5 py-12 md:px-10 md:py-16">
+        <h2 className="font-disp text-[28px] leading-none font-extrabold">{t("faqTitle")}</h2>
+        <dl className="mt-4">
+          {FAQ.map((q) => (
+            <div key={q} className="py-4 [&+div]:hairline-t">
+              <dt className="text-[17px] font-semibold">{tFaq(`questions.${q}.title`)}</dt>
+              <dd className="mt-1 text-[15px] leading-[21px] text-ink-2">
+                {tFaq(`questions.${q}.answer`)}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </section>
+      <Footer />
+    </>
   );
 }

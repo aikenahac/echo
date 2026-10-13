@@ -1,12 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Check, LoaderCircle } from "lucide-react";
-import { createCheckoutSession, upgradeToFreePlan } from "@/app/[locale]/actions/subscriptions";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { useRouter } from "@/i18n/routing";
+import {
+  createCheckoutSession,
+  upgradeToFreePlan,
+} from "@/app/[locale]/actions/subscriptions";
+import { Capsule } from "@/components/echo/buttons";
+import { formatPlanPrice } from "@/components/plans/plan-price";
+import { cn } from "@/lib/utils";
 
 interface Plan {
   id: string;
@@ -17,6 +21,7 @@ interface Plan {
   stripePriceId: string | null;
 }
 
+/** Plan rows on the field; pick one and continue to checkout. */
 export function PlanSelector({
   plans,
   currentPlanId,
@@ -24,110 +29,92 @@ export function PlanSelector({
   plans: Plan[];
   currentPlanId: string | undefined;
 }) {
+  const t = useTranslations("plans");
   const router = useRouter();
-  const [loading, setLoading] = useState<string | null>(null);
+  const choosable = plans.filter((p) => p.id !== currentPlanId);
+  const [selected, setSelected] = useState(
+    choosable.find((p) => p.interval === "month")?.id ?? choosable[0]?.id,
+  );
+  const [loading, setLoading] = useState(false);
 
-  const handleUpgrade = async (planId: string, isFree: boolean) => {
-    setLoading(planId);
+  const go = async () => {
+    const plan = plans.find((p) => p.id === selected);
+    if (!plan) return;
+    setLoading(true);
     try {
-      if (isFree) {
-        // Direct upgrade to free plan
-        const result = await upgradeToFreePlan(planId);
-        if (result.error) {
-          toast.error(result.error);
-        } else {
-          toast.success("Successfully upgraded to the plan!");
+      // Free plans (no Stripe price) are claimed directly
+      if (!plan.stripePriceId) {
+        const result = await upgradeToFreePlan(plan.id);
+        if (result.error) toast.error(result.error);
+        else {
+          toast.success(t("claimed"));
           router.refresh();
         }
       } else {
-        // Stripe checkout for paid plans
-        const result = await createCheckoutSession(planId);
-        if (result.error) {
-          toast.error(result.error);
-        } else if (result.url) {
+        const result = await createCheckoutSession(plan.id);
+        if (result.error) toast.error(result.error);
+        else if (result.url) {
           window.location.assign(result.url);
+          return;
         }
       }
     } catch {
-      toast.error("Failed to upgrade plan");
-    } finally {
-      setLoading(null);
+      toast.error(t("failed"));
     }
+    setLoading(false);
   };
 
   return (
-    <div className="space-y-4">
-      {plans.map((plan) => {
-        const isCurrent = plan.id === currentPlanId;
-        const isFree = !plan.stripePriceId; // Free plans don't have Stripe price ID
-
-        return (
-          <Card
-            key={plan.id}
-            className={isCurrent ? "border-primary border-2" : ""}
-          >
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>{plan.name}</CardTitle>
-                {isCurrent && (
-                  <span className="text-sm text-primary font-medium">
-                    Current Plan
-                  </span>
-                )}
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <p className="text-3xl font-bold">
-                  {plan.price === 0 ? (
-                    "Free"
-                  ) : (
-                    <>
-                      €{(plan.price / 100).toFixed(2)}
-                      <span className="text-sm text-muted-foreground font-normal">
-                        /{plan.interval}
-                      </span>
-                    </>
-                  )}
-                </p>
-              </div>
-
-              <ul className="space-y-2">
-                <li className="flex items-center gap-2 text-sm">
-                  <Check className="h-4 w-4 text-primary" />
-                  <span className="font-semibold">Unlimited books</span>
-                </li>
-                {!isFree && (
-                  <li className="flex items-center gap-2 text-sm">
-                    <Check className="h-4 w-4 text-primary" />
-                    <span className="font-semibold">Custom collections</span>
-                  </li>
-                )}
-              </ul>
-
-              {!isCurrent && (
-                <Button
-                  className="w-full"
-                  onClick={() => handleUpgrade(plan.id, isFree)}
-                  disabled={loading === plan.id}
-                  variant={isFree ? "default" : "default"}
-                >
-                  {loading === plan.id ? (
-                    <>
-                      <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-                      Processing...
-                    </>
-                  ) : isFree ? (
-                    "Claim This Plan"
-                  ) : (
-                    "Upgrade to This Plan"
-                  )}
-                </Button>
+    <div>
+      <div role="radiogroup" className="flex flex-col gap-2.5">
+        {plans.map((plan) => {
+          const current = plan.id === currentPlanId;
+          const on = plan.id === selected;
+          const { price, per } = formatPlanPrice(plan, (k) => t(k));
+          return (
+            <button
+              key={plan.id}
+              type="button"
+              role="radio"
+              aria-checked={on}
+              disabled={current}
+              onClick={() => setSelected(plan.id)}
+              className={cn(
+                "flex cursor-pointer items-center gap-4 rounded-2xl border-[1.5px] px-4 py-3.5 text-left transition-colors disabled:cursor-default disabled:opacity-60",
+                on
+                  ? "border-on-field bg-paper text-[#170B11] dark:text-ink"
+                  : "border-[var(--on-field-rule)] hover:border-on-field",
               )}
-            </CardContent>
-          </Card>
-        );
-      })}
+            >
+              <span
+                aria-hidden
+                className={cn(
+                  "grid size-[22px] flex-none place-items-center rounded-full border-[1.5px] border-current",
+                )}
+              >
+                {on && <span className="size-2.5 rounded-full bg-current" />}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[17px] font-semibold">{plan.name}</span>
+                {current && <span className="block text-[13px] opacity-75">{t("current")}</span>}
+              </span>
+              <span className="text-right tnum">
+                <span className="block text-[17px] font-semibold">{plan.price === 0 ? t("freePrice") : price}</span>
+                <span className="block text-[13px] opacity-75">{per}</span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      <Capsule
+        variant="field"
+        size="lg"
+        className="mt-5 w-full"
+        onClick={go}
+        disabled={loading || !selected}
+      >
+        {loading ? t("processing") : t("choose")}
+      </Capsule>
     </div>
   );
 }

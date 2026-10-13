@@ -1,45 +1,25 @@
-import { CircleX } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/routing";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Capsule } from "@/components/echo/buttons";
 
-export default function SubscriptionCanceledPage() {
+export default async function SubscriptionCanceledPage() {
+  const t = await getTranslations("plans.canceled");
   return (
-    <div className="container mx-auto px-4 py-12 max-w-2xl">
-      <Card>
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100">
-            <CircleX className="h-6 w-6 text-yellow-600" />
-          </div>
-          <CardTitle className="text-2xl">Checkout Canceled</CardTitle>
-          <CardDescription>
-            You canceled the checkout process
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="rounded-lg bg-muted p-4">
-            <p className="text-sm text-muted-foreground">
-              No worries! You can upgrade to Premium anytime to unlock unlimited
-              book tracking and future premium features.
-            </p>
-          </div>
-
-          <div className="flex gap-3 justify-center pt-4">
-            <Button asChild>
-              <Link href="/subscription">View Plans</Link>
-            </Button>
-            <Button variant="outline" asChild>
-              <Link href="/library">Back to Library</Link>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+    <div className="grid min-h-dvh place-items-center px-5">
+      <div className="w-full max-w-[520px]">
+        <h1 className="font-disp text-[44px] leading-[.95] tracking-[-0.4px] md:text-[56px]">
+          {t("title")}
+        </h1>
+        <p className="mt-4 text-[17px] leading-6 text-ink-2">{t("body")}</p>
+        <div className="mt-8 flex flex-col gap-2.5">
+          <Capsule asChild size="lg">
+            <Link href="/subscription">{t("back")}</Link>
+          </Capsule>
+          <Capsule asChild variant="ghost" size="lg">
+            <Link href="/library">{t("library")}</Link>
+          </Capsule>
+        </div>
+      </div>
     </div>
   );
 }

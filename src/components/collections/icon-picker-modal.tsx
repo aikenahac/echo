@@ -75,15 +75,15 @@ const IconButton = ({
       type="button"
       onClick={() => onSelect(iconName)}
       className={cn(
-        "flex items-center justify-center rounded-lg border p-5 transition-all hover:bg-accent hover:border-primary",
-        isSelected && "bg-primary/10 border-primary ring-2 ring-primary"
+        "flex items-center justify-center rounded-lg border p-5 transition-all hover:bg-tint hover:border-ink",
+        isSelected && "bg-tint border-ink ring-2 ring-ink"
       )}
       title={iconName}
     >
       <div className="w-10 h-10 flex items-center justify-center">
         <DynamicIcon
           name={iconName}
-          className="w-8 h-8 text-black dark:text-white"
+          className="w-8 h-8 text-ink"
           absoluteStrokeWidth
         />
       </div>
