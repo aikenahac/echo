@@ -239,12 +239,12 @@ export default function TermsOfServicePage() {
               Book search and information features use the Open Library API.
               Your use of this data is subject to{" "}
               <a
-                href="https://openlibrary.org/terms"
+                href="https://archive.org/about/terms"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-primary hover:underline"
               >
-                Open Library&apos;s Terms of Service
+                the Internet Archive&apos;s Terms of Use (which cover Open Library)
               </a>
               .
             </p>

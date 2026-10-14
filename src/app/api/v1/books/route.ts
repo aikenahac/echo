@@ -10,18 +10,20 @@ import { and, desc, eq } from "drizzle-orm";
 
 /**
  * POST /api/v1/books
- * Add a book to the user's library
+ * Add a book to the user's library.
+ * Body: { book: { bookId } | { openLibrary }, status, isFavorite? } where
+ * `bookId` is a catalog id and `openLibrary` an Open Library search result.
  */
 export const POST = withAuth(async (request, { user }) => {
   const body = await request.json();
-  const { bookData, status, isFavorite } = body;
+  const { book, status, isFavorite } = body;
 
-  if (!bookData || !status) {
-    throw new ApiError("Missing required fields: bookData, status");
+  if (!book || !status) {
+    throw new ApiError("Missing required fields: book, status");
   }
 
   // Reuse existing server action
-  const result = await addBookToLibrary(bookData, status, isFavorite);
+  const result = await addBookToLibrary(book, status, isFavorite);
 
   if (result.error) {
     throw new ApiError(result.error);

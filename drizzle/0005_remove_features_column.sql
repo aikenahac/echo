@@ -1,2 +1,3 @@
 -- Drop the features column from subscription_plans table
-ALTER TABLE "subscription_plans" DROP COLUMN "features";
+-- Idempotent: safe to run more than once.
+ALTER TABLE "subscription_plans" DROP COLUMN IF EXISTS "features";

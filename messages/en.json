@@ -56,7 +56,8 @@
     "termsOfService": "Terms",
     "legalDocuments": "Documents",
     "copyright": "© {year} Echo",
-    "followTwitter": "Follow on X (Twitter)"
+    "followTwitter": "Follow on X (Twitter)",
+    "bookData": "Book data from Open Library"
   },
   "pricing": {
     "faq": {
@@ -76,7 +77,7 @@
         },
         "payment": {
           "title": "What payment methods do you accept?",
-          "answer": "We accept all major credit cards (Visa, Mastercard, American Express) through our secure payment processor, Stripe."
+          "answer": "We accept all major credit cards (Visa, Mastercard, American Express) through our payment partner, Lemon Squeezy, which acts as the merchant of record and handles VAT and sales tax."
         }
       }
     }
@@ -300,6 +301,7 @@
     "loading": "Searching…",
     "noBooks": "Nothing matches “{query}”. Try the author's name or an ISBN.",
     "booksHint": "Find the book you have open, or the next one.",
+    "searchFailed": "Search is unavailable right now. Try again in a moment.",
     "readersHint": "Type at least 2 characters to find readers by name or username.",
     "readersCount": "{count, plural, one {# reader matches} other {# readers match}} “{query}”",
     "noReaders": "No readers match “{query}”.",
@@ -443,6 +445,7 @@
       "support": "Priority support and early features"
     },
     "price": "<b>€1.99 a month</b> or €19.99 once, for life.",
+    "comingSoon": "Coming soon",
     "continue": "See plans",
     "later": "Maybe later",
     "close": "Close"
@@ -454,6 +457,11 @@
     "freeLine": "Every feature for tracking: unlimited books, pages, ratings, reviews and friends.",
     "freePrice": "€0",
     "premiumLine": "Everything in Free, plus collections.",
+    "comingSoon": "Coming soon",
+    "placeholder": {
+      "month": "Monthly",
+      "lifetime": "Lifetime"
+    },
     "perMonth": "a month",
     "perYear": "a year",
     "once": "once, for life",

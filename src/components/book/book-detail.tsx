@@ -360,14 +360,7 @@ function AddToLibrary({ book }: { book: Book }) {
             onClick={() =>
               startTransition(async () => {
                 const result = await addBookToLibrary(
-                  {
-                    isbn: book.isbn,
-                    title: book.title,
-                    author: book.author,
-                    coverUrl: book.coverUrl,
-                    pages: book.pages,
-                    publishedYear: book.publishedYear,
-                  },
+                  { bookId: book.id },
                   s,
                 );
                 if (result.error) toast.error(result.error);

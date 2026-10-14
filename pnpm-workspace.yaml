@@ -5,3 +5,5 @@ allowBuilds:
   "@swc/core": false
   esbuild: false
   unrs-resolver: false
+minimumReleaseAgeExclude:
+  - "@avarra/lemonsqueezy@0.2.0"

@@ -6,6 +6,7 @@ import { eq, asc, and } from "drizzle-orm";
 import { PlanSelector } from "@/components/plan-selector";
 import { PremiumPitch } from "@/components/plans/premium-pitch";
 import { getViewer, isPaidPlan } from "@/lib/auth";
+import { isLemonSqueezyConfigured } from "@/lib/lemonsqueezy";
 
 export async function generateMetadata() {
   const t = await getTranslations("plans");
@@ -46,6 +47,7 @@ export default async function SubscriptionPage({
         <PlanSelector
           plans={availablePlans}
           currentPlanId={subscription?.planId}
+          comingSoon={!isLemonSqueezyConfigured()}
         />
       </div>
     </section>

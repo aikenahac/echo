@@ -83,6 +83,38 @@ export async function generateProfilePictureUploadUrl(
   return generateUploadUrl(key, contentType, fileSize);
 }
 
+/** True when S3 is configured (it isn't in every dev environment). */
+export const s3Configured = () =>
+  Boolean(
+    process.env.AWS_S3_BUCKET_NAME &&
+      process.env.AWS_S3_PUBLIC_URL &&
+      process.env.AWS_REGION &&
+      process.env.AWS_ACCESS_KEY_ID &&
+      process.env.AWS_SECRET_ACCESS_KEY,
+  );
+
+/**
+ * Upload bytes from the server and return the object's public URL. For
+ * server-fetched content only (e.g. mirrored book covers); user uploads go
+ * through presigned URLs.
+ */
+export async function putPublicObject(
+  key: string,
+  body: Uint8Array,
+  contentType: string,
+) {
+  await getS3().send(
+    new PutObjectCommand({
+      Bucket: bucketName(),
+      Key: key,
+      Body: body,
+      ContentType: contentType,
+      ACL: "public-read",
+    }),
+  );
+  return `${publicUrl()}/${key}`;
+}
+
 /** Presigned upload URLs are valid for 5 minutes */
 export const UPLOAD_URL_EXPIRES_IN = 300;
 

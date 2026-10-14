@@ -166,6 +166,9 @@ importers:
 
   .:
     dependencies:
+      '@avarra/lemonsqueezy':
+        specifier: ^0.2.0
+        version: 0.2.0
       '@aws-sdk/client-s3':
         specifier: ^3.1149.0
         version: 3.1149.0
@@ -253,12 +256,12 @@ importers:
       sonner:
         specifier: ^2.0.8
         version: 2.0.8(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      stripe:
-        specifier: ^23.0.0
-        version: 23.0.0(@types/node@24.19.2)
       tailwind-merge:
         specifier: ^3.7.0
         version: 3.7.0
+      zod:
+        specifier: ^4.1.13
+        version: 4.1.13
     devDependencies:
       '@faker-js/faker':
         specifier: ^10.6.0
@@ -308,6 +311,10 @@ packages:
   '@alloc/quick-lru@5.2.0':
     resolution: {integrity: sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw==}
     engines: {node: '>=10'}
+
+  '@avarra/lemonsqueezy@0.2.0':
+    resolution: {integrity: sha512-dkjiWWytB+WjSuuaf466m9cD7MHvU03DumJH1ujIprCD6dywSBo3mCgeCewhR3SpfuFF6TxGUa8hw03fiohx7w==}
+    engines: {node: '>=20'}
 
   '@aws-sdk/checksums@3.1001.2':
     resolution: {integrity: sha512-gKRj5IXZ/O0ehk2rwfb55YygdNKNhK5N1l/Ztg/w06tk21AJtCPuyErETk2RS/6XOmpBkcZY6CN3GlQ2fWTh1g==}
@@ -3594,15 +3601,6 @@ packages:
     resolution: {integrity: sha512-6fPc+R4ihwqP6N/aIv2f1gMH8lOVtWQHoqC4yK6oSDVVocumAsfCqjkXnqiYMhmMwS/mEHLp7Vehlt3ql6lEig==}
     engines: {node: '>=8'}
 
-  stripe@23.0.0:
-    resolution: {integrity: sha512-MDE2A5ZVVluYURORaZEVghSmnLJc3w6aHAlZSxDQMsOjOb3V0O6ro/CiaeFlJS4N7uIVmsg98ocRsPmUK6YfyA==}
-    engines: {node: '>=20'}
-    peerDependencies:
-      '@types/node': '>=20'
-    peerDependenciesMeta:
-      '@types/node':
-        optional: true
-
   styled-jsx@5.1.6:
     resolution: {integrity: sha512-qSVyDTeMotdvQYoHWLNGwRFJHC+i+ZvdBRYosOFgC+Wg1vx4frN2/RG/NA7SYqqvKNLf39P2LSRA2pu6n0XYZA==}
     engines: {node: '>= 12.0.0'}
@@ -3786,6 +3784,8 @@ packages:
 snapshots:
 
   '@alloc/quick-lru@5.2.0': {}
+
+  '@avarra/lemonsqueezy@0.2.0': {}
 
   '@aws-sdk/checksums@3.1001.2':
     dependencies:
@@ -7020,10 +7020,6 @@ snapshots:
   strip-bom@3.0.0: {}
 
   strip-json-comments@3.1.1: {}
-
-  stripe@23.0.0(@types/node@24.19.2):
-    optionalDependencies:
-      '@types/node': 24.19.2
 
   styled-jsx@5.1.6(@babel/core@7.28.5(supports-color@7.2.0))(react@19.3.0):
     dependencies:

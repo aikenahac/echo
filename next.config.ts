@@ -15,10 +15,6 @@ const nextConfig: NextConfig = {
   reactCompiler: true,
   images: {
     remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "covers.openlibrary.org"
-      },
       ...(s3PublicUrl
         ? [
             {

@@ -5,22 +5,30 @@ import { db } from "@/db";
 import { users, userSubscriptions, subscriptionPlans } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { revalidateLocalized } from "@/lib/revalidate";
-import { getStripe } from "@/lib/stripe";
+import {
+  getLemonSqueezy,
+  lemonSqueezyStoreId,
+  lemonSqueezyTestMode,
+  isLemonSqueezyConfigured,
+} from "@/lib/lemonsqueezy";
 
 // Free plans never expire; use a far-future period end
 const farFuture = () =>
   new Date(new Date().setFullYear(new Date().getFullYear() + 100));
 
 /**
- * Create a Stripe Checkout session for subscription upgrade
+ * Create a Lemon Squeezy checkout for a subscription upgrade
  */
 export async function createCheckoutSession(planId: string) {
   const { userId } = await auth();
   if (!userId) return { error: "Unauthorized" };
 
+  if (!isLemonSqueezyConfigured()) {
+    return { error: "Payments are coming soon" };
+  }
+
   try {
-    // Get user, plan and existing subscription (for the Stripe customer ID)
-    const [user, plan, existingSubscription] = await Promise.all([
+    const [user, plan] = await Promise.all([
       db.query.users.findFirst({
         where: eq(users.id, userId),
       }),
@@ -30,83 +38,66 @@ export async function createCheckoutSession(planId: string) {
           eq(subscriptionPlans.isActive, true)
         ),
       }),
-      db.query.userSubscriptions.findFirst({
-        where: eq(userSubscriptions.userId, userId),
-      }),
     ]);
 
     if (!plan) {
       return { error: "Plan not found" };
     }
 
-    if (!plan.stripePriceId) {
+    if (!plan.lemonSqueezyVariantId) {
       return { error: "This plan does not require checkout" };
     }
 
-    const stripe = getStripe();
-
-    // Reuse the user's Stripe customer if they have one
-    let customerId = existingSubscription?.stripeCustomerId;
-    if (!customerId) {
-      // Create new Stripe customer (will be saved to userSubscriptions by webhook)
-      const customer = await stripe.customers.create({
-        email: user?.email,
-        metadata: { userId },
-      });
-      customerId = customer.id;
-    }
-
-    // Create checkout session
-    const session = await stripe.checkout.sessions.create({
-      customer: customerId,
-      mode: "subscription",
-      line_items: [
-        {
-          price: plan.stripePriceId,
-          quantity: 1,
-        },
-      ],
-      success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/subscription/canceled`,
-      metadata: {
-        userId,
-        planId,
+    // The user ID travels as custom data and comes back on every webhook
+    const checkout = await getLemonSqueezy().createCheckout({
+      storeId: lemonSqueezyStoreId(),
+      variantId: plan.lemonSqueezyVariantId,
+      testMode: lemonSqueezyTestMode(),
+      productOptions: {
+        redirectUrl: `${process.env.NEXT_PUBLIC_BASE_URL}/subscription/success`,
+        enabledVariants: [Number(plan.lemonSqueezyVariantId)],
+      },
+      checkoutData: {
+        ...(user?.email ? { email: user.email } : {}),
+        custom: { user_id: userId },
       },
     });
 
-    return { sessionId: session.id, url: session.url };
+    return { url: checkout.url };
   } catch (error) {
-    console.error("Error creating checkout session:", error);
+    console.error("Error creating checkout:", error);
     return { error: "Failed to create checkout session" };
   }
 }
 
 /**
- * Create a Stripe Customer Portal session
+ * Get the Lemon Squeezy customer portal URL for the current subscription
  */
 export async function createPortalSession() {
   const { userId } = await auth();
   if (!userId) return { error: "Unauthorized" };
 
   try {
-    // Get user's subscription to find Stripe customer ID
     const subscription = await db.query.userSubscriptions.findFirst({
       where: eq(userSubscriptions.userId, userId),
     });
 
-    if (!subscription?.stripeCustomerId) {
-      return { error: "No Stripe customer found" };
+    if (!subscription?.lemonSqueezySubscriptionId) {
+      return { error: "No subscription found" };
     }
 
-    const session = await getStripe().billingPortal.sessions.create({
-      customer: subscription.stripeCustomerId,
-      return_url: `${process.env.NEXT_PUBLIC_BASE_URL}/subscription`,
-    });
+    const { urls } = await getLemonSqueezy().getSubscription(
+      subscription.lemonSqueezySubscriptionId,
+    );
 
-    return { url: session.url };
+    if (!urls.customerPortal) {
+      return { error: "Billing portal is unavailable" };
+    }
+
+    return { url: urls.customerPortal };
   } catch (error) {
-    console.error("Error creating portal session:", error);
-    return { error: "Failed to create portal session" };
+    console.error("Error fetching billing portal:", error);
+    return { error: "Failed to open billing portal" };
   }
 }
 
@@ -179,9 +170,9 @@ export async function upgradeToFreePlan(planId: string) {
     }
 
     // Only public, active, genuinely free plans can be self-assigned.
-    // Internal or lifetime plans without a Stripe price must be granted by an admin.
+    // Internal or lifetime plans without a Lemon Squeezy variant must be granted by an admin.
     if (
-      plan.stripePriceId ||
+      plan.lemonSqueezyVariantId ||
       plan.price !== 0 ||
       plan.interval !== "free" ||
       !plan.isActive ||

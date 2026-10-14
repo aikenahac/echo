@@ -23,8 +23,8 @@ interface Plan {
   interval: string;
   isActive: boolean;
   isInternal: boolean;
-  stripePriceId: string | null;
-  stripeProductId: string | null;
+  lemonSqueezyVariantId: string | null;
+  lemonSqueezyProductId: string | null;
   sortOrder: number;
 }
 
@@ -41,8 +41,7 @@ export function EditPlanDialog({
   const [formData, setFormData] = useState({
     name: plan.name,
     price: plan.price / 100, // Convert cents to dollars
-    stripePriceId: plan.stripePriceId || "",
-    stripeProductId: plan.stripeProductId || "",
+    lemonSqueezyVariantId: plan.lemonSqueezyVariantId || "",
     isActive: plan.isActive,
     isInternal: plan.isInternal,
   });
@@ -55,8 +54,7 @@ export function EditPlanDialog({
       const result = await updateSubscriptionPlan(plan.id, {
         name: formData.name,
         price: Math.round(formData.price * 100), // Convert to cents
-        stripePriceId: formData.stripePriceId || null,
-        stripeProductId: formData.stripeProductId || null,
+        lemonSqueezyVariantId: formData.lemonSqueezyVariantId || null,
         isActive: formData.isActive,
         isInternal: formData.isInternal,
       });
@@ -113,32 +111,19 @@ export function EditPlanDialog({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="stripePriceId">Stripe Price ID</Label>
+              <Label htmlFor="lemonSqueezyVariantId">Lemon Squeezy Variant ID</Label>
               <Input
-                id="stripePriceId"
-                value={formData.stripePriceId}
+                id="lemonSqueezyVariantId"
+                value={formData.lemonSqueezyVariantId}
                 onChange={(e) =>
-                  setFormData({ ...formData, stripePriceId: e.target.value })
+                  setFormData({ ...formData, lemonSqueezyVariantId: e.target.value })
                 }
-                placeholder="price_..."
+                placeholder="123456"
                 className="font-mono text-sm"
               />
               <p className="text-xs text-muted-foreground">
                 Leave empty for free tier
               </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="stripeProductId">Stripe Product ID</Label>
-              <Input
-                id="stripeProductId"
-                value={formData.stripeProductId}
-                onChange={(e) =>
-                  setFormData({ ...formData, stripeProductId: e.target.value })
-                }
-                placeholder="prod_..."
-                className="font-mono text-sm"
-              />
             </div>
 
             <div className="flex items-center justify-between">

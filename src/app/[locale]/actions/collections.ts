@@ -101,10 +101,10 @@ async function checkCollectionAccess(userId: string): Promise<boolean> {
     return false;
   }
 
-  // Check if user has a paid plan (price > 0, has stripePriceId, or is lifetime)
+  // Check if user has a paid plan (price > 0, has lemonSqueezyVariantId, or is lifetime)
   return (
     subscription.plan.price > 0 ||
-    subscription.plan.stripePriceId !== null ||
+    subscription.plan.lemonSqueezyVariantId !== null ||
     subscription.plan.interval === "lifetime"
   );
 }

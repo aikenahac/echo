@@ -17,7 +17,7 @@ Source of truth: the code in this repo as of the `feat/mobile-api-parity` branch
 - **Follow** other readers and see their activity in a **feed**.
 - With **Premium**, organize books into custom **collections** with a color, icon, cover image and public/private visibility.
 
-Tech behind it: Next.js 16, PostgreSQL + Drizzle, **Clerk** for auth, **Stripe** for payments, **AWS S3** for image uploads, **Open Library** as the external book catalog, **Resend** for transactional email. The UI is English only today, but every string goes through `next-intl`, so a mobile app should plan for localization from the start.
+Tech behind it: Next.js 16, PostgreSQL + Drizzle, **Clerk** for auth, **Lemon Squeezy** (merchant of record) for payments, **AWS S3** for image uploads, **Open Library** as the external book catalog, **Resend** for transactional email. The UI is English only today, but every string goes through `next-intl`, so a mobile app should plan for localization from the start.
 
 ---
 
@@ -176,10 +176,10 @@ Custom groups of books from the user's own library, like playlists.
 ### 4.10 Premium, pricing and subscription
 - **Plans come from the database** (`subscription_plans`), managed by admins. Marketing copy today: **Free** (unlimited books, stats, reviews, social) vs **Echo Premium**, **€1.99/month or €19.99 lifetime**, which adds custom collections, priority support and early access. There are **no limits on the number of books** for anyone.
 - What a user gets with Premium: **the only feature gated in code is Collections.**
-- "Premium" means the subscription status is `active` or `trialing` **and** the plan is paid (price > 0, or it has a Stripe price, or its interval is `lifetime`). Admins can grant internal or lifetime plans manually.
-- Web flow: Subscription page → plan list → **Stripe Checkout** (redirect) → `/subscription/success` or `/subscription/canceled`. Paid users manage billing in the **Stripe Customer Portal**. Stripe webhooks keep the subscription in sync and trigger emails (welcome to Premium, payment failed, subscription canceled).
+- "Premium" means the subscription status is `active` or `trialing` **and** the plan is paid (price > 0, or it has a Lemon Squeezy variant, or its interval is `lifetime`). Admins can grant internal or lifetime plans manually.
+- Web flow: Subscription page → plan list → **Lemon Squeezy Checkout** (redirect) → `/subscription/success` or `/subscription/canceled`. Paid users manage billing in the **Lemon Squeezy customer portal**. Lemon Squeezy webhooks keep the subscription in sync and trigger emails (welcome to Premium, payment failed, subscription canceled).
 - **Settings page** (paid users): email, username, current plan, a status badge, price, and "Renews" or "Expires" with a date. Lifetime plans show "🎉 You have lifetime access!".
-- ⚠️ **Mobile note:** Apple and Google generally require in-app purchase for digital subscriptions bought inside the app. Stripe Checkout in a webview is not an option for iOS. Decide early: (a) IAP plus a server-side receipt sync into `user_subscriptions`, (b) "manage on the web" only, with no purchase button in the app, or (c) a reader-app or external-link entitlement where allowed. The backend currently only knows Stripe.
+- ⚠️ **Mobile note:** Apple and Google generally require in-app purchase for digital subscriptions bought inside the app. Lemon Squeezy Checkout in a webview is not an option for iOS. Decide early: (a) IAP plus a server-side receipt sync into `user_subscriptions`, (b) "manage on the web" only, with no purchase button in the app, or (c) a reader-app or external-link entitlement where allowed. The backend currently only knows Lemon Squeezy.
 
 ### 4.11 Other web-only areas (probably not needed on mobile)
 - **Admin panel** (`/admin`, moderators and admins): dashboard stats (users, books, reviews, library entries, new users in 30 days, most popular books, recent users), user management (edit, change role, delete, grant or revoke premium), subscription plan CRUD, book catalog editing, review moderation (delete), an audit log, and an interactive **API playground** (`src/lib/api-docs.ts`, which also contains a "Mobile App Integration Guide").
@@ -230,7 +230,7 @@ interface Collection {
 
 interface SubscriptionPlan {
   id: string; name: string; price: number /* cents */; interval: "month" | "year" | "lifetime" | "free";
-  stripePriceId: string | null; isActive: boolean; isInternal: boolean; sortOrder: number;
+  lemonSqueezyVariantId: string | null; isActive: boolean; isInternal: boolean; sortOrder: number;
 }
 // subscription status: "active" | "canceled" | "past_due" | "unpaid" | "trialing" | "incomplete"
 ```
@@ -316,7 +316,7 @@ type FeedItem =
 | PUT | `/profile` | `{ username?, displayName?, bio?, profilePictureUrl? }` | `{ success }`. **Partial update:** only fields present in the body change; `null` or `""` clears `displayName`, `bio` or `profilePictureUrl`. `username` can be changed but not cleared. An empty body → 400. |
 | GET | `/profile/stats` | – | `{ booksFinishedThisYear, pagesReadThisYear, totalBooks, countsByStatus: { want, reading, finished }, favoritesCount }` |
 | GET | `/profile/username-available` | `?username=` (required) | `{ available: true }` or `{ available: false, reason }` (format error or "Username already taken"). Your own current username counts as available. |
-| DELETE | `/profile` | – | `{ success: true }`. **Permanently deletes the account:** cancels a running Stripe subscription, deletes all of the user's data, then the Clerk user. Sign out on the client afterwards. |
+| DELETE | `/profile` | – | `{ success: true }`. **Permanently deletes the account:** cancels a running Lemon Squeezy subscription, deletes all of the user's data, then the Clerk user. Sign out on the client afterwards. |
 | POST | `/profile/picture-upload-url` | `{ contentType, fileSize }` | `{ uploadUrl, publicUrl, expiresIn: 300 }` |
 
 > ⚠️ **Changed:** `PUT /profile` used to replace every field (omitted fields were cleared) and required `username` on every call. It's now a partial update.
@@ -374,7 +374,7 @@ type FeedItem =
 
 The API now covers everything the web app does, except:
 
-1. **Checkout and billing.** Stripe Checkout and the Customer Portal are web server actions only, and in-app purchase isn't decided yet (see §4.10). Read `isPremium` from `GET /profile` to decide whether to show collection features or the paywall.
+1. **Checkout and billing.** Lemon Squeezy Checkout and the customer portal are web server actions only, and in-app purchase isn't decided yet (see §4.10). Read `isPremium` from `GET /profile` to decide whether to show collection features or the paywall.
 2. **Reading streaks and goals.** Not implemented anywhere (the web streak tile is hard-coded to 0).
 3. **Admin endpoints.** Web only, by design.
 

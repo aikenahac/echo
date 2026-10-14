@@ -104,7 +104,7 @@ export default async function SettingsPage({
                 </span>
               </div>
             ) : null}
-            {subscription?.stripeCustomerId && <BillingRow />}
+            {subscription?.lemonSqueezySubscriptionId && <BillingRow />}
           </>
         ) : (
           <>

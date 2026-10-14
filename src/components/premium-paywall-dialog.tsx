@@ -6,6 +6,7 @@ import { Capsule } from "@/components/echo/buttons";
 import { Icon } from "@/components/echo/icons";
 import { Sheet, SheetClose, SheetContent } from "@/components/echo/sheet";
 import { Stamp } from "@/components/echo/stamp";
+import { usePaymentsComingSoon } from "@/components/plans/payments-provider";
 
 interface PremiumPaywallDialogProps {
   open: boolean;
@@ -24,6 +25,7 @@ export function PremiumPaywallDialog({
 }: PremiumPaywallDialogProps) {
   const router = useRouter();
   const t = useTranslations("paywall");
+  const comingSoon = usePaymentsComingSoon();
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -60,7 +62,14 @@ export function PremiumPaywallDialog({
               </li>
             ))}
           </ul>
-          <p className="mt-auto pt-8 text-[15px] text-on-field-2">
+          {comingSoon && (
+            <p className="mt-auto pt-8 text-[13px] font-semibold tracking-[1px] uppercase text-on-field">
+              {t("comingSoon")}
+            </p>
+          )}
+          <p
+            className={`${comingSoon ? "pt-1" : "mt-auto pt-8"} text-[15px] text-on-field-2`}
+          >
             {t.rich("price", {
               b: (chunks) => <b className="font-semibold text-on-field">{chunks}</b>,
             })}

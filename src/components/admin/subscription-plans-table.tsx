@@ -21,8 +21,8 @@ interface Plan {
   interval: string;
   isActive: boolean;
   isInternal: boolean;
-  stripePriceId: string | null;
-  stripeProductId: string | null;
+  lemonSqueezyVariantId: string | null;
+  lemonSqueezyProductId: string | null;
   sortOrder: number;
 }
 
@@ -40,7 +40,7 @@ export function SubscriptionPlansTable({ plans }: { plans: Plan[] }) {
               <TableHead>Interval</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Visibility</TableHead>
-              <TableHead>Stripe Price ID</TableHead>
+              <TableHead>Variant ID</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -65,7 +65,7 @@ export function SubscriptionPlansTable({ plans }: { plans: Plan[] }) {
                     </Badge>
                   </TableCell>
                   <TableCell className="font-mono text-xs">
-                    {plan.stripePriceId || "—"}
+                    {plan.lemonSqueezyVariantId || "—"}
                   </TableCell>
                   <TableCell className="text-right">
                     <Button

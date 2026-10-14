@@ -148,9 +148,9 @@ Uses Tailwind CSS v4 with:
 **Production workflow:**
 1. Modify `src/db/schema.ts`
 2. Run `pnpm db:generate` to create migration in `drizzle/` directory
-3. Migrations run via the `migrations` service in `docker-compose.prod.yaml` (`node dist/migrate.js`) before the app starts
+3. The image's `CMD` applies pending migrations (`node dist/migrate.js`) before starting the server, so every deploy migrates; a failed migration stops the container
 
-**Note:** `drizzle/0005`-`0007` are hand-written SQL files that are not in `drizzle/meta/_journal.json`, and the last snapshot (`0004`) is behind the schema, so `drizzle-kit migrate` does not apply them and `db:generate` would also emit the older drift. Apply hand-written migrations manually (`0007` is idempotent) until the journal is re-baselined.
+**Note:** `drizzle/0005`-`0007` are hand-written, idempotent SQL files listed in `drizzle/meta/_journal.json` without snapshots. The last snapshot (`0004`) is behind the schema, so `db:generate` would also emit the older drift until the snapshots are re-baselined. Keep any further hand-written migration idempotent and add it to the journal.
 
 ## Deployment
 
@@ -161,7 +161,7 @@ The Dockerfile uses multi-stage builds:
 2. **builder** - Build Next.js app and compile migration script
 3. **runner** - Production image with standalone output
 
-**Important:** Secrets are not build args; provide them to the container at runtime. Only `NEXT_PUBLIC_*` values and `AWS_S3_PUBLIC_URL` (allowed `next/image` host) are needed at build time. In production, migrations run in the separate `migrations` compose service.
+**Important:** Secrets are not build args; provide them to the container at runtime. Only `NEXT_PUBLIC_*` values and `AWS_S3_PUBLIC_URL` (allowed `next/image` host) are needed at build time. Production runs on Dokploy, which builds the image from this Dockerfile (public values as Build Args) and connects it to a separate Postgres service; migrations run on container start.
 
 ### Adding shadcn/ui Components
 

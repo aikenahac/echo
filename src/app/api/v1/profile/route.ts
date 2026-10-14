@@ -32,7 +32,7 @@ export const GET = withAuth(async (request, { user }) => {
     (profile.subscription.status === "active" ||
       profile.subscription.status === "trialing") &&
     (profile.subscription.plan.price > 0 ||
-      profile.subscription.plan.stripePriceId !== null ||
+      profile.subscription.plan.lemonSqueezyVariantId !== null ||
       profile.subscription.plan.interval === "lifetime")
   );
 
@@ -77,7 +77,7 @@ export const PUT = withAuth(async (request) => {
 
 /**
  * DELETE /api/v1/profile
- * Permanently delete the current user's account: cancels any running Stripe
+ * Permanently delete the current user's account: cancels any running Lemon Squeezy
  * subscription, deletes the user row (cascades to library, reviews, follows,
  * collections and subscription), then deletes the Clerk user.
  * Required for in-app account deletion (App Store guideline 5.1.1(v)).

@@ -11,6 +11,8 @@ import "../globals.css";
 import { Metadata } from "next";
 import { getViewer, isPaidPlan } from "@/lib/auth";
 import { getAppearance } from "@/lib/appearance";
+import { isLemonSqueezyConfigured } from "@/lib/lemonsqueezy";
+import { PaymentsProvider } from "@/components/plans/payments-provider";
 
 // Archivo with the width axis: the display face is set at wdth 62 (condensed)
 // through `font-stretch` in the font-disp utility.
@@ -182,6 +184,7 @@ export default async function LocaleLayout({
         </head>
         <body>
           <NextIntlClientProvider messages={messages}>
+            <PaymentsProvider comingSoon={!isLemonSqueezyConfigured()}>
             <Navigation signedIn={!!viewer} hasAdminAccess={hasAdminAccess} hasPaidPlan={hasPaidPlan} />
             <AppMain signedIn={!!viewer}>{children}</AppMain>
             <UsernameSetupDialog hasUsername={hasUsername} />
@@ -192,6 +195,7 @@ export default async function LocaleLayout({
                   "!rounded-2xl !border-rule !bg-paper !text-ink !font-sans !text-[15px]",
               }}
             />
+            </PaymentsProvider>
           </NextIntlClientProvider>
         </body>
       </html>

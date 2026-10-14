@@ -36,6 +36,14 @@ export function Footer() {
             {t("legalDocuments")}
           </Link>
           <a
+            href="https://openlibrary.org"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-ink"
+          >
+            {t("bookData")}
+          </a>
+          <a
             href="https://x.com/aikenahac"
             target="_blank"
             rel="noopener noreferrer"

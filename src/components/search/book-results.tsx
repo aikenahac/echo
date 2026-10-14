@@ -6,9 +6,17 @@ import { toast } from "sonner";
 import { Link } from "@/i18n/routing";
 import { addBookToLibrary } from "@/app/[locale]/actions/books";
 import {
-  searchBooksHybrid,
-  type SearchResult,
+  recordOpenLibrarySearch,
+  searchCatalog,
 } from "@/app/[locale]/actions/search";
+import {
+  OPEN_LIBRARY_PAGE_SIZE,
+  searchOpenLibrary,
+  docToResult,
+  mergeResults,
+  rankResults,
+  type SearchResult,
+} from "@/lib/open-library";
 import { Capsule } from "@/components/echo/buttons";
 import { Cover } from "@/components/echo/cover";
 import { Icon } from "@/components/echo/icons";
@@ -18,7 +26,45 @@ import type { ReadingStatus } from "@/types";
 /** The viewer's library, keyed by book id and by ISBN. */
 export type Owned = Record<string, { bookId: string; status: ReadingStatus; rating: number | null }>;
 
-const PAGE = 20;
+const MAX_PAGE = 50;
+
+/**
+ * One page of results. Our server answers first (catalog books, plus Open
+ * Library's results when we stored them). Otherwise this browser asks Open
+ * Library directly, so the request comes from the user's IP, then tells the
+ * server what it saw so the next search for it is answered from storage.
+ */
+async function fetchPage(
+  query: string,
+  page: number,
+  signal: AbortSignal,
+): Promise<{ results: SearchResult[]; hasMore: boolean }> {
+  const stored = await searchCatalog(query, page);
+  if ("error" in stored) throw new Error(stored.error);
+
+  let external: SearchResult[];
+  let numFound: number;
+  if (stored.openLibrary.status === "hit") {
+    external = stored.openLibrary.results;
+    numFound = stored.openLibrary.numFound;
+  } else {
+    const found = await searchOpenLibrary(query, page, { signal });
+    numFound = found.numFound;
+    external = found.docs.map(docToResult);
+    // Fire and forget; attach catalog ids when the answer arrives
+    void recordOpenLibrarySearch({ query, page, numFound, docs: found.docs }).then(
+      (res) => {
+        if ("error" in res) return;
+        for (const r of external) if (r.key && res.ids[r.key]) r.id = res.ids[r.key];
+      },
+    );
+  }
+
+  return {
+    results: rankResults(external, stored.catalog),
+    hasMore: page < MAX_PAGE && page * OPEN_LIBRARY_PAGE_SIZE < numFound,
+  };
+}
 
 function ownedFor(owned: Owned, r: SearchResult) {
   return (r.id && owned[r.id]) || (r.isbn && owned[`isbn:${r.isbn}`]) || null;
@@ -28,22 +74,30 @@ export function BookResults({ query, owned: initialOwned }: { query: string; own
   const t = useTranslations("find");
   const tShelf = useTranslations("shelf");
   const [results, setResults] = useState<SearchResult[] | null>(null);
+  const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
+  const [failed, setFailed] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [owned, setOwned] = useState(initialOwned);
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
     if (!query) return;
-    let cancelled = false;
-    searchBooksHybrid(query, 0, PAGE).then((r) => {
-      if (cancelled) return;
-      setResults(r);
-      setHasMore(r.length === PAGE);
-    });
-    return () => {
-      cancelled = true;
-    };
+    const controller = new AbortController();
+    // Parent re-mounts this per query (key={query}), so state starts fresh
+    fetchPage(query, 1, controller.signal)
+      .then((r) => {
+        if (controller.signal.aborted) return;
+        setResults(r.results);
+        setHasMore(r.hasMore);
+      })
+      .catch(() => {
+        if (controller.signal.aborted) return;
+        // Open Library is down or rate-limited us: show what we have
+        setFailed(true);
+        setResults([]);
+      });
+    return () => controller.abort();
   }, [query]);
 
   if (!query) {
@@ -67,20 +121,17 @@ export function BookResults({ query, owned: initialOwned }: { query: string; own
   }
 
   if (results.length === 0) {
-    return <p className="mt-8 text-[15px] text-ink-2">{t("noBooks", { query })}</p>;
+    return (
+      <p className="mt-8 text-[15px] text-ink-2">
+        {failed ? t("searchFailed") : t("noBooks", { query })}
+      </p>
+    );
   }
 
   const add = (r: SearchResult, status: ReadingStatus) =>
     startTransition(async () => {
       const result = await addBookToLibrary(
-        {
-          isbn: r.isbn,
-          title: r.title,
-          author: r.author,
-          coverUrl: r.coverUrl,
-          pages: r.pages,
-          publishedYear: r.publishedYear,
-        },
+        r.id ? { bookId: r.id } : { openLibrary: r.doc! },
         status,
       );
       if (result.error || !result.userBook) {
@@ -99,14 +150,19 @@ export function BookResults({ query, owned: initialOwned }: { query: string; own
 
   const loadMore = async () => {
     setLoadingMore(true);
-    const more = await searchBooksHybrid(query, results.length, PAGE);
-    setLoadingMore(false);
-    setResults([...results, ...more]);
-    setHasMore(more.length === PAGE);
+    try {
+      const next = await fetchPage(query, page + 1, new AbortController().signal);
+      setResults(mergeResults(results, next.results));
+      setHasMore(next.hasMore);
+      setPage(page + 1);
+    } catch {
+      toast.error(t("searchFailed"));
+    } finally {
+      setLoadingMore(false);
+    }
   };
 
-  // Group consecutive results by source, so each run gets its source line
-  const firstExternal = results.findIndex((r) => r.source === "external");
+  // Each run of results from the same source gets its source line
 
   return (
     <div className="mt-5">
@@ -114,7 +170,7 @@ export function BookResults({ query, owned: initialOwned }: { query: string; own
         {results.map((r, i) => {
           const have = ownedFor(owned, r);
           const href = have ? `/books/${have.bookId}` : r.id ? `/books/${r.id}` : null;
-          const showSource = i === 0 || i === firstExternal;
+          const showSource = i === 0 || results[i - 1].source !== r.source;
           return (
             <li key={r.id ?? r.key ?? `${r.title}-${i}`}>
               {showSource && (

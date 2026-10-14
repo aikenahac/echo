@@ -6,9 +6,6 @@ import { useLocale, useTranslations } from "next-intl";
 import { Capsule } from "@/components/echo/buttons";
 import { cn } from "@/lib/utils";
 
-// Apple has to be enabled as a social connection in the Clerk dashboard first.
-const APPLE_ENABLED = process.env.NEXT_PUBLIC_AUTH_APPLE_ENABLED === "true";
-
 function AppleLogo() {
   return (
     <svg viewBox="0 0 17 20" width="17" height="20" aria-hidden fill="currentColor">
@@ -56,18 +53,16 @@ export function OAuthButtons({
 
   return (
     <div className={cn("flex flex-col gap-3", className)}>
-      {APPLE_ENABLED && (
-        <Capsule
-          type="button"
-          size="lg"
-          className="bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black"
-          onClick={() => start("oauth_apple")}
-          disabled={!!pending}
-        >
-          <AppleLogo />
-          {t("continueApple")}
-        </Capsule>
-      )}
+      <Capsule
+        type="button"
+        size="lg"
+        className="bg-black text-white hover:bg-black/90 dark:bg-white dark:text-black"
+        onClick={() => start("oauth_apple")}
+        disabled={!!pending}
+      >
+        <AppleLogo />
+        {t("continueApple")}
+      </Capsule>
       <Capsule
         type="button"
         size="lg"

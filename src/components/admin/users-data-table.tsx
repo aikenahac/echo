@@ -40,7 +40,7 @@ interface Subscription {
   currentPeriodStart: Date | null;
   currentPeriodEnd: Date | null;
   cancelAtPeriodEnd: boolean;
-  stripeSubscriptionId: string | null;
+  lemonSqueezySubscriptionId: string | null;
   plan: Plan;
 }
 

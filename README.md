@@ -89,10 +89,11 @@ NEXT_PUBLIC_CLERK_SIGN_IN_URL="/"
 NEXT_PUBLIC_CLERK_SIGN_UP_URL="/"
 ```
 
-# Stripe (for payments)
-STRIPE_SECRET_KEY=sk_test_...
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
-STRIPE_WEBHOOK_SECRET=whsec_...
+# Lemon Squeezy (for payments)
+LEMON_SQUEEZY_API_KEY=...
+LEMON_SQUEEZY_STORE_ID=...
+LEMON_SQUEEZY_WEBHOOK_SECRET=...
+LEMON_SQUEEZY_TEST_MODE=true
 
 # Resend (for emails)
 RESEND_API_KEY=re_...
@@ -103,25 +104,26 @@ NEXT_PUBLIC_BASE_URL=http://localhost:3000
 
 Where to Get Each Variable
 
-1. Stripe Keys (STRIPE_SECRET_KEY & NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
+1. Lemon Squeezy API Key & Store ID (LEMON_SQUEEZY_API_KEY & LEMON_SQUEEZY_STORE_ID)
 
 Steps:
-1. Go to https://stripe.com and create an account (or log in)
-2. You'll start in Test Mode (recommended for development)
-3. Go to Developers → API Keys
-4. Copy:
-  - Secret key → STRIPE_SECRET_KEY (starts with sk_test_)
-  - Publishable key → NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY (starts with pk_test_)
+1. Go to https://lemonsqueezy.com and create an account (or log in)
+2. Turn on Test Mode (recommended for development) in the sidebar
+3. Go to Settings → API and create a key → LEMON_SQUEEZY_API_KEY
+4. Your store ID is shown under Settings → Stores → LEMON_SQUEEZY_STORE_ID
+5. Set LEMON_SQUEEZY_TEST_MODE=true while using a test-mode key
+6. Create a subscription product, then add its variant ID as a plan in /admin
 
-2. Stripe Webhook Secret (STRIPE_WEBHOOK_SECRET)
+Lemon Squeezy is the merchant of record: it collects and remits VAT/sales tax.
 
-You'll set this up after creating your webhook endpoint. For now, you can skip it and add it
-later when testing webhooks locally.
+2. Lemon Squeezy Webhook Secret (LEMON_SQUEEZY_WEBHOOK_SECRET)
 
-To get it later:
-1. In Stripe Dashboard → Developers → Webhooks
-2. Click Add endpoint
-3. For local testing, you'll use Stripe CLI (see below)
+1. In the Lemon Squeezy dashboard go to Settings → Webhooks → Add webhook
+2. URL: https://yourdomain.com/api/webhooks/lemonsqueezy (a tunnel URL for local testing)
+3. Enter a signing secret of your choosing → LEMON_SQUEEZY_WEBHOOK_SECRET
+4. Subscribe to: subscription_created, subscription_updated, subscription_cancelled,
+   subscription_resumed, subscription_expired, subscription_paused, subscription_unpaused,
+   subscription_payment_success, subscription_payment_failed, subscription_payment_recovered
 
 3. Resend API Key (RESEND_API_KEY)
 
@@ -157,21 +159,13 @@ NEXT_PUBLIC_BASE_URL=http://localhost:3000
 For production:
 NEXT_PUBLIC_BASE_URL=https://yourdomain.com
 
-Testing Stripe Webhooks Locally
+Testing Webhooks Locally
 
-To test webhooks during development, use the Stripe CLI:
-
-# Install Stripe CLI
-brew install stripe/stripe-cli/stripe
-
-# Login to Stripe
-stripe login
-
-# Forward webhooks to your local server
-stripe listen --forward-to localhost:3000/api/webhooks/stripe
-
-This command will output a webhook signing secret like whsec_... - use that for
-STRIPE_WEBHOOK_SECRET.
+Lemon Squeezy needs a public URL. Expose your dev server with a tunnel
+(e.g. `ngrok http 3000` or `cloudflared tunnel --url http://localhost:3000`),
+then point a test-mode webhook at https://<tunnel-host>/api/webhooks/lemonsqueezy
+using the signing secret you put in LEMON_SQUEEZY_WEBHOOK_SECRET. You can resend
+past deliveries from Settings → Webhooks → Recent deliveries.
 
 4. Set up the database:
 ```bash

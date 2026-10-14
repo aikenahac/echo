@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { isOpenLibraryCover } from "@/lib/open-library";
 import { cn } from "@/lib/utils";
 
 /**
@@ -51,6 +52,9 @@ export function Cover({
           priority={priority}
           sizes={sizes ?? `${Math.ceil(width * 2)}px`}
           className="object-cover"
+          // Open Library asks sites to load covers from the visitor's browser
+          // rather than proxying them through our image optimizer
+          unoptimized={isOpenLibraryCover(src)}
         />
       ) : (
         <div className="absolute inset-0 flex flex-col justify-between border-l-[5px] border-pink-ink bg-tint p-[8%] text-ink">

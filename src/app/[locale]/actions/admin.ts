@@ -12,17 +12,18 @@ import {
 } from "@/db/schema";
 import { eq, desc, asc } from "drizzle-orm";
 import { revalidateLocalized } from "@/lib/revalidate";
-import { getStripe } from "@/lib/stripe";
+import { getLemonSqueezy } from "@/lib/lemonsqueezy";
 
 /**
- * Check that a Stripe price ID exists. `prices.retrieve` throws on unknown IDs.
+ * Look up a Lemon Squeezy variant for a plan: it must exist and be a
+ * subscription. `getVariant` throws on unknown IDs.
  */
-async function isValidStripePrice(priceId: string) {
+async function findSubscriptionVariant(variantId: string) {
   try {
-    await getStripe().prices.retrieve(priceId);
-    return true;
+    const variant = await getLemonSqueezy().getVariant(variantId);
+    return variant.isSubscription ? variant : null;
   } catch {
-    return false;
+    return null;
   }
 }
 
@@ -275,8 +276,7 @@ export async function deleteUserAsAdmin(targetUserId: string) {
  */
 export async function createSubscriptionPlan(data: {
   name: string;
-  stripePriceId: string | null;
-  stripeProductId: string | null;
+  lemonSqueezyVariantId: string | null;
   price: number;
   interval: "month" | "year" | "lifetime" | "free";
   isActive: boolean;
@@ -285,16 +285,19 @@ export async function createSubscriptionPlan(data: {
   const currentUser = await requireRole(["admin"]);
 
   try {
-    // Validate Stripe IDs if provided
-    if (data.stripePriceId) {
-      if (!(await isValidStripePrice(data.stripePriceId))) {
-        return { error: "Invalid Stripe Price ID" };
+    // The product ID is derived from the variant, never entered by hand
+    let lemonSqueezyProductId: string | null = null;
+    if (data.lemonSqueezyVariantId) {
+      const variant = await findSubscriptionVariant(data.lemonSqueezyVariantId);
+      if (!variant) {
+        return { error: "Invalid Lemon Squeezy variant ID" };
       }
+      lemonSqueezyProductId = String(variant.productId);
     }
 
     const [plan] = await db
       .insert(subscriptionPlans)
-      .values(data)
+      .values({ ...data, lemonSqueezyProductId })
       .returning();
 
     await db.insert(auditLogs).values({
@@ -321,8 +324,7 @@ export async function updateSubscriptionPlan(
   planId: string,
   data: Partial<{
     name: string;
-    stripePriceId: string | null;
-    stripeProductId: string | null;
+    lemonSqueezyVariantId: string | null;
     price: number;
     interval: "month" | "year" | "lifetime" | "free";
     isActive: boolean;
@@ -333,16 +335,23 @@ export async function updateSubscriptionPlan(
   const currentUser = await requireRole(["admin"]);
 
   try {
-    // Validate Stripe IDs if provided
-    if (data.stripePriceId) {
-      if (!(await isValidStripePrice(data.stripePriceId))) {
-        return { error: "Invalid Stripe Price ID" };
+    // The product ID is derived from the variant, never entered by hand
+    const update: typeof data & { lemonSqueezyProductId?: string | null } = {
+      ...data,
+    };
+    if (data.lemonSqueezyVariantId) {
+      const variant = await findSubscriptionVariant(data.lemonSqueezyVariantId);
+      if (!variant) {
+        return { error: "Invalid Lemon Squeezy variant ID" };
       }
+      update.lemonSqueezyProductId = String(variant.productId);
+    } else if (data.lemonSqueezyVariantId === null) {
+      update.lemonSqueezyProductId = null;
     }
 
     await db
       .update(subscriptionPlans)
-      .set({ ...data, updatedAt: new Date() })
+      .set({ ...update, updatedAt: new Date() })
       .where(eq(subscriptionPlans.id, planId));
 
     await db.insert(auditLogs).values({
@@ -482,7 +491,7 @@ export async function revokeUserSubscription(targetUserId: string) {
         set: {
           planId: freePlan.id,
           status: "canceled",
-          stripeSubscriptionId: null,
+          lemonSqueezySubscriptionId: null,
           canceledAt: new Date(),
           updatedAt: new Date(),
         },

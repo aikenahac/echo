@@ -115,7 +115,7 @@ const reading = await apiCall('/api/v1/books?status=reading'); // UserBook[]`,
 try {
   const result = await apiCall('/api/v1/books', {
     method: 'POST',
-    body: JSON.stringify({ bookData, status }),
+    body: JSON.stringify({ book: { bookId }, status }),
   });
   console.log('Added:', result.userBook);
 } catch (error) {
@@ -133,8 +133,8 @@ try {
       content: `
 • **Session Management**: Clerk automatically handles token refresh. The session token is valid for the duration of the user's session.
 • **CORS**: API routes accept requests from any origin. Ensure you're using HTTPS in production.
-• **Rate Limiting**: Currently no rate limiting is enforced, but this may change in the future.
-• **Pagination**: List endpoints (feed, book search, followers/following) take \`limit\` and \`offset\` and return \`hasMore\`. User search takes \`limit\` only.
+• **Rate Limiting**: Book search is limited to 60 requests per minute and search ingest to 120 per hour, per user (429). Other endpoints are not limited yet.
+• **Pagination**: List endpoints (feed, followers/following) take \`limit\` and \`offset\` and return \`hasMore\`. User search takes \`limit\` only. Book search is paged by Open Library page (\`page\`).
 • **IDs**: \`/books/{id}\` takes a library entry (UserBook) ID. Catalog book IDs are used by \`/catalog/{bookId}\` and reviews.
 • **Date Formats**: All dates are returned in ISO 8601 format (e.g., "2025-01-15T10:00:00Z").
       `.trim(),
@@ -153,24 +153,12 @@ export const apiEndpoints: ApiEndpoint[] = [
     requestBody: {
       contentType: "application/json",
       schema: {
-        bookData: {
-          title: "string (required)",
-          author: "string (required)",
-          isbn: "string (optional)",
-          coverUrl: "string (optional)",
-          pages: "number (optional)",
-          publishedYear: "number (optional)",
-        },
+        book: '{ bookId: string } (a catalog book) | { openLibrary: OpenLibraryDoc } (a result you got from Open Library that is not in the catalog yet) (required)',
         status: '"want" | "reading" | "finished" (required)',
+        isFavorite: "boolean (optional)",
       },
       example: {
-        bookData: {
-          title: "The Goldfinch",
-          author: "Donna Tartt",
-          isbn: "9780143127741",
-          pages: 771,
-          publishedYear: 2013,
-        },
+        book: { bookId: "uuid..." },
         status: "want",
       },
     },
@@ -255,7 +243,8 @@ export const apiEndpoints: ApiEndpoint[] = [
     method: "GET",
     path: "/api/v1/books/search",
     category: "Books",
-    description: "Search for books (hybrid: database + Open Library API)",
+    description:
+      "Search for books. Returns catalog matches and our stored copy of Open Library's results. When that copy is missing, call Open Library yourself and report the results to /books/search/ingest",
     requiresAuth: true,
     queryParams: [
       {
@@ -265,27 +254,22 @@ export const apiEndpoints: ApiEndpoint[] = [
         description: "Search query",
       },
       {
-        name: "offset",
+        name: "page",
         type: "number",
         required: false,
-        description: "Results to skip (default: 0, max: 1000)",
-      },
-      {
-        name: "limit",
-        type: "number",
-        required: false,
-        description: "Results per page (default: 20, max: 40)",
+        description: "Open Library results page, 20 per page (default: 1, max: 50)",
       },
     ],
     responses: [
       {
         status: 200,
         description:
-          "A page of results. Internal results have a catalog id, external ones an Open Library key. hasMore is true when the page is full, so the next page can be empty.",
+          "catalog holds matching books we already have (first page only). openLibrary.status is \"hit\" with results and numFound, or \"miss\": search https://openlibrary.org/search.json?q=...&page=...&limit=20&fields=key,title,author_name,cover_i,isbn,number_of_pages_median,first_publish_year from the device, then POST the docs to /books/search/ingest.",
         example: {
-          results: [
+          catalog: [
             {
               id: "uuid...",
+              key: "/works/OL468431W",
               isbn: "9780743273565",
               title: "The Great Gatsby",
               author: "F. Scott Fitzgerald",
@@ -294,21 +278,62 @@ export const apiEndpoints: ApiEndpoint[] = [
               publishedYear: 1925,
               source: "internal",
             },
-            {
-              key: "/works/OL468431W",
-              isbn: "9780141182636",
-              title: "The Great Gatsby",
-              author: "F. Scott Fitzgerald",
-              coverUrl: "https://covers.openlibrary.org/b/id/123-L.jpg",
-              pages: 180,
-              publishedYear: 1925,
-              source: "external",
-            },
           ],
-          hasMore: true,
-          offset: 0,
-          limit: 20,
+          openLibrary: { status: "miss" },
         },
+      },
+      {
+        status: 429,
+        description: "More than 60 searches in a minute",
+        example: { error: "Too many searches" },
+      },
+    ],
+  },
+  {
+    method: "POST",
+    path: "/api/v1/books/search/ingest",
+    category: "Books",
+    description:
+      "Report a page of Open Library results you fetched, so they are stored for every user. Returns each work's catalog book id",
+    requiresAuth: true,
+    requestBody: {
+      contentType: "application/json",
+      schema: {
+        query: "string (required)",
+        page: "number (required, 1-50)",
+        numFound: "number (required, Open Library's total)",
+        docs: "OpenLibraryDoc[] (required, max 20: key, title, author_name, first_publish_year, isbn, cover_i, number_of_pages_median)",
+      },
+      example: {
+        query: "the great gatsby",
+        page: 1,
+        numFound: 412,
+        docs: [
+          {
+            key: "/works/OL468431W",
+            title: "The Great Gatsby",
+            author_name: ["F. Scott Fitzgerald"],
+            first_publish_year: 1925,
+            cover_i: 123,
+          },
+        ],
+      },
+    },
+    responses: [
+      {
+        status: 200,
+        description: "Work key to catalog book id",
+        example: { ids: { "/works/OL468431W": "uuid..." } },
+      },
+      {
+        status: 400,
+        description: "Invalid search results",
+        example: { error: "Invalid search results" },
+      },
+      {
+        status: 429,
+        description: "More than 120 ingests in an hour",
+        example: { error: "Too many requests" },
       },
     ],
   },

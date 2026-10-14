@@ -70,7 +70,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Migrations (run by the "migrations" compose service: node dist/migrate.js)
+# Migrations (applied by CMD before the server starts)
 COPY --from=builder --chown=nextjs:nodejs /app/drizzle ./drizzle
 COPY --from=builder --chown=nextjs:nodejs /app/dist ./dist
 
@@ -81,5 +81,5 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Start the application
-CMD ["node", "server.js"]
+# Apply pending migrations, then start the application
+CMD ["sh", "-c", "node dist/migrate.js && exec node server.js"]

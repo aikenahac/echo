@@ -68,10 +68,15 @@ export const books = pgTable(
     coverUrl: text("cover_url"),
     pages: integer("pages"),
     publishedYear: integer("published_year"),
+    // Open Library work key (e.g. /works/OL45804W); unique, so a work is one row
+    olWorkKey: text("ol_work_key").unique(),
+    olCoverId: integer("ol_cover_id"),
+    // Set once the server has re-fetched the work from Open Library itself
+    olVerifiedAt: timestamp("ol_verified_at"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => ({
-    // isbn is already indexed by its unique constraint.
+    // isbn and ol_work_key are already indexed by their unique constraints.
     // Trigram indexes back the `ilike '%query%'` book search.
     titleTrgmIdx: index("books_title_trgm_idx").using(
       "gin",
@@ -85,6 +90,24 @@ export const books = pgTable(
       table.title,
       table.author,
     ),
+  }),
+);
+
+// Open Library search results as first seen by a client. Kept indefinitely:
+// repeat searches are answered from here, and it is the dataset we search
+// ourselves once Open Library is unplugged.
+export const olSearchSnapshots = pgTable(
+  "ol_search_snapshots",
+  {
+    query: text("query").notNull(), // normalized, see normalizeQuery()
+    page: integer("page").notNull(),
+    workKeys: text("work_keys").array().notNull(),
+    numFound: integer("num_found").notNull().default(0),
+    submittedBy: text("submitted_by"), // so a poisoned query can be purged
+    fetchedAt: timestamp("fetched_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.query, table.page] }),
   }),
 );
 
@@ -195,8 +218,8 @@ export const subscriptionPlans = pgTable(
   {
     id: uuid("id").defaultRandom().primaryKey(),
     name: text("name").notNull(),
-    stripePriceId: text("stripe_price_id").unique(), // Nullable for free/internal plans
-    stripeProductId: text("stripe_product_id"),
+    lemonSqueezyVariantId: text("ls_variant_id").unique(), // Lemon Squeezy variant; nullable for free/internal plans
+    lemonSqueezyProductId: text("ls_product_id"),
     price: integer("price").notNull().default(0), // Price in cents
     interval: billingIntervalEnum("interval").notNull().default("free"),
     isActive: boolean("is_active").default(true).notNull(),
@@ -223,8 +246,8 @@ export const userSubscriptions = pgTable(
     planId: uuid("plan_id")
       .notNull()
       .references(() => subscriptionPlans.id),
-    stripeSubscriptionId: text("stripe_subscription_id").unique(),
-    stripeCustomerId: text("stripe_customer_id"),
+    lemonSqueezySubscriptionId: text("ls_subscription_id").unique(),
+    lemonSqueezyCustomerId: text("ls_customer_id"),
     status: subscriptionStatusEnum("status").notNull().default("active"),
     currentPeriodStart: timestamp("current_period_start"),
     currentPeriodEnd: timestamp("current_period_end"),
@@ -234,17 +257,18 @@ export const userSubscriptions = pgTable(
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => ({
-    // user_id and stripe_subscription_id are indexed by their unique constraints
+    // user_id and ls_subscription_id are indexed by their unique constraints
     statusIdx: index("user_subscriptions_status_idx").on(table.status),
-    stripeCustomerIdx: index("user_subscriptions_stripe_customer_idx").on(
-      table.stripeCustomerId,
+    lemonSqueezyCustomerIdx: index("user_subscriptions_ls_customer_idx").on(
+      table.lemonSqueezyCustomerId,
     ),
   }),
 );
 
-// Processed Stripe webhook events (for idempotency - Stripe retries deliveries)
-export const stripeEvents = pgTable("stripe_events", {
-  id: text("id").primaryKey(), // Stripe event ID
+// Processed payment webhook deliveries (for idempotency - Lemon Squeezy retries
+// deliveries and events have no ID, so the id is a SHA-256 of the raw body)
+export const webhookEvents = pgTable("webhook_events", {
+  id: text("id").primaryKey(), // SHA-256 hex of the raw request body
   type: text("type").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

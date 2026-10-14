@@ -31,8 +31,7 @@ export function CreatePlanDialog() {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
-    stripePriceId: "",
-    stripeProductId: "",
+    lemonSqueezyVariantId: "",
     price: 0,
     interval: "month" as PlanInterval,
     sortOrder: 10,
@@ -45,8 +44,7 @@ export function CreatePlanDialog() {
     try {
       const result = await createSubscriptionPlan({
         name: formData.name,
-        stripePriceId: formData.stripePriceId || null,
-        stripeProductId: formData.stripeProductId || null,
+        lemonSqueezyVariantId: formData.lemonSqueezyVariantId || null,
         price: Math.round(formData.price * 100), // Convert to cents
         interval: formData.interval,
         isActive: true,
@@ -59,10 +57,9 @@ export function CreatePlanDialog() {
         toast.success("Plan created successfully");
         setOpen(false);
         // Reset form
-          setFormData({
+        setFormData({
           name: "",
-          stripePriceId: "",
-          stripeProductId: "",
+          lemonSqueezyVariantId: "",
           price: 0,
           interval: "month",
           sortOrder: 10,
@@ -88,8 +85,8 @@ export function CreatePlanDialog() {
           <DialogHeader>
             <DialogTitle>Create Subscription Plan</DialogTitle>
             <DialogDescription>
-              Add a new subscription plan. Enter the Stripe Price ID from your
-              Stripe Dashboard.
+              Add a new subscription plan. Enter the variant ID of a subscription
+              product from your Lemon Squeezy dashboard.
             </DialogDescription>
           </DialogHeader>
 
@@ -148,35 +145,19 @@ export function CreatePlanDialog() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="stripePriceId">Stripe Price ID</Label>
+              <Label htmlFor="lemonSqueezyVariantId">Lemon Squeezy Variant ID</Label>
               <Input
-                id="stripePriceId"
-                value={formData.stripePriceId}
+                id="lemonSqueezyVariantId"
+                value={formData.lemonSqueezyVariantId}
                 onChange={(e) =>
-                  setFormData({ ...formData, stripePriceId: e.target.value })
+                  setFormData({ ...formData, lemonSqueezyVariantId: e.target.value })
                 }
-                placeholder="price_..."
+                placeholder="123456"
                 className="font-mono text-sm"
               />
               <p className="text-xs text-muted-foreground">
                 Leave empty for free tier
               </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="stripeProductId">Stripe Product ID</Label>
-              <Input
-                id="stripeProductId"
-                value={formData.stripeProductId}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    stripeProductId: e.target.value,
-                  })
-                }
-                placeholder="prod_..."
-                className="font-mono text-sm"
-              />
             </div>
 
             <div className="space-y-2">

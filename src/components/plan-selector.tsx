@@ -10,6 +10,7 @@ import {
 } from "@/app/[locale]/actions/subscriptions";
 import { Capsule } from "@/components/echo/buttons";
 import { formatPlanPrice } from "@/components/plans/plan-price";
+import { PLACEHOLDER_PLANS } from "@/components/plans/placeholder-plans";
 import { cn } from "@/lib/utils";
 
 interface Plan {
@@ -18,11 +19,27 @@ interface Plan {
   price: number;
   interval: string;
   isActive: boolean;
-  stripePriceId: string | null;
+  lemonSqueezyVariantId: string | null;
 }
 
 /** Plan rows on the field; pick one and continue to checkout. */
 export function PlanSelector({
+  plans,
+  currentPlanId,
+  comingSoon = false,
+}: {
+  plans: Plan[];
+  currentPlanId: string | undefined;
+  /** Payments aren't live yet: show placeholder paid plans, no checkout. */
+  comingSoon?: boolean;
+}) {
+  if (comingSoon) {
+    return <ComingSoonPlans currentPlanId={currentPlanId} plans={plans} />;
+  }
+  return <LivePlanSelector plans={plans} currentPlanId={currentPlanId} />;
+}
+
+function LivePlanSelector({
   plans,
   currentPlanId,
 }: {
@@ -42,8 +59,8 @@ export function PlanSelector({
     if (!plan) return;
     setLoading(true);
     try {
-      // Free plans (no Stripe price) are claimed directly
-      if (!plan.stripePriceId) {
+      // Free plans (no Lemon Squeezy variant) are claimed directly
+      if (!plan.lemonSqueezyVariantId) {
         const result = await upgradeToFreePlan(plan.id);
         if (result.error) toast.error(result.error);
         else {
@@ -114,6 +131,64 @@ export function PlanSelector({
         disabled={loading || !selected}
       >
         {loading ? t("processing") : t("choose")}
+      </Capsule>
+    </div>
+  );
+}
+
+/** Free plans as they are, then the two placeholder paid plans, none choosable. */
+function ComingSoonPlans({
+  plans,
+  currentPlanId,
+}: {
+  plans: Plan[];
+  currentPlanId: string | undefined;
+}) {
+  const t = useTranslations("plans");
+  const rows = [
+    ...plans
+      .filter((p) => p.price === 0)
+      .map((p) => ({ id: p.id, name: p.name, price: p.price, interval: p.interval })),
+    ...PLACEHOLDER_PLANS.map((p) => ({
+      id: p.id,
+      name: t(`placeholder.${p.nameKey}`),
+      price: p.price,
+      interval: p.interval,
+    })),
+  ];
+  return (
+    <div>
+      <ul className="flex flex-col gap-2.5">
+        {rows.map((plan) => {
+          const paid = plan.price > 0;
+          const { price, per } = formatPlanPrice(plan, (k) => t(k));
+          return (
+            <li
+              key={plan.id}
+              className="flex items-center gap-4 rounded-2xl border-[1.5px] border-[var(--on-field-rule)] px-4 py-3.5"
+            >
+              <span className="min-w-0 flex-1">
+                <span className="block text-[17px] font-semibold">{plan.name}</span>
+                {plan.id === currentPlanId ? (
+                  <span className="block text-[13px] opacity-75">{t("current")}</span>
+                ) : (
+                  paid && (
+                    <span className="block text-[13px] font-semibold tracking-[1px] uppercase opacity-75">
+                      {t("comingSoon")}
+                    </span>
+                  )
+                )}
+              </span>
+              <span className="text-right tnum">
+                <span className="block text-[17px] font-semibold">{paid ? price : t("freePrice")}</span>
+                <span className="block text-[13px] opacity-75">{per}</span>
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+      <Capsule variant="field" size="lg" className="mt-5 w-full" disabled>
+        {t("comingSoon")}
       </Capsule>
     </div>
   );

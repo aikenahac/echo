@@ -5,18 +5,29 @@ import { db } from "@/db";
 import { books, userBooks } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { revalidateLocalized } from "@/lib/revalidate";
-import type { NormalizedBook } from "@/lib/books";
+import { after } from "next/server";
+import { z } from "zod";
+import { verifyAndMirrorBook } from "@/lib/book-verification";
+import { upsertBooks } from "@/lib/catalog-search";
+import { OpenLibraryDocSchema, type OpenLibraryDoc } from "@/lib/open-library";
 
 export type ReadingStatus = "want" | "reading" | "finished";
 
 const isValidPageNumber = (value: number) =>
   Number.isInteger(value) && value >= 0 && value <= 100_000;
 
+export type AddBookInput = { bookId: string } | { openLibrary: OpenLibraryDoc };
+
+const AddBookInputSchema = z.union([
+  z.object({ bookId: z.uuid() }),
+  z.object({ openLibrary: OpenLibraryDocSchema }),
+]);
+
 /**
- * Add a book to the user's library
+ * Add a book to the user's library, by catalog id or as an Open Library result
  */
 export async function addBookToLibrary(
-  bookData: NormalizedBook,
+  input: AddBookInput,
   status: ReadingStatus,
   isFavorite: boolean = false,
 ) {
@@ -26,39 +37,36 @@ export async function addBookToLibrary(
     return { error: "Unauthorized" };
   }
 
+  // Server actions are public POST endpoints: validate the shape at runtime
+  const parsed = AddBookInputSchema.safeParse(input);
+  if (!parsed.success || !["want", "reading", "finished"].includes(status)) {
+    return { error: "Invalid book" };
+  }
 
   try {
-    // Find or create the book. Concurrent inserts of the same ISBN are
-    // resolved by the unique constraint.
-    let existingBook = bookData.isbn
-      ? await db.query.books.findFirst({
-          where: eq(books.isbn, bookData.isbn),
-        })
-      : null;
-
-    if (!existingBook) {
-      const [newBook] = await db
-        .insert(books)
-        .values({
-          isbn: bookData.isbn,
-          title: bookData.title,
-          author: bookData.author,
-          coverUrl: bookData.coverUrl,
-          pages: bookData.pages,
-          publishedYear: bookData.publishedYear,
-        })
-        .onConflictDoNothing({ target: books.isbn })
-        .returning();
-      existingBook =
-        newBook ??
-        (await db.query.books.findFirst({
-          where: eq(books.isbn, bookData.isbn!),
-        }));
+    // A catalog book by id, or an Open Library result that hasn't been
+    // ingested yet (the user can add before the background ingest returns)
+    let bookId: string;
+    if ("bookId" in parsed.data) {
+      bookId = parsed.data.bookId;
+    } else {
+      const { openLibrary } = parsed.data;
+      const ids = await upsertBooks([openLibrary]);
+      const id = ids.get(openLibrary.key);
+      if (!id) return { error: "Failed to add book to library" };
+      bookId = id;
     }
 
+    const existingBook = await db.query.books.findFirst({
+      where: eq(books.id, bookId),
+    });
     if (!existingBook) {
-      return { error: "Failed to add book to library" };
+      return { error: "Book not found" };
     }
+
+    // Replace what a client reported with Open Library's data, and copy the
+    // cover to our storage, once the response has been sent
+    after(() => verifyAndMirrorBook(existingBook.id));
 
     // Add book to user's library (unique on user + book)
     const [userBook] = await db

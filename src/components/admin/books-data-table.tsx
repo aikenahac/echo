@@ -11,6 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import Image from "next/image";
+import { isOpenLibraryCover } from "@/lib/open-library";
 
 interface Book {
   id: string;
@@ -116,6 +117,7 @@ export function BooksDataTable({ data }: BooksDataTableProps) {
                                 width={40}
                                 height={60}
                                 className="rounded object-cover"
+                                unoptimized={isOpenLibraryCover(book.coverUrl)}
                               />
                             ) : (
                               <div className="w-10 h-15 bg-muted rounded flex items-center justify-center text-xs">

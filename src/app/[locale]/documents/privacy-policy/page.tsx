@@ -426,15 +426,18 @@ export default function PrivacyPolicyPage() {
             <h3>Open Library API</h3>
             <p className="text-base leading-relaxed">
               We use the Open Library API to search for and retrieve book
-              information. When you search for books, your search queries are
-              sent to Open Library. Please review{" "}
+              information. When you search for books, your device sends your search
+              query directly to Open Library, so Open Library receives your
+              search terms and your IP address. We keep the books and result lists
+              that come back, along with which account reported them (to
+              prevent abuse). Please review{" "}
               <a
-                href="https://openlibrary.org/terms"
+                href="https://archive.org/about/terms"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-primary hover:underline"
               >
-                Open Library&apos;s Terms of Service
+                the Internet Archive&apos;s Terms of Use (which cover Open Library)
               </a>{" "}
               for more information.
             </p>

@@ -9,6 +9,8 @@ import { EchoMark } from "@/components/echo/icons";
 import { Footer } from "@/components/footer";
 import { PremiumPitch } from "@/components/plans/premium-pitch";
 import { formatPlanPrice } from "@/components/plans/plan-price";
+import { PLACEHOLDER_PLANS } from "@/components/plans/placeholder-plans";
+import { isLemonSqueezyConfigured } from "@/lib/lemonsqueezy";
 
 export const metadata = {
   title: "Pricing",
@@ -42,7 +44,10 @@ export default async function PricingPage({
       orderBy: [asc(subscriptionPlans.sortOrder)],
     }),
   ]);
-  const paid = plans.filter((p) => p.price > 0);
+  const comingSoon = !isLemonSqueezyConfigured();
+  const paid = comingSoon
+    ? PLACEHOLDER_PLANS.map((p) => ({ ...p, name: t(`placeholder.${p.nameKey}`) }))
+    : plans.filter((p) => p.price > 0);
 
   return (
     <>
@@ -73,12 +78,19 @@ export default async function PricingPage({
                   return (
                     <li key={plan.id} className="border-t border-[var(--on-field-rule)] py-4">
                       <div className="flex items-baseline justify-between gap-4">
-                        <span className="font-disp text-[28px] font-extrabold">{plan.name}</span>
+                      <span className="font-disp text-[28px] font-extrabold">{plan.name}</span>
                         <span className="text-right text-[17px] font-semibold tnum">
                           {price} <span className="font-normal text-on-field-2">{per}</span>
                         </span>
                       </div>
-                      <p className="mt-1 text-[15px] leading-5 text-on-field-2">{t("premiumLine")}</p>
+                      <p className="mt-1 text-[15px] leading-5 text-on-field-2">
+                        {comingSoon && (
+                          <span className="mr-2 text-[13px] font-semibold tracking-[1px] uppercase text-on-field">
+                            {t("comingSoon")}
+                          </span>
+                        )}
+                        {t("premiumLine")}
+                      </p>
                     </li>
                   );
                 })}

@@ -39,7 +39,7 @@ interface Subscription {
   currentPeriodStart: Date | null;
   currentPeriodEnd: Date | null;
   cancelAtPeriodEnd: boolean;
-  stripeSubscriptionId: string | null;
+  lemonSqueezySubscriptionId: string | null;
   plan: Plan;
 }
 
@@ -172,11 +172,11 @@ export function ManageUserSubscriptionDialog({
                 </div>
               )}
 
-              {user.subscription.stripeSubscriptionId && (
+              {user.subscription.lemonSqueezySubscriptionId && (
                 <div className="space-y-2">
-                  <Label>Stripe Subscription ID</Label>
+                  <Label>Lemon Squeezy Subscription ID</Label>
                   <div className="text-sm font-mono text-muted-foreground break-all">
-                    {user.subscription.stripeSubscriptionId}
+                    {user.subscription.lemonSqueezySubscriptionId}
                   </div>
                 </div>
               )}
@@ -200,7 +200,7 @@ export function ManageUserSubscriptionDialog({
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              Manual grants do not expire and are not tied to Stripe
+              Manual grants do not expire and are not tied to Lemon Squeezy
             </p>
           </div>
         </div>
