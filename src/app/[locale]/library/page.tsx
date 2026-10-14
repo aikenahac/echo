@@ -10,11 +10,8 @@ import {
 } from "@/app/[locale]/actions/collections";
 import { getLibraryLayout } from "@/lib/library-layout";
 import { Column } from "@/components/echo/primitives";
-import {
-  LibraryHeader,
-  SHELVES,
-  type Shelf,
-} from "@/components/library/library-header";
+import { LibraryHeader } from "@/components/library/library-header";
+import { SHELVES, type Shelf } from "@/components/library/shelves";
 import { ReadingHero } from "@/components/library/reading-hero";
 import {
   AlsoReading,

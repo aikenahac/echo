@@ -17,7 +17,7 @@ import {
 import type { LibraryLayout } from "@/lib/library-layout-cookie";
 import type { UserBook } from "@/types";
 import { BookActionsMenu } from "./book-actions-menu";
-import type { Shelf } from "./library-header";
+import type { Shelf } from "./shelves";
 
 type Sort = "recent" | "added" | "title" | "author" | "rating";
 

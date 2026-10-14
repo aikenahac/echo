@@ -8,9 +8,8 @@ import { ScreenTitle } from "@/components/echo/primitives";
 import { useLibraryLayout } from "@/hooks/use-library-layout";
 import type { LibraryLayout } from "@/lib/library-layout-cookie";
 import { cn } from "@/lib/utils";
+import { SHELVES, type Shelf } from "./shelves";
 
-export type Shelf = "reading" | "want" | "finished" | "favourites";
-export const SHELVES: Shelf[] = ["reading", "want", "finished", "favourites"];
 
 /** "Library", the grid/list toggle and the shelf tabs with counts. */
 export function LibraryHeader({
