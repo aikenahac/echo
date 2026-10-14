@@ -4,8 +4,8 @@ import { auth } from "@clerk/nextjs/server";
 import { db } from "@/db";
 import { follows, users } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
-import { assignFreePlanToUser } from "./subscriptions";
+import { revalidateLocalized } from "@/lib/revalidate";
+import { getFeedPage } from "@/lib/feed";
 
 /**
  * Follow a user
@@ -22,48 +22,30 @@ export async function followUser(followingId: string) {
   }
 
   try {
-    // Ensure both users exist in database
-    await db
-      .insert(users)
-      .values({
-        id: userId,
-        email: "",
-      })
-      .onConflictDoNothing();
-
-    await db
-      .insert(users)
-      .values({
-        id: followingId,
-        email: "",
-      })
-      .onConflictDoNothing();
-
-    // Assign free plan to new users
-    await assignFreePlanToUser(userId);
-    await assignFreePlanToUser(followingId);
-
-    // Check if already following
-    const existing = await db.query.follows.findFirst({
-      where: and(
-        eq(follows.followerId, userId),
-        eq(follows.followingId, followingId),
-      ),
+    // Only follow users that actually exist
+    const target = await db.query.users.findFirst({
+      where: eq(users.id, followingId),
+      columns: { id: true },
     });
 
-    if (existing) {
+    if (!target) {
+      return { error: "User not found" };
+    }
+
+    const [created] = await db
+      .insert(follows)
+      .values({
+        followerId: userId,
+        followingId,
+      })
+      .onConflictDoNothing()
+      .returning();
+
+    if (!created) {
       return { error: "Already following this user" };
     }
 
-    // Create follow relationship
-    await db.insert(follows).values({
-      followerId: userId,
-      followingId,
-    });
-
-    revalidatePath("/users/search");
-    revalidatePath("/profile/following");
-    revalidatePath("/profile/followers");
+    revalidateLocalized("/users/search", "/profile", "/feed");
 
     return { success: true };
   } catch (error) {
@@ -92,13 +74,36 @@ export async function unfollowUser(followingId: string) {
         ),
       );
 
-    revalidatePath("/users/search");
-    revalidatePath("/profile/following");
-    revalidatePath("/profile/followers");
+    revalidateLocalized("/users/search", "/profile", "/feed");
 
     return { success: true };
   } catch (error) {
     console.error("Error unfollowing user:", error);
     return { error: "Failed to unfollow user" };
   }
+}
+
+const FEED_PAGE_SIZE = 20;
+const FEED_MAX_OFFSET = 1000;
+
+/**
+ * The next page of the Friends feed (infinite scroll)
+ */
+export async function loadFeedPage(offset: number) {
+  const { userId } = await auth();
+
+  if (!userId) {
+    return { error: "Unauthorized", activities: [], hasMore: false };
+  }
+
+  const safeOffset = Math.min(
+    FEED_MAX_OFFSET,
+    Math.max(0, Math.trunc(Number(offset)) || 0),
+  );
+  const { activities, hasMore } = await getFeedPage(
+    userId,
+    safeOffset,
+    FEED_PAGE_SIZE,
+  );
+  return { activities, hasMore };
 }

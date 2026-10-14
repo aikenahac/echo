@@ -1,16 +1,16 @@
-import { withAuth } from "@/lib/api-handler";
+import { withAuth, ApiError, actionError } from "@/lib/api-handler";
 import { createApiResponse } from "@/lib/api-auth";
-import { updateProfile } from "@/app/[locale]/actions/profile";
+import { updateProfileFields } from "@/app/[locale]/actions/profile";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { AccountDeletionError, deleteUserAccount } from "@/lib/account";
 
 /**
  * GET /api/v1/profile
  * Get current user's profile
  */
 export const GET = withAuth(async (request, { user }) => {
-  console.log({ user });
   const profile = await db.query.users.findFirst({
     where: eq(users.id, user.id),
     with: {
@@ -23,7 +23,7 @@ export const GET = withAuth(async (request, { user }) => {
   });
 
   if (!profile) {
-    throw new Error("Profile not found");
+    throw new ApiError("Profile not found", 404);
   }
 
   // Calculate isPremium: user has an active subscription with a paid plan
@@ -39,8 +39,6 @@ export const GET = withAuth(async (request, { user }) => {
   // Return profile with isPremium field, excluding subscription details
   const { subscription, ...profileData } = profile;
 
-  console.log(JSON.stringify(subscription, null, 2));
-
   return createApiResponse({
     ...profileData,
     isPremium,
@@ -50,27 +48,49 @@ export const GET = withAuth(async (request, { user }) => {
 
 /**
  * PUT /api/v1/profile
- * Update current user's profile
- * Body: { username: string, bio: string, displayName?: string, profilePictureUrl?: string }
+ * Partially update current user's profile. Only fields present in the body
+ * change; null or "" clears a field (except username, which can't be cleared).
+ * Body: { username?, bio?, displayName?, profilePictureUrl? }
  */
-export const PUT = withAuth(async (request, { user }) => {
+export const PUT = withAuth(async (request) => {
   const body = await request.json();
-  const { username, bio, displayName, profilePictureUrl } = body;
 
-  if (!username) {
-    throw new Error("Missing required field: username");
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    throw new ApiError("Invalid request body");
   }
 
-  const result = await updateProfile(
+  const { username, bio, displayName, profilePictureUrl } = body;
+
+  const result = await updateProfileFields({
     username,
-    bio || "",
+    bio,
     displayName,
-    profilePictureUrl
-  );
+    profilePictureUrl,
+  });
 
   if (result.error) {
-    throw new Error(result.error);
+    throw actionError(result.error);
   }
 
   return createApiResponse(result);
+});
+
+/**
+ * DELETE /api/v1/profile
+ * Permanently delete the current user's account: cancels any running Stripe
+ * subscription, deletes the user row (cascades to library, reviews, follows,
+ * collections and subscription), then deletes the Clerk user.
+ * Required for in-app account deletion (App Store guideline 5.1.1(v)).
+ */
+export const DELETE = withAuth(async (request, { user }) => {
+  try {
+    await deleteUserAccount(user.id);
+  } catch (error) {
+    if (error instanceof AccountDeletionError) {
+      throw new ApiError(error.message, 500);
+    }
+    throw error;
+  }
+
+  return createApiResponse({ success: true });
 });

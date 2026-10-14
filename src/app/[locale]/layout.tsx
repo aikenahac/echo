@@ -1,37 +1,23 @@
 import { ClerkProvider } from "@clerk/nextjs";
-import { auth, currentUser } from "@clerk/nextjs/server";
-import { EB_Garamond, IBM_Plex_Mono } from "next/font/google";
+import { Archivo } from "next/font/google";
 import { Toaster } from "sonner";
-import { Navigation } from "@/components/navigation";
-import { Footer } from "@/components/footer";
+import { AppMain, Navigation } from "@/components/navigation";
 import { UsernameSetupDialog } from "@/components/username-setup-dialog";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
 import { routing } from "@/i18n/routing";
 import { notFound } from "next/navigation";
-import { db } from "@/db";
-import { users, userSubscriptions } from "@/db/schema";
-import { eq } from "drizzle-orm";
 import "../globals.css";
 import { Metadata } from "next";
-import { assignFreePlanToUser } from "./actions/subscriptions";
+import { getViewer, isPaidPlan } from "@/lib/auth";
+import { getAppearance } from "@/lib/appearance";
 
-const eb_garamond = EB_Garamond({
-  subsets: ["latin"],
-  weight: ["600"],
-  variable: "--display-family",
-});
-
-const eb_garamond_body = EB_Garamond({
-  subsets: ["latin"],
-  weight: ["400"],
-  variable: "--body-family",
-});
-
-const ibm_plex_mono = IBM_Plex_Mono({
-  subsets: ["latin"],
-  weight: ["400"],
-  variable: "--font-mono",
+// Archivo with the width axis: the display face is set at wdth 62 (condensed)
+// through `font-stretch` in the font-disp utility.
+const archivo = Archivo({
+  subsets: ["latin", "latin-ext"],
+  axes: ["wdth"],
+  variable: "--font-archivo",
 });
 
 export const metadata: Metadata = {
@@ -124,6 +110,24 @@ export const metadata: Metadata = {
   },
 };
 
+// Message namespaces used via `useTranslations` in client components.
+// Add a namespace here when a client component starts using it.
+const CLIENT_MESSAGE_NAMESPACES = [
+  "auth",
+  "coll",
+  "collections",
+  "detail",
+  "find",
+  "friends",
+  "navigation",
+  "paywall",
+  "plans",
+  "profile",
+  "settingsPage",
+  "shelf",
+  "you",
+];
+
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
 }
@@ -148,67 +152,46 @@ export default async function LocaleLayout({
     notFound();
   }
 
-  // Providing all messages to the client side is the easiest way to get started
-  const messages = await getMessages();
+  // Only send the namespaces used by client components to the browser.
+  // Server components read messages on the server and don't need them here.
+  const allMessages = await getMessages();
+  const messages = Object.fromEntries(
+    CLIENT_MESSAGE_NAMESPACES.filter((ns) => ns in allMessages).map((ns) => [
+      ns,
+      allMessages[ns],
+    ])
+  );
 
   // Check if user needs to set username and has admin access
-  const { userId } = await auth();
-  let hasUsername = true;
-  let hasAdminAccess = false;
-  let hasPaidPlan = false;
-
-  if (userId) {
-    // Get email from Clerk
-    const clerkUser = await currentUser();
-    const email = clerkUser?.emailAddresses[0]?.emailAddress || "";
-
-    // Ensure user exists in database and has a free plan assigned
-    await db
-      .insert(users)
-      .values({
-        id: userId,
-        email: email,
-      })
-      .onConflictDoUpdate({
-        target: users.id,
-        set: {
-          email: email, // Update email if it changed
-        },
-      });
-
-    // Auto-assign free plan to new users
-    await assignFreePlanToUser(userId);
-
-    const user = await db.query.users.findFirst({
-      where: eq(users.id, userId),
-    });
-    hasUsername = !!user?.username;
-    hasAdminAccess = user?.role === "moderator" || user?.role === "admin";
-
-    // Check if user has a non-free plan (paid or lifetime)
-    const subscription = await db.query.userSubscriptions.findFirst({
-      where: eq(userSubscriptions.userId, userId),
-      with: { plan: true },
-    });
-    // User has a paid plan if they have a subscription with a non-free plan (including free lifetime plans)
-    hasPaidPlan = !!(subscription?.plan && (subscription.plan.price > 0 || subscription.plan.stripePriceId !== null || subscription.plan.interval === "lifetime"));
-  }
+  const viewer = await getViewer();
+  const hasUsername = !viewer || !!viewer.username;
+  const hasAdminAccess = viewer?.role === "moderator" || viewer?.role === "admin";
+  // User has a paid plan if they have a subscription with a non-free plan (including free lifetime plans)
+  const hasPaidPlan = isPaidPlan(viewer?.subscription?.plan);
+  const appearance = await getAppearance();
 
   return (
     <ClerkProvider>
-      <html lang={locale}>
+      <html
+        lang={locale}
+        data-theme={appearance === "system" ? undefined : appearance}
+        className={archivo.variable}
+      >
         <head>
           <script defer data-domain="echobook.club" src="https://plausible.aerio.cloud/js/script.outbound-links.pageview-props.tagged-events.js"></script>
         </head>
-        <body
-          className={`${eb_garamond.variable} ${eb_garamond_body.variable} ${ibm_plex_mono.variable} antialiased`}
-        >
+        <body>
           <NextIntlClientProvider messages={messages}>
-            <Navigation hasAdminAccess={hasAdminAccess} hasPaidPlan={hasPaidPlan} />
-            <main>{children}</main>
-            <Footer />
+            <Navigation signedIn={!!viewer} hasAdminAccess={hasAdminAccess} hasPaidPlan={hasPaidPlan} />
+            <AppMain signedIn={!!viewer}>{children}</AppMain>
             <UsernameSetupDialog hasUsername={hasUsername} />
-            <Toaster richColors />
+            <Toaster
+              position="top-center"
+              toastOptions={{
+                className:
+                  "!rounded-2xl !border-rule !bg-paper !text-ink !font-sans !text-[15px]",
+              }}
+            />
           </NextIntlClientProvider>
         </body>
       </html>

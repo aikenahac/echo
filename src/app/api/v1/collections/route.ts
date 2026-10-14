@@ -1,4 +1,5 @@
-import { withAuth } from "@/lib/api-handler";
+import { withAuth, actionError } from "@/lib/api-handler";
+import { createCollection } from "@/app/[locale]/actions/collections";
 import { createApiResponse } from "@/lib/api-auth";
 import { db } from "@/db";
 import { collections } from "@/db/schema";
@@ -22,7 +23,7 @@ export const GET = withAuth(async (request, { user }) => {
         },
       },
     },
-    orderBy: (collections, { asc }) => [asc(collections.createdAt)],
+    orderBy: (collections, { asc }) => [asc(collections.sortOrder)],
   });
 
   // Transform to include book count and books
@@ -37,40 +38,25 @@ export const GET = withAuth(async (request, { user }) => {
 
 /**
  * POST /api/v1/collections
- * Create a new collection
+ * Create a new collection (Premium only)
  * Body: { name, description?, isPublic?, colorTag?, iconName? }
  */
-export const POST = withAuth(async (request, { user }) => {
+export const POST = withAuth(async (request) => {
   const body = await request.json();
   const { name, description, isPublic, colorTag, iconName } = body;
 
-  if (!name || name.trim().length === 0) {
-    throw new Error("Collection name is required");
+  // Same validation, paywall and slug generation as the web app
+  const result = await createCollection({
+    name,
+    description: description || undefined,
+    isPublic: isPublic ?? false,
+    colorTag: colorTag || undefined,
+    iconName: iconName || undefined,
+  });
+
+  if (result.error) {
+    throw actionError(result.error);
   }
 
-  if (name.length > 100) {
-    throw new Error("Collection name must be less than 100 characters");
-  }
-
-  // Generate slug from name
-  const slug = name
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-
-  const [newCollection] = await db
-    .insert(collections)
-    .values({
-      userId: user.id,
-      name: name.trim(),
-      slug,
-      description: description?.trim() || null,
-      isPublic: isPublic || false,
-      colorTag: colorTag || null,
-      iconName: iconName || null,
-    })
-    .returning();
-
-  return createApiResponse(newCollection, 201);
+  return createApiResponse(result.collection, 201);
 });

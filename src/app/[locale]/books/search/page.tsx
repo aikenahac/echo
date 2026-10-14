@@ -1,13 +1,13 @@
-import { SearchBooks } from "@/components/search-books";
-import { getTranslations } from "next-intl/server";
+import { redirect } from "@/i18n/routing";
 
-export default async function BookSearchPage() {
-  const t = await getTranslations("booksSearch");
-
-  return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">{t("title")}</h1>
-      <SearchBooks />
-    </div>
-  );
+// Book search moved to /search (Books tab)
+export default async function BooksSearchRedirect({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ locale: string }>;
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const [{ locale }, { q }] = await Promise.all([params, searchParams]);
+  redirect({ href: q ? `/search?q=${encodeURIComponent(q)}` : "/search", locale });
 }

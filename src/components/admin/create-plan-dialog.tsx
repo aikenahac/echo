@@ -23,10 +23,10 @@ import {
 import { createSubscriptionPlan } from "@/app/[locale]/actions/admin";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
-import { useRouter } from "@/i18n/routing";
+
+type PlanInterval = "month" | "year" | "lifetime" | "free";
 
 export function CreatePlanDialog() {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -34,7 +34,7 @@ export function CreatePlanDialog() {
     stripePriceId: "",
     stripeProductId: "",
     price: 0,
-    interval: "month" as "month" | "year" | "lifetime" | "free",
+    interval: "month" as PlanInterval,
     sortOrder: 10,
   });
 
@@ -67,9 +67,8 @@ export function CreatePlanDialog() {
           interval: "month",
           sortOrder: 10,
         });
-        router.refresh();
       }
-    } catch (error) {
+    } catch {
       toast.error("Failed to create plan");
     } finally {
       setLoading(false);
@@ -131,8 +130,8 @@ export function CreatePlanDialog() {
                 <Label htmlFor="interval">Interval</Label>
                 <Select
                   value={formData.interval}
-                  onValueChange={(value: any) =>
-                    setFormData({ ...formData, interval: value })
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, interval: value as PlanInterval })
                   }
                 >
                   <SelectTrigger>

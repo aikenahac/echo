@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { withAuth } from "@/lib/api-handler";
+import { withAuth, ApiError } from "@/lib/api-handler";
 import { createApiResponse } from "@/lib/api-auth";
 import { updateBookStatus } from "@/app/[locale]/actions/books";
 
@@ -14,17 +14,17 @@ export const PUT = withAuth(async (request, { user, params }) => {
   const { status } = body;
 
   if (!status) {
-    throw new Error("Missing required field: status");
+    throw new ApiError("Missing required field: status");
   }
 
   if (!["want", "reading", "finished"].includes(status)) {
-    throw new Error('Status must be one of: "want", "reading", "finished"');
+    throw new ApiError('Status must be one of: "want", "reading", "finished"');
   }
 
   const result = await updateBookStatus(id, status);
 
   if (result.error) {
-    throw new Error(result.error);
+    throw new ApiError(result.error);
   }
 
   return createApiResponse(result);

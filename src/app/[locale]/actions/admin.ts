@@ -11,12 +11,20 @@ import {
   userSubscriptions,
 } from "@/db/schema";
 import { eq, desc, asc } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
-import Stripe from "stripe";
+import { revalidateLocalized } from "@/lib/revalidate";
+import { getStripe } from "@/lib/stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2024-11-20.acacia" as any,
-});
+/**
+ * Check that a Stripe price ID exists. `prices.retrieve` throws on unknown IDs.
+ */
+async function isValidStripePrice(priceId: string) {
+  try {
+    await getStripe().prices.retrieve(priceId);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Update a user's role (admin only)
@@ -46,7 +54,7 @@ export async function updateUserRole(
       metadata: JSON.stringify({ newRole }),
     });
 
-    revalidatePath("/admin/users");
+    revalidateLocalized("/admin/users");
     return { success: true };
   } catch (error) {
     console.error("Error updating user role:", error);
@@ -79,8 +87,7 @@ export async function deleteReviewAsAdmin(reviewId: string) {
       metadata: JSON.stringify({ bookId: review.bookId }),
     });
 
-    revalidatePath("/admin/content/reviews");
-    revalidatePath(`/books/${review.bookId}`);
+    revalidateLocalized("/admin/content/reviews", `/books/${review.bookId}`);
     return { success: true };
   } catch (error) {
     console.error("Error deleting review:", error);
@@ -114,8 +121,7 @@ export async function updateBookAsAdmin(
       metadata: JSON.stringify(data),
     });
 
-    revalidatePath("/admin/content/books");
-    revalidatePath(`/books/${bookId}`);
+    revalidateLocalized("/admin/content/books", `/books/${bookId}`);
     return { success: true };
   } catch (error) {
     console.error("Error updating book:", error);
@@ -152,7 +158,7 @@ export async function updateUserAsAdmin(
   targetUserId: string,
   data: {
     email?: string;
-    username?: string;
+    username?: string | null;
     bio?: string;
     role?: "user" | "moderator" | "admin";
   },
@@ -168,7 +174,7 @@ export async function updateUserAsAdmin(
     if (data.username !== undefined) {
       if (data.username === null || data.username === "") {
         // Allow clearing username
-        data.username = null as any;
+        data.username = null;
       } else {
         const usernameRegex = /^[a-zA-Z0-9_.]{3,30}$/;
         if (!usernameRegex.test(data.username)) {
@@ -208,7 +214,13 @@ export async function updateUserAsAdmin(
 
     await db
       .update(users)
-      .set({ ...data, updatedAt: new Date() })
+      .set({
+        email: data.email,
+        username: data.username,
+        bio: data.bio,
+        role: data.role,
+        updatedAt: new Date(),
+      })
       .where(eq(users.id, targetUserId));
 
     // Log the action
@@ -220,7 +232,7 @@ export async function updateUserAsAdmin(
       metadata: JSON.stringify(data),
     });
 
-    revalidatePath("/admin/users");
+    revalidateLocalized("/admin/users");
     return { success: true };
   } catch (error) {
     console.error("Error updating user:", error);
@@ -250,7 +262,7 @@ export async function deleteUserAsAdmin(targetUserId: string) {
       metadata: JSON.stringify({ deletedAt: new Date() }),
     });
 
-    revalidatePath("/admin/users");
+    revalidateLocalized("/admin/users");
     return { success: true };
   } catch (error) {
     console.error("Error deleting user:", error);
@@ -275,8 +287,7 @@ export async function createSubscriptionPlan(data: {
   try {
     // Validate Stripe IDs if provided
     if (data.stripePriceId) {
-      const price = await stripe.prices.retrieve(data.stripePriceId);
-      if (!price) {
+      if (!(await isValidStripePrice(data.stripePriceId))) {
         return { error: "Invalid Stripe Price ID" };
       }
     }
@@ -294,7 +305,7 @@ export async function createSubscriptionPlan(data: {
       metadata: JSON.stringify(data),
     });
 
-    revalidatePath("/admin/subscriptions");
+    revalidateLocalized("/admin/subscriptions");
 
     return { success: true, plan };
   } catch (error) {
@@ -324,8 +335,7 @@ export async function updateSubscriptionPlan(
   try {
     // Validate Stripe IDs if provided
     if (data.stripePriceId) {
-      const price = await stripe.prices.retrieve(data.stripePriceId);
-      if (!price) {
+      if (!(await isValidStripePrice(data.stripePriceId))) {
         return { error: "Invalid Stripe Price ID" };
       }
     }
@@ -343,7 +353,7 @@ export async function updateSubscriptionPlan(
       metadata: JSON.stringify(data),
     });
 
-    revalidatePath("/admin/subscriptions");
+    revalidateLocalized("/admin/subscriptions");
 
     return { success: true };
   } catch (error) {
@@ -380,32 +390,25 @@ export async function grantPremiumSubscription(
   const currentUser = await requireRole(["admin"]);
 
   try {
-    // Check if user already has a subscription
-    const existing = await db.query.userSubscriptions.findFirst({
-      where: eq(userSubscriptions.userId, targetUserId),
-    });
-
-    if (existing) {
-      // Update existing subscription
-      await db
-        .update(userSubscriptions)
-        .set({
+    // Create or update the user's subscription
+    await db
+      .insert(userSubscriptions)
+      .values({
+        userId: targetUserId,
+        planId,
+        status: "active",
+        currentPeriodStart: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: userSubscriptions.userId,
+        set: {
           planId,
           status: "active",
           currentPeriodStart: new Date(),
           currentPeriodEnd: null, // Manual grants don't expire
           updatedAt: new Date(),
-        })
-        .where(eq(userSubscriptions.userId, targetUserId));
-    } else {
-      // Create new subscription
-      await db.insert(userSubscriptions).values({
-        userId: targetUserId,
-        planId,
-        status: "active",
-        currentPeriodStart: new Date(),
+        },
       });
-    }
 
     await db.insert(auditLogs).values({
       userId: currentUser.id,
@@ -415,8 +418,7 @@ export async function grantPremiumSubscription(
       metadata: JSON.stringify({ planId }),
     });
 
-    revalidatePath("/admin/users");
-    revalidatePath("/admin/subscriptions/users");
+    revalidateLocalized("/admin/users", "/admin/subscriptions");
 
     return { success: true };
   } catch (error) {
@@ -466,31 +468,25 @@ export async function revokeUserSubscription(targetUserId: string) {
       return { error: "Free plan not found" };
     }
 
-    // Update user's subscription to free tier
-    const existing = await db.query.userSubscriptions.findFirst({
-      where: eq(userSubscriptions.userId, targetUserId),
-    });
-
-    if (existing) {
-      await db
-        .update(userSubscriptions)
-        .set({
+    // Downgrade the user's subscription to the free tier (or create one)
+    await db
+      .insert(userSubscriptions)
+      .values({
+        userId: targetUserId,
+        planId: freePlan.id,
+        status: "active",
+        currentPeriodStart: new Date(),
+      })
+      .onConflictDoUpdate({
+        target: userSubscriptions.userId,
+        set: {
           planId: freePlan.id,
           status: "canceled",
           stripeSubscriptionId: null,
           canceledAt: new Date(),
           updatedAt: new Date(),
-        })
-        .where(eq(userSubscriptions.userId, targetUserId));
-    } else {
-      // Create free subscription
-      await db.insert(userSubscriptions).values({
-        userId: targetUserId,
-        planId: freePlan.id,
-        status: "active",
-        currentPeriodStart: new Date(),
+        },
       });
-    }
 
     await db.insert(auditLogs).values({
       userId: currentUser.id,
@@ -500,8 +496,7 @@ export async function revokeUserSubscription(targetUserId: string) {
       metadata: JSON.stringify({ downgradedAt: new Date() }),
     });
 
-    revalidatePath("/admin/users");
-    revalidatePath("/admin/subscriptions/users");
+    revalidateLocalized("/admin/users", "/admin/subscriptions");
 
     return { success: true };
   } catch (error) {

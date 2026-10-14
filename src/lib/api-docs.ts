@@ -6,8 +6,8 @@ export interface ApiEndpoint {
   requiresAuth: boolean;
   requestBody?: {
     contentType: "application/json";
-    schema: Record<string, any>;
-    example: any;
+    schema: Record<string, unknown>;
+    example: unknown;
   };
   queryParams?: Array<{
     name: string;
@@ -18,7 +18,7 @@ export interface ApiEndpoint {
   responses: Array<{
     status: number;
     description: string;
-    example: any;
+    example: unknown;
   }>;
 }
 
@@ -97,21 +97,19 @@ function useApi() {
 
 // Example usage
 const { apiCall } = useApi();
-const books = await apiCall('/api/v1/books?status=reading');`,
+const reading = await apiCall('/api/v1/books?status=reading'); // UserBook[]`,
         },
         {
           title: "Error Handling",
-          code: `// All API errors return this format:
+          code: `// Errors use the HTTP status code (400 validation, 401 not signed in,
+// 403 forbidden / premium required, 404 not found, 500) and this body:
 {
-  "error": "Error message here",
-  "status": 400
+  "error": "Error message here"
 }
 
-// Success responses are wrapped in:
-{
-  "success": true,
-  "data": { /* your data */ }
-}
+// Success responses return the data directly (there is no
+// { success, data } envelope). Mutations without a resource to return
+// respond with { "success": true }.
 
 // Example error handler
 try {
@@ -119,7 +117,7 @@ try {
     method: 'POST',
     body: JSON.stringify({ bookData, status }),
   });
-  console.log('Success:', result.data);
+  console.log('Added:', result.userBook);
 } catch (error) {
   if (error.status === 401) {
     // Unauthorized - redirect to login
@@ -136,7 +134,8 @@ try {
 • **Session Management**: Clerk automatically handles token refresh. The session token is valid for the duration of the user's session.
 • **CORS**: API routes accept requests from any origin. Ensure you're using HTTPS in production.
 • **Rate Limiting**: Currently no rate limiting is enforced, but this may change in the future.
-• **Pagination**: Endpoints that return lists (feed, user search) support \`limit\` and \`offset\` query parameters.
+• **Pagination**: List endpoints (feed, book search, followers/following) take \`limit\` and \`offset\` and return \`hasMore\`. User search takes \`limit\` only.
+• **IDs**: \`/books/{id}\` takes a library entry (UserBook) ID. Catalog book IDs are used by \`/catalog/{bookId}\` and reviews.
 • **Date Formats**: All dates are returned in ISO 8601 format (e.g., "2025-01-15T10:00:00Z").
       `.trim(),
     },
@@ -205,13 +204,29 @@ export const apiEndpoints: ApiEndpoint[] = [
         name: "favorite",
         type: "string",
         required: false,
-        description: 'Filter by favorite status: "true" to show only favorites',
+        description: 'Filter by favorite status: "true" or "false"',
       },
     ],
     responses: [
       {
         status: 200,
-        description: "List of books",
+        description: "Without filters: books grouped by shelf, newest first",
+        example: {
+          favoriteBooks: [],
+          wantToRead: [],
+          currentlyReading: [
+            {
+              id: "uuid...",
+              status: "reading",
+              book: { id: "uuid...", title: "Example Book", author: "Author Name" },
+            },
+          ],
+          finished: [],
+        },
+      },
+      {
+        status: 200,
+        description: "With status and/or favorite: a flat array of matching books, newest first",
         example: [
           {
             id: "uuid...",
@@ -229,6 +244,11 @@ export const apiEndpoints: ApiEndpoint[] = [
           },
         ],
       },
+      {
+        status: 400,
+        description: "Invalid filter",
+        example: { error: "Invalid status. Supported: want, reading, finished" },
+      },
     ],
   },
   {
@@ -244,21 +264,84 @@ export const apiEndpoints: ApiEndpoint[] = [
         required: true,
         description: "Search query",
       },
+      {
+        name: "offset",
+        type: "number",
+        required: false,
+        description: "Results to skip (default: 0, max: 1000)",
+      },
+      {
+        name: "limit",
+        type: "number",
+        required: false,
+        description: "Results per page (default: 20, max: 40)",
+      },
     ],
     responses: [
       {
         status: 200,
-        description: "Search results",
-        example: [
-          {
-            id: "uuid...",
-            title: "The Great Gatsby",
-            author: "F. Scott Fitzgerald",
-            isbn: "9780743273565",
-            coverUrl: "https://...",
-            source: "database",
-          },
-        ],
+        description:
+          "A page of results. Internal results have a catalog id, external ones an Open Library key. hasMore is true when the page is full, so the next page can be empty.",
+        example: {
+          results: [
+            {
+              id: "uuid...",
+              isbn: "9780743273565",
+              title: "The Great Gatsby",
+              author: "F. Scott Fitzgerald",
+              coverUrl: "https://...",
+              pages: 180,
+              publishedYear: 1925,
+              source: "internal",
+            },
+            {
+              key: "/works/OL468431W",
+              isbn: "9780141182636",
+              title: "The Great Gatsby",
+              author: "F. Scott Fitzgerald",
+              coverUrl: "https://covers.openlibrary.org/b/id/123-L.jpg",
+              pages: 180,
+              publishedYear: 1925,
+              source: "external",
+            },
+          ],
+          hasMore: true,
+          offset: 0,
+          limit: 20,
+        },
+      },
+    ],
+  },
+  {
+    method: "GET",
+    path: "/api/v1/catalog/{bookId}",
+    category: "Books",
+    description:
+      "Get a catalog book (by catalog book ID) with your library entry, your review, and public reviews by people you follow",
+    requiresAuth: true,
+    responses: [
+      {
+        status: 200,
+        description: "Book detail",
+        example: {
+          book: { id: "uuid...", title: "1984", author: "George Orwell", pages: 328 },
+          userBook: { id: "uuid...", status: "reading", currentPage: 120, pageCount: 328 },
+          myReview: null,
+          followingReviews: [
+            {
+              id: "uuid...",
+              content: "Chilling.",
+              isPrivate: false,
+              createdAt: "2025-01-15T10:00:00Z",
+              user: { id: "user_456", username: "bookworm", displayName: null, profilePictureUrl: null },
+            },
+          ],
+        },
+      },
+      {
+        status: 404,
+        description: "Book not found",
+        example: { error: "Book not found" },
       },
     ],
   },
@@ -289,7 +372,8 @@ export const apiEndpoints: ApiEndpoint[] = [
     method: "PUT",
     path: "/api/v1/books/{id}/progress",
     category: "Books",
-    description: "Update reading progress",
+    description:
+      "Update reading progress. When both fields are sent, pageCount is applied first. currentPage can't exceed the page count (yours, else the catalog's); reaching it marks the book finished, any other page above 0 marks it reading.",
     requiresAuth: true,
     requestBody: {
       contentType: "application/json",
@@ -306,6 +390,11 @@ export const apiEndpoints: ApiEndpoint[] = [
         status: 200,
         description: "Progress updated",
         example: { success: true },
+      },
+      {
+        status: 400,
+        description: "Validation error",
+        example: { error: "Current page cannot exceed total pages" },
       },
     ],
   },
@@ -409,7 +498,14 @@ export const apiEndpoints: ApiEndpoint[] = [
         name: "bookId",
         type: "string",
         required: false,
-        description: "Filter reviews by book ID",
+        description:
+          "Catalog book ID: public reviews of the book plus your own private one. Without it: all your reviews.",
+      },
+      {
+        name: "scope",
+        type: "string",
+        required: false,
+        description: '"following": only public reviews of bookId by users you follow',
       },
     ],
     responses: [
@@ -483,6 +579,84 @@ export const apiEndpoints: ApiEndpoint[] = [
     ],
   },
 
+  {
+    method: "GET",
+    path: "/api/v1/users/{userId}",
+    category: "Social",
+    description:
+      "Get a user's public profile: stats, follow counts, shelves (up to 6 books each) and public collections",
+    requiresAuth: true,
+    responses: [
+      {
+        status: 200,
+        description: "Public profile",
+        example: {
+          user: { id: "user_456", username: "bookworm", displayName: "Book Worm", profilePictureUrl: null, bio: "I love reading!" },
+          stats: { booksFinishedThisYear: 12, finishedCount: 87 },
+          followerCount: 34,
+          followingCount: 20,
+          isFollowing: true,
+          currentlyReading: [{ id: "uuid...", status: "reading", book: { title: "Dune" } }],
+          recentlyFinished: [],
+          favorites: [],
+          publicCollections: [{ id: "uuid...", name: "Sci-Fi", slug: "sci-fi-1a2b3c4d", colorTag: "blue-500", iconName: "rocket", bookCount: 8 }],
+        },
+      },
+      {
+        status: 404,
+        description: "User not found",
+        example: { error: "User not found" },
+      },
+    ],
+  },
+  {
+    method: "GET",
+    path: "/api/v1/users/{userId}/followers",
+    category: "Social",
+    description: "List a user's followers, newest first",
+    requiresAuth: true,
+    queryParams: [
+      { name: "limit", type: "number", required: false, description: "Default: 20, max: 50" },
+      { name: "offset", type: "number", required: false, description: "Default: 0, max: 10000" },
+    ],
+    responses: [
+      {
+        status: 200,
+        description: "A page of users (isFollowing: whether you follow them)",
+        example: {
+          results: [{ id: "user_789", username: "reader123", displayName: null, profilePictureUrl: null, isFollowing: false }],
+          hasMore: false,
+        },
+      },
+      {
+        status: 404,
+        description: "User not found",
+        example: { error: "User not found" },
+      },
+    ],
+  },
+  {
+    method: "GET",
+    path: "/api/v1/users/{userId}/following",
+    category: "Social",
+    description: "List the users a user follows, newest first",
+    requiresAuth: true,
+    queryParams: [
+      { name: "limit", type: "number", required: false, description: "Default: 20, max: 50" },
+      { name: "offset", type: "number", required: false, description: "Default: 0, max: 10000" },
+    ],
+    responses: [
+      {
+        status: 200,
+        description: "A page of users (isFollowing: whether you follow them)",
+        example: {
+          results: [{ id: "user_456", username: "bookworm", displayName: "Book Worm", profilePictureUrl: null, isFollowing: true }],
+          hasMore: false,
+        },
+      },
+    ],
+  },
+
   // Profile API
   {
     method: "GET",
@@ -499,7 +673,11 @@ export const apiEndpoints: ApiEndpoint[] = [
           email: "user@example.com",
           username: "bookworm",
           bio: "I love reading!",
+          displayName: "Book Worm",
+          profilePictureUrl: null,
           role: "user",
+          isPremium: false,
+          planName: "Free",
         },
       },
     ],
@@ -508,16 +686,18 @@ export const apiEndpoints: ApiEndpoint[] = [
     method: "PUT",
     path: "/api/v1/profile",
     category: "Profile",
-    description: "Update your profile",
+    description:
+      'Partially update your profile. Only fields present in the body change; null or "" clears a field. The username can be changed but not cleared.',
     requiresAuth: true,
     requestBody: {
       contentType: "application/json",
       schema: {
-        username: "string (required, 3-30 chars, alphanumeric + _ .)",
-        bio: "string (optional)",
+        username: "string (optional, 3-30 chars, letters, numbers, _ and .)",
+        displayName: "string | null (optional, max 100)",
+        bio: "string | null (optional, max 1000)",
+        profilePictureUrl: "string | null (optional, a publicUrl from /profile/picture-upload-url)",
       },
       example: {
-        username: "bookworm_2025",
         bio: "Avid reader and book reviewer",
       },
     },
@@ -526,6 +706,82 @@ export const apiEndpoints: ApiEndpoint[] = [
         status: 200,
         description: "Profile updated",
         example: { success: true },
+      },
+      {
+        status: 400,
+        description: "Validation error",
+        example: { error: "Username already taken" },
+      },
+    ],
+  },
+  {
+    method: "GET",
+    path: "/api/v1/profile/stats",
+    category: "Profile",
+    description: "Your reading stats (this calendar year and library totals)",
+    requiresAuth: true,
+    responses: [
+      {
+        status: 200,
+        description: "Stats",
+        example: {
+          booksFinishedThisYear: 12,
+          pagesReadThisYear: 3840,
+          totalBooks: 57,
+          countsByStatus: { want: 30, reading: 3, finished: 24 },
+          favoritesCount: 6,
+        },
+      },
+    ],
+  },
+  {
+    method: "GET",
+    path: "/api/v1/profile/username-available",
+    category: "Profile",
+    description:
+      "Check whether you can take a username (same rules as PUT /profile; your current username counts as available)",
+    requiresAuth: true,
+    queryParams: [
+      { name: "username", type: "string", required: true, description: "Username to check" },
+    ],
+    responses: [
+      { status: 200, description: "Available", example: { available: true } },
+      {
+        status: 200,
+        description: "Not available",
+        example: { available: false, reason: "Username already taken" },
+      },
+    ],
+  },
+  {
+    method: "POST",
+    path: "/api/v1/profile/picture-upload-url",
+    category: "Profile",
+    description:
+      "Get a presigned S3 URL for a profile picture. PUT the file to uploadUrl with the same Content-Type within expiresIn seconds, then save publicUrl via PUT /profile.",
+    requiresAuth: true,
+    requestBody: {
+      contentType: "application/json",
+      schema: {
+        contentType: '"image/jpeg" | "image/png" | "image/webp" (required)',
+        fileSize: "number (bytes, required, max 5 MB)",
+      },
+      example: { contentType: "image/jpeg", fileSize: 245760 },
+    },
+    responses: [
+      {
+        status: 200,
+        description: "Upload URL",
+        example: {
+          uploadUrl: "https://bucket.s3.amazonaws.com/pfp/user_123/1736935200000.jpg?X-Amz-...",
+          publicUrl: "https://cdn.example.com/pfp/user_123/1736935200000.jpg",
+          expiresIn: 300,
+        },
+      },
+      {
+        status: 400,
+        description: "Validation error",
+        example: { error: "Invalid file type. Supported: JPG, PNG, WEBP" },
       },
     ],
   },
@@ -548,7 +804,7 @@ export const apiEndpoints: ApiEndpoint[] = [
             name: "Summer Reading",
             description: "Books to read this summer",
             isPublic: false,
-            colorTag: "#3B82F6",
+            colorTag: "blue-500",
             iconName: "sun",
             bookCount: 5,
             createdAt: "2025-01-15T10:00:00Z",
@@ -580,14 +836,14 @@ export const apiEndpoints: ApiEndpoint[] = [
         name: "string (required)",
         description: "string (optional)",
         isPublic: "boolean (optional, default: false)",
-        colorTag: "string (optional, hex color)",
+        colorTag: 'string (optional, Tailwind palette-shade token, e.g. "blue-500")',
         iconName: "string (optional)",
       },
       example: {
         name: "Sci-Fi Favorites",
         description: "My favorite science fiction novels",
         isPublic: true,
-        colorTag: "#10B981",
+        colorTag: "emerald-500",
         iconName: "rocket",
       },
     },
@@ -601,7 +857,7 @@ export const apiEndpoints: ApiEndpoint[] = [
           name: "Sci-Fi Favorites",
           description: "My favorite science fiction novels",
           isPublic: true,
-          colorTag: "#10B981",
+          colorTag: "emerald-500",
           iconName: "rocket",
           createdAt: "2025-01-15T10:00:00Z",
           updatedAt: "2025-01-15T10:00:00Z",
@@ -611,6 +867,11 @@ export const apiEndpoints: ApiEndpoint[] = [
         status: 400,
         description: "Validation error",
         example: { error: "Collection name is required" },
+      },
+      {
+        status: 403,
+        description: "Not a premium user",
+        example: { error: "Premium subscription required to create collections" },
       },
     ],
   },
@@ -630,7 +891,7 @@ export const apiEndpoints: ApiEndpoint[] = [
           name: "Summer Reading",
           description: "Books to read this summer",
           isPublic: false,
-          colorTag: "#3B82F6",
+          colorTag: "blue-500",
           iconName: "sun",
           bookCount: 5,
           books: [
@@ -667,8 +928,9 @@ export const apiEndpoints: ApiEndpoint[] = [
         name: "string (optional)",
         description: "string (optional)",
         isPublic: "boolean (optional)",
-        colorTag: "string (optional)",
-        iconName: "string (optional)",
+        colorTag: 'string (optional, Tailwind palette-shade token, e.g. "blue-500")',
+        iconName: "string (optional, Lucide icon name)",
+        coverImageUrl: "string (optional, a publicUrl from /collections/{id}/cover-upload-url)",
       },
       example: {
         name: "Updated Collection Name",
@@ -678,8 +940,8 @@ export const apiEndpoints: ApiEndpoint[] = [
     responses: [
       {
         status: 200,
-        description: "Collection updated",
-        example: { success: true },
+        description: "The updated collection",
+        example: { id: "uuid...", name: "Updated Collection Name", slug: "updated-collection-name-1a2b3c4d", isPublic: true },
       },
       {
         status: 404,
@@ -727,15 +989,17 @@ export const apiEndpoints: ApiEndpoint[] = [
         status: 201,
         description: "Book added to collection",
         example: {
+          id: "uuid...",
           collectionId: "uuid...",
           userBookId: "uuid...",
-          createdAt: "2025-01-15T10:00:00Z",
+          addedAt: "2025-01-15T10:00:00Z",
+          notes: null,
         },
       },
       {
         status: 400,
         description: "Validation error",
-        example: { error: "Book already in this collection" },
+        example: { error: "Book already in collection" },
       },
       {
         status: 404,
@@ -769,6 +1033,154 @@ export const apiEndpoints: ApiEndpoint[] = [
         description: "Collection not found",
         example: { error: "Collection not found" },
       },
+    ],
+  },
+
+  {
+    method: "POST",
+    path: "/api/v1/collections/{id}/cover-upload-url",
+    category: "Collections",
+    description:
+      "Get a presigned S3 URL for a collection cover (owner only). PUT the file to uploadUrl, then save publicUrl as coverImageUrl via PUT /collections/{id}.",
+    requiresAuth: true,
+    requestBody: {
+      contentType: "application/json",
+      schema: {
+        contentType: '"image/jpeg" | "image/png" | "image/webp" (required)',
+        fileSize: "number (bytes, required, max 5 MB)",
+      },
+      example: { contentType: "image/png", fileSize: 512000 },
+    },
+    responses: [
+      {
+        status: 200,
+        description: "Upload URL",
+        example: {
+          uploadUrl: "https://bucket.s3.amazonaws.com/collections/user_123/uuid-1736935200000.png?X-Amz-...",
+          publicUrl: "https://cdn.example.com/collections/user_123/uuid-1736935200000.png",
+          expiresIn: 300,
+        },
+      },
+      {
+        status: 404,
+        description: "Not your collection",
+        example: { error: "Collection not found or unauthorized" },
+      },
+    ],
+  },
+  {
+    method: "PUT",
+    path: "/api/v1/collections/order",
+    category: "Collections",
+    description: "Reorder your collections. order must list every one of your collection IDs exactly once.",
+    requiresAuth: true,
+    requestBody: {
+      contentType: "application/json",
+      schema: { order: "string[] (collection IDs, required)" },
+      example: { order: ["uuid-3...", "uuid-1...", "uuid-2..."] },
+    },
+    responses: [
+      { status: 200, description: "Reordered", example: { success: true } },
+      {
+        status: 400,
+        description: "Incomplete or invalid list",
+        example: { error: "order must list each of your collections exactly once" },
+      },
+      {
+        status: 404,
+        description: "An ID isn't one of your collections",
+        example: { error: "Collection not found or unauthorized" },
+      },
+    ],
+  },
+  {
+    method: "GET",
+    path: "/api/v1/collections/public",
+    category: "Collections",
+    description: "Discover public collections, newest first (first 4 books as a preview)",
+    requiresAuth: true,
+    queryParams: [
+      { name: "limit", type: "number", required: false, description: "Default: 20, max: 50" },
+    ],
+    responses: [
+      {
+        status: 200,
+        description: "Public collections",
+        example: [
+          {
+            id: "uuid...",
+            name: "Sci-Fi Favorites",
+            slug: "sci-fi-favorites-1a2b3c4d",
+            colorTag: "emerald-500",
+            iconName: "rocket",
+            isPublic: true,
+            bookCount: 12,
+            followerCount: 3,
+            user: { id: "user_456", username: "bookworm", displayName: null, profilePictureUrl: null },
+            books: [{ id: "uuid...", book: { title: "Dune" } }],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    method: "GET",
+    path: "/api/v1/collections/{idOrSlug}/public",
+    category: "Collections",
+    description: "View any public collection, or one of your own private ones, by ID or slug",
+    requiresAuth: true,
+    responses: [
+      {
+        status: 200,
+        description: "Collection with owner, books and follow state",
+        example: {
+          id: "uuid...",
+          name: "Sci-Fi Favorites",
+          slug: "sci-fi-favorites-1a2b3c4d",
+          isPublic: true,
+          bookCount: 12,
+          followerCount: 3,
+          isFollowing: false,
+          user: { id: "user_456", username: "bookworm", displayName: null, profilePictureUrl: null },
+          books: [{ id: "uuid...", status: "finished", book: { title: "Dune" } }],
+        },
+      },
+      {
+        status: 404,
+        description: "Not found, or another user's private collection",
+        example: { error: "Collection not found" },
+      },
+    ],
+  },
+  {
+    method: "POST",
+    path: "/api/v1/collections/{id}/follow",
+    category: "Collections",
+    description: "Follow another user's public collection",
+    requiresAuth: true,
+    responses: [
+      { status: 201, description: "Followed", example: { success: true } },
+      {
+        status: 400,
+        description: "Already following, or your own collection",
+        example: { error: "Already following this collection" },
+      },
+      {
+        status: 404,
+        description: "Not found, or private",
+        example: { error: "Collection not found" },
+      },
+    ],
+  },
+  {
+    method: "DELETE",
+    path: "/api/v1/collections/{id}/follow",
+    category: "Collections",
+    description: "Unfollow a collection",
+    requiresAuth: true,
+    responses: [
+      { status: 200, description: "Unfollowed", example: { success: true } },
+      { status: 404, description: "Collection not found", example: { error: "Collection not found" } },
     ],
   },
 
@@ -860,7 +1272,7 @@ export const apiEndpoints: ApiEndpoint[] = [
               user: {
                 id: "user_456",
                 username: "bookworm",
-                email: "user@example.com",
+                displayName: "Book Worm",
               },
               book: {
                 id: "uuid...",
@@ -880,7 +1292,7 @@ export const apiEndpoints: ApiEndpoint[] = [
               user: {
                 id: "user_789",
                 username: "reader123",
-                email: "reader@example.com",
+                displayName: null,
               },
               book: {
                 id: "uuid...",
@@ -915,7 +1327,7 @@ export const apiEndpoints: ApiEndpoint[] = [
     method: "GET",
     path: "/api/v1/users/search",
     category: "Social",
-    description: "Search for users by username or email",
+    description: "Search for users by username or display name",
     requiresAuth: true,
     queryParams: [
       {
@@ -940,14 +1352,14 @@ export const apiEndpoints: ApiEndpoint[] = [
             {
               id: "user_456",
               username: "bookworm",
-              email: "user@example.com",
+              displayName: "Book Worm",
               bio: "I love reading!",
               isFollowing: true,
             },
             {
               id: "user_789",
               username: "reader123",
-              email: "reader@example.com",
+              displayName: null,
               bio: null,
               isFollowing: false,
             },

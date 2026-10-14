@@ -30,12 +30,15 @@ pnpm db:studio              # Open Drizzle Studio (database GUI)
 This is a Next.js 16 App Router project with internationalization using `next-intl`. All routes are under `src/app/[locale]/` where `[locale]` is the language code (currently only "en" is configured in `src/i18n/routing.ts`).
 
 **Route organization:**
-- `src/app/[locale]/page.tsx` - Home page
-- `src/app/[locale]/library/` - User's book library
-- `src/app/[locale]/books/` - Book search and detail pages
-- `src/app/[locale]/feed/` - Social activity feed
-- `src/app/[locale]/profile/` - User profile
-- `src/app/[locale]/users/` - User search
+- `src/app/[locale]/page.tsx` - Welcome page (signed out); redirects to `/library` when signed in
+- `src/app/[locale]/sign-in`, `sign-up`, `reset-password`, `sso-callback` - Custom Clerk flows (`useSignIn`/`useSignUp`, no prebuilt Clerk UI)
+- `src/app/[locale]/library/` - Library (`?shelf=reading|want|finished|favourites`) and collections
+- `src/app/[locale]/books/[id]` - Book detail
+- `src/app/[locale]/search` - Search (`?q=&tab=books|readers`); `/books/search` and `/users/search` redirect here
+- `src/app/[locale]/feed/` - Friends feed
+- `src/app/[locale]/profile/`, `settings/` - You and Settings
+
+Signed-out pages (welcome, auth, pricing, documents) render without the app chrome; see `isBarePath` in `src/components/navigation.tsx`.
 
 ### Server Actions Pattern
 
@@ -80,14 +83,14 @@ Results are tagged with `source: 'database' | 'external'` to show users where da
 Uses Clerk for authentication. Important patterns:
 
 - **New user setup:** `username-setup-dialog.tsx` forces new users to set a username via a non-dismissible dialog
-- **User sync:** Users table is lazily created when they first add a book (see `addBookToLibrary` in `actions/books.ts`)
+- **User sync:** The users row and free plan are created on first visit by `getViewer()` in `src/lib/auth.ts` (called from the locale layout, cached per request with React `cache`). Server actions assume the row exists.
 - **Auth checks:** All server actions use `await auth()` to get `userId` and return `{ error: "Unauthorized" }` if missing
 
 ### State Management
 
-- **Client-side preferences:** Layout preferences (grid/list view) use localStorage via custom hook `use-library-layout.ts`
-- **Server state:** Uses Next.js cache revalidation with `revalidatePath()` after mutations
-- **Optimistic updates:** Not currently implemented - UI updates after server actions complete
+- **Client-side preferences:** Grid/list layout (`library-layout` cookie, `use-library-layout.ts`) and appearance (`appearance` cookie: system/light/dark, read in the locale layout into `data-theme` on `<html>`) are cookies so the server renders them without a flash
+- **Server state:** Uses Next.js cache revalidation after mutations via `revalidateLocalized()` from `src/lib/revalidate.ts` (every URL is locale-prefixed, so a bare `revalidatePath("/library")` would not match `/en/library`)
+- **Optimistic updates:** The library page counter updates locally and saves debounced; most other mutations call `router.refresh()` after the server action
 
 ### Internationalization
 
@@ -103,14 +106,13 @@ Uses `next-intl` configured in `src/i18n/`:
 
 ### Component Organization
 
-- `src/components/ui/` - shadcn/ui components (Button, Dialog, Card, etc.)
-- `src/components/` - Feature components (BookCard, LibraryTabs, SearchBooks, etc.)
+The UI follows the redesign ported from the mobile app (`echo-mobile/design/redesign`): pink `field` means "in progress / now" only, everything else sits on `paper`; no cards (hairlines and space); covers are the only things with shadows; display type is Archivo condensed.
 
-**Key components:**
-- `book-card.tsx` - Displays book with cover, add/remove buttons, progress tracking
-- `library-tabs.tsx` - Tabs for want/reading/finished with book lists
-- `search-books.tsx` - Hybrid search interface
-- `navigation.tsx` - Main nav with username display and Clerk UserButton
+- `src/components/echo/` - Design primitives: `Cover`, `Stamp`, `PlateNumber`, `AvatarTile`, `Stars`, `ProgressBar`, `FieldBand`, `Capsule`/`IconButton`, `Sheet` (bottom sheet on phones, centred panel on wider screens), `Segmented`, `FieldInput`, `Switch`, `Icon` (the design's own glyphs; Lucide only for user-chosen collection icons)
+- `src/components/library/` - Library: `ReadingHero` + `PageCounter` (the numbering-stamp page counter), shelf views, book actions menu
+- `src/components/book/`, `feed/`, `search/`, `profile/`, `settings/`, `collections/`, `plans/`, `auth/` - Feature components per screen
+- `src/components/navigation.tsx` - Left rail (lg+) and floating tab bar + Search button (phones)
+- `src/components/ui/` - shadcn/ui primitives, restyled to the tokens; Card/Table/Select/Tabs/Badge remain for the admin area only
 
 ## Configuration
 
@@ -133,7 +135,8 @@ CLERK_SECRET_KEY="sk_..."
 
 Uses Tailwind CSS v4 with:
 - `@tailwindcss/postcss` plugin
-- shadcn/ui theming via CSS variables
+- Echo tokens in `src/app/globals.css` (`paper`, `field`, `ink`, `ink-2`, `ink-3`, `rule`, `tint`, `pink-ink`, `on-field`, `negative`, `plate`) with designed dark values; shadcn names are mapped onto them
+- Utilities: `font-disp` (Archivo at width 62), `plate` (pink misregistration shadow), `tnum`, `hairline-t`, `glass`, `on-field` (re-points ink/rule tokens for content on the pink field)
 - Custom animations from `tw-animate-css`
 
 ## Database Migrations
@@ -145,7 +148,9 @@ Uses Tailwind CSS v4 with:
 **Production workflow:**
 1. Modify `src/db/schema.ts`
 2. Run `pnpm db:generate` to create migration in `drizzle/` directory
-3. Migration runs automatically on Docker container startup via `src/db/migrate.ts`
+3. Migrations run via the `migrations` service in `docker-compose.prod.yaml` (`node dist/migrate.js`) before the app starts
+
+**Note:** `drizzle/0005`-`0007` are hand-written SQL files that are not in `drizzle/meta/_journal.json`, and the last snapshot (`0004`) is behind the schema, so `drizzle-kit migrate` does not apply them and `db:generate` would also emit the older drift. Apply hand-written migrations manually (`0007` is idempotent) until the journal is re-baselined.
 
 ## Deployment
 
@@ -156,7 +161,7 @@ The Dockerfile uses multi-stage builds:
 2. **builder** - Build Next.js app and compile migration script
 3. **runner** - Production image with standalone output
 
-**Important:** Migrations run automatically before the server starts (see `start:migrate` script).
+**Important:** Secrets are not build args; provide them to the container at runtime. Only `NEXT_PUBLIC_*` values and `AWS_S3_PUBLIC_URL` (allowed `next/image` host) are needed at build time. In production, migrations run in the separate `migrations` compose service.
 
 ### Adding shadcn/ui Components
 
@@ -174,8 +179,11 @@ This adds components to `src/components/ui/` with proper theming.
 2. Mark file with `"use server"` directive
 3. Call `await auth()` to get userId
 4. Perform database operation with `db` from `@/db`
-5. Call `revalidatePath()` to update cached data
-6. Return success/error object
+5. Validate inputs at runtime (server actions are public POST endpoints) and scope writes with `and(eq(id), eq(userId))`
+6. Call `revalidateLocalized()` to update cached data
+7. Return success/error object
+
+When exposing other users, select `publicUserColumns` from `src/lib/public-user.ts` (never email/role).
 
 ### Querying Books with Relations
 

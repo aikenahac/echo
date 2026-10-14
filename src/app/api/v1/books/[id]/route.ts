@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { withAuth } from "@/lib/api-handler";
+import { withAuth, ApiError } from "@/lib/api-handler";
 import { createApiResponse } from "@/lib/api-auth";
 import { removeBookFromLibrary } from "@/app/[locale]/actions/books";
 import { db } from "@/db";
@@ -19,7 +19,7 @@ export const GET = withAuth(async (request, { user, params }) => {
   });
 
   if (!userBook) {
-    throw new Error("Book not found in your library");
+    throw new ApiError("Book not found in your library", 404);
   }
 
   return createApiResponse(userBook);
@@ -38,13 +38,13 @@ export const DELETE = withAuth(async (request, { user, params }) => {
   });
 
   if (!userBook) {
-    throw new Error("Book not found in your library");
+    throw new ApiError("Book not found in your library", 404);
   }
 
   const result = await removeBookFromLibrary(id);
 
   if (result.error) {
-    throw new Error(result.error);
+    throw new ApiError(result.error);
   }
 
   return createApiResponse(result);

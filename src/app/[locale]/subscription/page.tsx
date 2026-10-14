@@ -1,64 +1,53 @@
-import { auth } from "@clerk/nextjs/server";
+import { getTranslations } from "next-intl/server";
 import { redirect } from "@/i18n/routing";
 import { db } from "@/db";
-import { users, userSubscriptions, subscriptionPlans } from "@/db/schema";
+import { subscriptionPlans } from "@/db/schema";
 import { eq, asc, and } from "drizzle-orm";
-import { SubscriptionCard } from "@/components/subscription-card";
 import { PlanSelector } from "@/components/plan-selector";
+import { PremiumPitch } from "@/components/plans/premium-pitch";
+import { getViewer, isPaidPlan } from "@/lib/auth";
 
-export default async function SubscriptionPage({ params }: { params: Promise<{ locale: string }> }) {
+export async function generateMetadata() {
+  const t = await getTranslations("plans");
+  return { title: t("title") };
+}
+
+export default async function SubscriptionPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
   const { locale } = await params;
-  const { userId } = await auth();
-  if (!userId) {
+  const [viewer, availablePlans] = await Promise.all([
+    getViewer(),
+    db.query.subscriptionPlans.findMany({
+      where: and(
+        eq(subscriptionPlans.isActive, true),
+        eq(subscriptionPlans.isInternal, false),
+      ),
+      orderBy: [asc(subscriptionPlans.sortOrder)],
+    }),
+  ]);
+  if (!viewer) {
     redirect({ href: "/", locale });
   }
 
-  const user = await db.query.users.findFirst({
-    where: eq(users.id, userId!),
-  });
+  const subscription = viewer?.subscription ?? undefined;
 
-  const subscription = await db.query.userSubscriptions.findFirst({
-    where: eq(userSubscriptions.userId, userId!),
-    with: { plan: true },
-  });
-
-  // Redirect users with paid plans to settings page (including free lifetime plans)
-  const hasPaidPlan = subscription?.plan && (subscription.plan.price > 0 || subscription.plan.stripePriceId !== null || subscription.plan.interval === "lifetime");
-  if (hasPaidPlan) {
+  // Paid plans (including free lifetime plans) are managed in Settings
+  if (isPaidPlan(subscription?.plan)) {
     redirect({ href: "/settings", locale });
   }
 
-  const availablePlans = await db.query.subscriptionPlans.findMany({
-    where: and(
-      eq(subscriptionPlans.isActive, true),
-      eq(subscriptionPlans.isInternal, false)
-    ),
-    orderBy: [asc(subscriptionPlans.sortOrder)],
-  });
-
   return (
-    <div className="container mx-auto px-4 py-12 max-w-6xl">
-      <h1 className="text-4xl font-bold mb-2">Subscription</h1>
-      <p className="text-muted-foreground mb-8">
-        Manage your subscription
-      </p>
-
-      <div className="grid gap-8 md:grid-cols-2">
-        {/* Current Subscription */}
-        <div>
-          <h2 className="text-2xl font-semibold mb-4">Current Plan</h2>
-          <SubscriptionCard subscription={subscription} />
-        </div>
-
-        {/* Available Plans */}
-        <div>
-          <h2 className="text-2xl font-semibold mb-4">Upgrade</h2>
-          <PlanSelector
-            plans={availablePlans}
-            currentPlanId={subscription?.planId}
-          />
-        </div>
+    <section className="on-field min-h-dvh bg-field">
+      <div className="mx-auto grid w-full max-w-[1180px] gap-10 px-5 pt-[max(24px,env(safe-area-inset-top))] pb-12 md:px-10 md:pt-16 lg:grid-cols-[1.2fr_1fr] lg:items-end lg:gap-20">
+        <PremiumPitch />
+        <PlanSelector
+          plans={availablePlans}
+          currentPlanId={subscription?.planId}
+        />
       </div>
-    </div>
+    </section>
   );
 }

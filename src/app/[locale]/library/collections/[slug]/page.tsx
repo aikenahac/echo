@@ -1,11 +1,13 @@
+import { cache } from "react";
 import { auth } from "@clerk/nextjs/server";
 import { notFound } from "next/navigation";
-import { getCollectionById } from "@/app/[locale]/actions/collections";
-import { CollectionIsland } from "@/components/collections/collection-island";
 import { Metadata } from "next";
-import { db } from "@/db";
-import { userBooks } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { getCollectionById } from "@/app/[locale]/actions/collections";
+import { CollectionDetail } from "@/components/collections/collection-detail";
+import { getLibraryLayout } from "@/lib/library-layout";
+
+// Deduplicate the lookup between generateMetadata and the page
+const getCollection = cache(getCollectionById);
 
 export async function generateMetadata({
   params,
@@ -13,7 +15,7 @@ export async function generateMetadata({
   params: Promise<{ locale: string; slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const result = await getCollectionById(slug);
+  const result = await getCollection(slug);
 
   if (result.error || !result.collection) {
     return {
@@ -22,8 +24,10 @@ export async function generateMetadata({
   }
 
   return {
-    title: `${result.collection.name} | Echo Reads`,
-    description: result.collection.description || `View ${result.collection.name} collection`,
+    title: result.collection.name,
+    description:
+      result.collection.description ||
+      `View ${result.collection.name} collection`,
   };
 }
 
@@ -39,8 +43,10 @@ export default async function CollectionPage({
     notFound();
   }
 
-  // Fetch collection by slug
-  const result = await getCollectionById(slug);
+  const [result, layout] = await Promise.all([
+    getCollection(slug),
+    getLibraryLayout(),
+  ]);
 
   if (result.error || !result.collection) {
     notFound();
@@ -55,29 +61,24 @@ export default async function CollectionPage({
 
   const isOwner = userId === collection.userId;
 
-  // Fetch all user books with book details for the library tabs
-  const allUserBooks = await db.query.userBooks.findMany({
-    where: eq(userBooks.userId, userId),
-    with: {
-      book: true,
-    },
-    orderBy: (userBooks, { desc }) => [desc(userBooks.createdAt)],
-  });
-
-  // Separate books by favorites and status
-  const favoriteBooks = allUserBooks.filter((ub) => ub.isFavorite);
-  const wantToRead = allUserBooks.filter((ub) => ub.status === "want");
-  const currentlyReading = allUserBooks.filter((ub) => ub.status === "reading");
-  const finished = allUserBooks.filter((ub) => ub.status === "finished");
-
   return (
-    <CollectionIsland
-      collection={collection}
+    <CollectionDetail
+      collection={{
+        id: collection.id,
+        name: collection.name,
+        description: collection.description,
+        isPublic: collection.isPublic,
+        colorTag: collection.colorTag,
+        iconName: collection.iconName,
+        coverImageUrl: collection.coverImageUrl,
+      }}
+      books={collection.books.map((cb) => cb.userBook)}
       isOwner={isOwner}
-      favorites={favoriteBooks}
-      wantToRead={wantToRead}
-      currentlyReading={currentlyReading}
-      finished={finished}
+      ownerName={
+        collection.user.displayName || collection.user.username || ""
+      }
+      isFollowing={collection.isFollowing}
+      initialLayout={layout}
     />
   );
 }

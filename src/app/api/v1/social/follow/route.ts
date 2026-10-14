@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { withAuth } from "@/lib/api-handler";
+import { withAuth, ApiError } from "@/lib/api-handler";
 import { createApiResponse } from "@/lib/api-auth";
 import { followUser } from "@/app/[locale]/actions/social";
 
@@ -13,13 +13,13 @@ export const POST = withAuth(async (request, { user }) => {
   const { userId } = body;
 
   if (!userId) {
-    throw new Error("Missing required field: userId");
+    throw new ApiError("Missing required field: userId");
   }
 
   const result = await followUser(userId);
 
   if (result.error) {
-    throw new Error(result.error);
+    throw new ApiError(result.error);
   }
 
   return createApiResponse(result, 201);

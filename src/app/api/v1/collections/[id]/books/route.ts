@@ -1,7 +1,8 @@
-import { withAuth } from "@/lib/api-handler";
+import { withAuth, ApiError, actionError } from "@/lib/api-handler";
+import { addBookToCollection } from "@/app/[locale]/actions/collections";
 import { createApiResponse, createErrorResponse } from "@/lib/api-auth";
 import { db } from "@/db";
-import { collections, collectionBooks, userBooks } from "@/db/schema";
+import { collections, collectionBooks } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 
 /**
@@ -9,58 +10,22 @@ import { eq, and } from "drizzle-orm";
  * Add a book to a collection
  * Body: { userBookId: string }
  */
-export const POST = withAuth(async (request, { user, params }) => {
+export const POST = withAuth(async (request, { params }) => {
   const { id: collectionId } = params;
   const body = await request.json();
   const { userBookId } = body;
 
   if (!userBookId) {
-    throw new Error("userBookId is required");
+    throw new ApiError("userBookId is required");
   }
 
-  // Verify collection ownership
-  const collection = await db.query.collections.findFirst({
-    where: and(
-      eq(collections.id, collectionId),
-      eq(collections.userId, user.id)
-    ),
-  });
+  const result = await addBookToCollection(collectionId, userBookId);
 
-  if (!collection) {
-    return createErrorResponse("Collection not found", 404);
+  if (result.error) {
+    throw actionError(result.error);
   }
 
-  // Verify user owns the book
-  const userBook = await db.query.userBooks.findFirst({
-    where: and(eq(userBooks.id, userBookId), eq(userBooks.userId, user.id)),
-  });
-
-  if (!userBook) {
-    return createErrorResponse("Book not found in your library", 404);
-  }
-
-  // Check if already in collection
-  const existing = await db.query.collectionBooks.findFirst({
-    where: and(
-      eq(collectionBooks.collectionId, collectionId),
-      eq(collectionBooks.userBookId, userBookId)
-    ),
-  });
-
-  if (existing) {
-    throw new Error("Book already in this collection");
-  }
-
-  // Add book to collection
-  const [added] = await db
-    .insert(collectionBooks)
-    .values({
-      collectionId,
-      userBookId,
-    })
-    .returning();
-
-  return createApiResponse(added, 201);
+  return createApiResponse(result.collectionBook, 201);
 });
 
 /**
@@ -73,7 +38,7 @@ export const DELETE = withAuth(async (request, { user, params }) => {
   const userBookId = searchParams.get("userBookId");
 
   if (!userBookId) {
-    throw new Error("userBookId query parameter is required");
+    throw new ApiError("userBookId query parameter is required");
   }
 
   // Verify collection ownership

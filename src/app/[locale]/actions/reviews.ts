@@ -2,10 +2,11 @@
 
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/db";
-import { reviews, users } from "@/db/schema";
+import { reviews } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
-import { assignFreePlanToUser } from "./subscriptions";
+import { revalidateLocalized } from "@/lib/revalidate";
+
+const MAX_REVIEW_LENGTH = 10_000;
 
 /**
  * Create or update a review for a book
@@ -21,50 +22,34 @@ export async function createOrUpdateReview(
     return { error: "Unauthorized" };
   }
 
-  if (!content.trim()) {
+  if (typeof content !== "string" || !content.trim()) {
     return { error: "Review content cannot be empty" };
   }
 
+  if (content.length > MAX_REVIEW_LENGTH) {
+    return { error: "Review is too long" };
+  }
+
   try {
-    // Ensure user exists in our database
+    // One review per user per book: create it or update the existing one
     await db
-      .insert(users)
+      .insert(reviews)
       .values({
-        id: userId,
-        email: "", // Will be updated from Clerk webhook
-      })
-      .onConflictDoNothing();
-
-    // Assign free plan to new users
-    await assignFreePlanToUser(userId);
-
-    // Check if review already exists
-    const existingReview = await db.query.reviews.findFirst({
-      where: and(eq(reviews.userId, userId), eq(reviews.bookId, bookId)),
-    });
-
-    if (existingReview) {
-      // Update existing review
-      await db
-        .update(reviews)
-        .set({
-          content,
-          isPrivate,
-          updatedAt: new Date(),
-        })
-        .where(eq(reviews.id, existingReview.id));
-    } else {
-      // Create new review
-      await db.insert(reviews).values({
         userId,
         bookId,
         content,
         isPrivate,
+      })
+      .onConflictDoUpdate({
+        target: [reviews.userId, reviews.bookId],
+        set: {
+          content,
+          isPrivate,
+          updatedAt: new Date(),
+        },
       });
-    }
 
-    revalidatePath(`/books/${bookId}`);
-    revalidatePath("/feed");
+    revalidateLocalized(`/books/${bookId}`, "/feed");
 
     return { success: true };
   } catch (error) {
@@ -84,18 +69,16 @@ export async function deleteReview(reviewId: string) {
   }
 
   try {
-    const review = await db.query.reviews.findFirst({
-      where: and(eq(reviews.id, reviewId), eq(reviews.userId, userId)),
-    });
+    const [review] = await db
+      .delete(reviews)
+      .where(and(eq(reviews.id, reviewId), eq(reviews.userId, userId)))
+      .returning({ bookId: reviews.bookId });
 
     if (!review) {
       return { error: "Review not found" };
     }
 
-    await db.delete(reviews).where(eq(reviews.id, reviewId));
-
-    revalidatePath(`/books/${review.bookId}`);
-    revalidatePath("/feed");
+    revalidateLocalized(`/books/${review.bookId}`, "/feed");
 
     return { success: true };
   } catch (error) {

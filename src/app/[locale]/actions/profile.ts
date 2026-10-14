@@ -4,9 +4,16 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
-import { assignFreePlanToUser } from "./subscriptions";
-import { generateProfilePictureUploadUrl as generateS3UploadUrl } from "@/lib/s3";
+import { revalidateLocalized } from "@/lib/revalidate";
+import { ensureFreePlan } from "@/lib/provisioning";
+import {
+  generateProfilePictureUploadUrl as generateS3UploadUrl,
+  ownedKeyFromUrl,
+  profilePicturePrefix,
+} from "@/lib/s3";
+import { validateImageUpload } from "@/lib/image-validation";
+import { usernameFormatError } from "@/lib/username";
+import { AccountDeletionError, deleteUserAccount } from "@/lib/account";
 
 /**
  * Update user profile
@@ -37,22 +44,9 @@ export async function updateProfile(
 
     // Validate username format
     if (username) {
-      // Only allow letters, numbers, underscores, and dots
-      const usernameRegex = /^[a-zA-Z0-9_.]+$/;
-      if (!usernameRegex.test(username)) {
-        return {
-          error: "Username can only contain letters, numbers, underscores, and dots",
-        };
-      }
-
-      // Check minimum length
-      if (username.length < 3) {
-        return { error: "Username must be at least 3 characters long" };
-      }
-
-      // Check maximum length
-      if (username.length > 30) {
-        return { error: "Username must be at most 30 characters long" };
+      const formatError = usernameFormatError(username);
+      if (formatError) {
+        return { error: formatError };
       }
 
       // Check if username is already taken
@@ -68,6 +62,18 @@ export async function updateProfile(
     // Validate display name if provided
     if (displayName && displayName.length > 100) {
       return { error: "Display name must be at most 100 characters long" };
+    }
+
+    if (bio && bio.length > 1000) {
+      return { error: "Bio must be at most 1000 characters long" };
+    }
+
+    // Only accept profile pictures uploaded by this user
+    if (
+      profilePictureUrl &&
+      !ownedKeyFromUrl(profilePictureUrl, profilePicturePrefix(userId))
+    ) {
+      return { error: "Invalid profile picture" };
     }
 
     // Upsert user profile (insert or update)
@@ -94,9 +100,114 @@ export async function updateProfile(
       });
 
     // Assign free plan to new users
-    await assignFreePlanToUser(userId);
+    await ensureFreePlan(userId);
 
-    revalidatePath("/profile");
+    revalidateLocalized("/profile");
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error updating profile:", error);
+    return { error: "Failed to update profile" };
+  }
+}
+
+export type ProfileFields = {
+  username?: string | null;
+  bio?: string | null;
+  displayName?: string | null;
+  profilePictureUrl?: string | null;
+};
+
+const PROFILE_FIELD_LIMITS = {
+  bio: { max: 1000, label: "Bio" },
+  displayName: { max: 100, label: "Display name" },
+} as const;
+
+/**
+ * Partially update the current user's profile. Only fields present in
+ * `fields` change; `null` or `""` clears a field. The username can be changed
+ * but not cleared.
+ */
+export async function updateProfileFields(fields: ProfileFields) {
+  const { userId } = await auth();
+
+  if (!userId) {
+    return { error: "Unauthorized" };
+  }
+
+  if (!fields || typeof fields !== "object") {
+    return { error: "No profile fields to update" };
+  }
+
+  const updateData: Partial<typeof users.$inferInsert> = {};
+
+  for (const field of [
+    "username",
+    "bio",
+    "displayName",
+    "profilePictureUrl",
+  ] as const) {
+    const value = fields[field];
+    if (value === undefined) continue;
+    if (value !== null && typeof value !== "string") {
+      return { error: `Invalid ${field}` };
+    }
+    updateData[field] = value || null;
+  }
+
+  if (Object.keys(updateData).length === 0) {
+    return { error: "No profile fields to update" };
+  }
+
+  if ("username" in updateData) {
+    if (!updateData.username) {
+      return { error: "Username cannot be cleared" };
+    }
+    const formatError = usernameFormatError(updateData.username);
+    if (formatError) {
+      return { error: formatError };
+    }
+  }
+
+  for (const field of ["bio", "displayName"] as const) {
+    const value = updateData[field];
+    const { max, label } = PROFILE_FIELD_LIMITS[field];
+    if (value && value.length > max) {
+      return { error: `${label} must be at most ${max} characters long` };
+    }
+  }
+
+  // Only accept profile pictures uploaded by this user
+  if (
+    updateData.profilePictureUrl &&
+    !ownedKeyFromUrl(updateData.profilePictureUrl, profilePicturePrefix(userId))
+  ) {
+    return { error: "Invalid profile picture" };
+  }
+
+  try {
+    if (updateData.username) {
+      const existingUser = await db.query.users.findFirst({
+        where: eq(users.username, updateData.username),
+        columns: { id: true },
+      });
+
+      if (existingUser && existingUser.id !== userId) {
+        return { error: "Username already taken" };
+      }
+    }
+
+    const [updated] = await db
+      .update(users)
+      .set({ ...updateData, updatedAt: new Date() })
+      .where(eq(users.id, userId))
+      .returning({ id: users.id });
+
+    if (!updated) {
+      return { error: "User not found" };
+    }
+
+    revalidateLocalized("/profile");
 
     return { success: true };
   } catch (error) {
@@ -108,7 +219,10 @@ export async function updateProfile(
 /**
  * Generate a presigned URL for uploading a profile picture
  */
-export async function generateProfilePictureUploadUrl(fileExtension: string) {
+export async function generateProfilePictureUploadUrl(
+  contentType: string,
+  fileSize: number
+) {
   const { userId } = await auth();
 
   if (!userId) {
@@ -116,15 +230,15 @@ export async function generateProfilePictureUploadUrl(fileExtension: string) {
   }
 
   try {
-    // Validate file extension
-    const validExtensions = ["jpg", "jpeg", "png", "webp"];
-    if (!validExtensions.includes(fileExtension.toLowerCase())) {
-      return { error: "Invalid file type. Supported: JPG, PNG, WEBP" };
+    const validationError = validateImageUpload(contentType, fileSize);
+    if (validationError) {
+      return { error: validationError };
     }
 
     const { uploadUrl, publicUrl, key } = await generateS3UploadUrl(
       userId,
-      fileExtension
+      contentType,
+      fileSize
     );
 
     return {
@@ -136,5 +250,63 @@ export async function generateProfilePictureUploadUrl(fileExtension: string) {
   } catch (error) {
     console.error("Error generating upload URL:", error);
     return { error: "Failed to generate upload URL" };
+  }
+}
+
+/**
+ * Whether the current user can take a username (format rules plus uniqueness;
+ * their own current username counts as available)
+ */
+export async function checkUsernameAvailable(
+  username: string,
+): Promise<{ available: boolean; reason?: string }> {
+  const { userId } = await auth();
+
+  if (!userId) {
+    return { available: false, reason: "Unauthorized" };
+  }
+
+  if (typeof username !== "string") {
+    return { available: false, reason: "Invalid username" };
+  }
+
+  const formatError = usernameFormatError(username);
+  if (formatError) {
+    return { available: false, reason: formatError };
+  }
+
+  const existing = await db.query.users.findFirst({
+    where: eq(users.username, username),
+    columns: { id: true },
+  });
+
+  if (existing && existing.id !== userId) {
+    return { available: false, reason: "Username already taken" };
+  }
+
+  return { available: true };
+}
+
+/**
+ * Permanently delete the current user's account (Settings › Delete account)
+ */
+export async function deleteAccount() {
+  const { userId } = await auth();
+
+  if (!userId) {
+    return { error: "Unauthorized" };
+  }
+
+  try {
+    await deleteUserAccount(userId);
+    return { success: true };
+  } catch (error) {
+    console.error("Error deleting account:", error);
+    return {
+      error:
+        error instanceof AccountDeletionError
+          ? error.message
+          : "Failed to delete account",
+    };
   }
 }

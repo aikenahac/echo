@@ -4,157 +4,118 @@ import {
   DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { IMAGE_TYPES } from "./image-validation";
 
-// Initialize S3 client
-const s3Client = new S3Client({
-  region: process.env.AWS_REGION!,
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-  },
-});
+// Lazily initialize the S3 client so importing this module never requires
+// AWS credentials (e.g. during `next build`)
+let s3Client: S3Client | null = null;
 
-const BUCKET_NAME = process.env.AWS_S3_BUCKET_NAME!;
-const PUBLIC_URL = process.env.AWS_S3_PUBLIC_URL!;
+function getS3() {
+  if (!s3Client) {
+    s3Client = new S3Client({
+      region: process.env.AWS_REGION!,
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+      },
+    });
+  }
+  return s3Client;
+}
+
+const bucketName = () => process.env.AWS_S3_BUCKET_NAME!;
+const publicUrl = () => process.env.AWS_S3_PUBLIC_URL!;
+
+async function generateUploadUrl(
+  key: string,
+  contentType: string,
+  fileSize: number,
+  acl?: "public-read"
+) {
+  const command = new PutObjectCommand({
+    Bucket: bucketName(),
+    Key: key,
+    ContentType: contentType,
+    // Signed, so the client can only upload exactly the declared size
+    ContentLength: fileSize,
+    ACL: acl,
+  });
+
+  const uploadUrl = await getSignedUrl(getS3(), command, {
+    expiresIn: UPLOAD_URL_EXPIRES_IN,
+  });
+
+  return {
+    uploadUrl,
+    publicUrl: `${publicUrl()}/${key}`,
+    key,
+  };
+}
 
 /**
- * Generate a presigned URL for uploading a collection cover image
- * @param userId - The user's ID
- * @param collectionId - The collection's ID
- * @param fileExtension - File extension (e.g., 'jpg', 'png')
- * @returns Object with presigned URL and the final public URL
+ * Generate a presigned URL for uploading a collection cover image.
+ * Callers must validate the input with `validateImageUpload` first
+ * (from `@/lib/image-validation`).
  */
 export async function generateCollectionCoverUploadUrl(
   userId: string,
   collectionId: string,
-  fileExtension: string = "jpg"
+  contentType: string,
+  fileSize: number
 ) {
-  const timestamp = Date.now();
-  const key = `collections/${userId}/${collectionId}-${timestamp}.${fileExtension}`;
-
-  const command = new PutObjectCommand({
-    Bucket: BUCKET_NAME,
-    Key: key,
-    ContentType: `image/${fileExtension}`,
-    // Make the object publicly readable
-    ACL: "public-read",
-  });
-
-  // Generate presigned URL (valid for 5 minutes)
-  const uploadUrl = await getSignedUrl(s3Client, command, {
-    expiresIn: 300,
-  });
-
-  // Construct the final public URL
-  const publicUrl = `${PUBLIC_URL}/${key}`;
-
-  return {
-    uploadUrl,
-    publicUrl,
-    key,
-  };
+  const key = `${collectionCoverPrefix(userId)}${collectionId}-${Date.now()}.${IMAGE_TYPES[contentType]}`;
+  // Make the object publicly readable
+  return generateUploadUrl(key, contentType, fileSize, "public-read");
 }
 
 /**
- * Delete a collection cover image from S3
- * @param imageUrl - The public URL of the image to delete
- */
-export async function deleteCollectionCover(imageUrl: string) {
-  try {
-    // Extract the key from the public URL
-    const key = imageUrl.replace(`${PUBLIC_URL}/`, "");
-
-    const command = new DeleteObjectCommand({
-      Bucket: BUCKET_NAME,
-      Key: key,
-    });
-
-    await s3Client.send(command);
-    console.log(`Deleted image: ${key}`);
-  } catch (error) {
-    console.error("Error deleting image from S3:", error);
-    throw error;
-  }
-}
-
-/**
- * Generate a presigned URL for uploading a profile picture
- * @param userId - The user's ID
- * @param fileExtension - File extension (e.g., 'jpg', 'png')
- * @returns Object with presigned URL and the final public URL
+ * Generate a presigned URL for uploading a profile picture.
+ * Callers must validate the input with `validateImageUpload` first
+ * (from `@/lib/image-validation`).
  */
 export async function generateProfilePictureUploadUrl(
   userId: string,
-  fileExtension: string = "jpg"
+  contentType: string,
+  fileSize: number
 ) {
-  const timestamp = Date.now();
-  const key = `pfp/${userId}/${timestamp}.${fileExtension}`;
-
-  const command = new PutObjectCommand({
-    Bucket: BUCKET_NAME,
-    Key: key,
-    ContentType: `image/${fileExtension}`,
-    // Note: ACL removed to avoid CORS issues
-    // Set bucket to public or use bucket policy instead
-  });
-
-  // Generate presigned URL (valid for 5 minutes)
-  const uploadUrl = await getSignedUrl(s3Client, command, {
-    expiresIn: 300,
-  });
-
-  // Construct the final public URL
-  const publicUrl = `${PUBLIC_URL}/${key}`;
-
-  return {
-    uploadUrl,
-    publicUrl,
-    key,
-  };
+  const key = `${profilePicturePrefix(userId)}${Date.now()}.${IMAGE_TYPES[contentType]}`;
+  // Note: ACL omitted to avoid CORS issues - bucket policy makes pfp/ public
+  return generateUploadUrl(key, contentType, fileSize);
 }
 
+/** Presigned upload URLs are valid for 5 minutes */
+export const UPLOAD_URL_EXPIRES_IN = 300;
+
+export const collectionCoverPrefix = (userId: string) =>
+  `collections/${userId}/`;
+export const profilePicturePrefix = (userId: string) => `pfp/${userId}/`;
+
 /**
- * Delete a profile picture from S3
- * @param imageUrl - The public URL of the image to delete
+ * Resolve a public URL to its S3 key, but only if the key lives under `prefix`
+ * (i.e. the object belongs to the caller). Returns null otherwise.
  */
-export async function deleteProfilePicture(imageUrl: string) {
-  try {
-    // Extract the key from the public URL
-    const key = imageUrl.replace(`${PUBLIC_URL}/`, "");
-
-    const command = new DeleteObjectCommand({
-      Bucket: BUCKET_NAME,
-      Key: key,
-    });
-
-    await s3Client.send(command);
-    console.log(`Deleted profile picture: ${key}`);
-  } catch (error) {
-    console.error("Error deleting profile picture from S3:", error);
-    throw error;
+export function ownedKeyFromUrl(
+  imageUrl: string | null | undefined,
+  prefix: string
+): string | null {
+  if (!imageUrl) return null;
+  const base = `${publicUrl()}/`;
+  if (!imageUrl.startsWith(base)) return null;
+  const key = imageUrl.slice(base.length);
+  if (!key.startsWith(prefix) || key.includes("..") || key.includes("?")) {
+    return null;
   }
+  return key;
 }
 
 /**
- * Validate file type for collection covers
- * @param fileType - MIME type of the file
- * @returns Boolean indicating if the file type is valid
+ * Delete an object from S3 by key. Use `ownedKeyFromUrl` to obtain the key.
  */
-export function isValidImageType(fileType: string): boolean {
-  const validTypes = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
-  return validTypes.includes(fileType);
-}
-
-/**
- * Validate file size for collection covers
- * @param fileSize - Size of the file in bytes
- * @param maxSizeMB - Maximum allowed size in MB (default: 5MB)
- * @returns Boolean indicating if the file size is valid
- */
-export function isValidImageSize(
-  fileSize: number,
-  maxSizeMB: number = 5
-): boolean {
-  const maxSizeBytes = maxSizeMB * 1024 * 1024;
-  return fileSize <= maxSizeBytes;
+export async function deleteImage(key: string) {
+  await getS3().send(
+    new DeleteObjectCommand({
+      Bucket: bucketName(),
+      Key: key,
+    })
+  );
 }

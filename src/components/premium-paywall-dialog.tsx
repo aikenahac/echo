@@ -1,98 +1,86 @@
 "use client";
 
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Crown, Sparkles } from "lucide-react";
-import { useRouter } from "@/i18n/routing";
 import { useTranslations } from "next-intl";
+import { useRouter } from "@/i18n/routing";
+import { Capsule } from "@/components/echo/buttons";
+import { Icon } from "@/components/echo/icons";
+import { Sheet, SheetClose, SheetContent } from "@/components/echo/sheet";
+import { Stamp } from "@/components/echo/stamp";
 
 interface PremiumPaywallDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  feature?: string;
-  description?: string;
 }
 
+const BENEFITS = ["collections", "share", "free", "support"] as const;
+
+/**
+ * The Premium paywall: a full pink page with the PREMIUM stamp, shown to free
+ * users on any collection action.
+ */
 export function PremiumPaywallDialog({
   open,
   onOpenChange,
-  feature = "Custom Collections",
-  description = "Create and organize custom collections to group your books by theme, genre, or any category you choose.",
 }: PremiumPaywallDialogProps) {
   const router = useRouter();
-  const t = useTranslations("premium.paywall");
-
-  const handleUpgrade = () => {
-    onOpenChange(false);
-    router.push("/subscription");
-  };
+  const t = useTranslations("paywall");
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <div className="flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 mb-4">
-            <Crown className="h-6 w-6 text-primary" />
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent tone="field" size="full" title={t("headline")} hideTitle>
+        <div className="flex min-h-full flex-col">
+          <div className="flex items-center justify-between">
+            <span className="font-disp text-[22px] leading-none">Echo</span>
+            <SheetClose
+              aria-label={t("close")}
+              className="glass grid size-11 cursor-pointer place-items-center rounded-full"
+            >
+              <Icon name="close" size={18} />
+            </SheetClose>
           </div>
-          <DialogTitle className="text-center">
-            {t("title", { feature })}
-          </DialogTitle>
-          <DialogDescription className="text-center pt-2">
-            {description}
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-3 py-4">
-          <div className="flex items-start gap-3">
-            <Sparkles className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-            <div>
-              <p className="font-semibold text-sm">{t("benefits.collections.title")}</p>
-              <p className="text-sm text-muted-foreground">
-                {t("benefits.collections.description")}
-              </p>
-            </div>
+          <div className="mt-6 self-start">
+            <Stamp size="md" rotate={-5}>
+              Premium
+            </Stamp>
           </div>
-          <div className="flex items-start gap-3">
-            <Sparkles className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-            <div>
-              <p className="font-semibold text-sm">{t("benefits.earlyAccess.title")}</p>
-              <p className="text-sm text-muted-foreground">
-                {t("benefits.earlyAccess.description")}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-start gap-3">
-            <Sparkles className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-            <div>
-              <p className="font-semibold text-sm">{t("benefits.support.title")}</p>
-              <p className="text-sm text-muted-foreground">
-                {t("benefits.support.description")}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <DialogFooter className="sm:justify-center">
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            className="w-full sm:w-auto"
+          <p
+            aria-hidden
+            className="font-disp plate mt-6 text-[52px] leading-[.9] tracking-[-0.6px] text-balance md:text-[64px]"
           >
-            {t("maybeLater")}
-          </Button>
-          <Button onClick={handleUpgrade} className="w-full sm:w-auto">
-            <Crown className="mr-2 h-4 w-4" />
-            {t("viewPlans")}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+            {t("headline")}
+          </p>
+          <ul className="mt-7">
+            {BENEFITS.map((b) => (
+              <li
+                key={b}
+                className="flex gap-3 border-t border-[var(--on-field-rule)] py-3 text-[17px] leading-[22px] tracking-[-0.3px] [@media(max-height:700px)]:[&:nth-child(n+4)]:hidden"
+              >
+                <Icon name="check" size={20} strokeWidth={2.2} className="mt-px" />
+                {t(`benefits.${b}`)}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-auto pt-8 text-[15px] text-on-field-2">
+            {t.rich("price", {
+              b: (chunks) => <b className="font-semibold text-on-field">{chunks}</b>,
+            })}
+          </p>
+          <Capsule
+            variant="field"
+            size="lg"
+            className="mt-3.5 w-full"
+            onClick={() => {
+              onOpenChange(false);
+              router.push("/subscription");
+            }}
+          >
+            {t("continue")}
+          </Capsule>
+          <SheetClose className="mt-1.5 h-11 cursor-pointer text-[17px] font-semibold">
+            {t("later")}
+          </SheetClose>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }

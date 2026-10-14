@@ -24,12 +24,19 @@ export interface NormalizedBook {
   publishedYear: number | null;
 }
 
+// Don't let a slow Open Library response hold up the request
+const OPEN_LIBRARY_TIMEOUT_MS = 5000;
+
 /**
  * Search for books using the Open Library API
  * @param query - The search query
+ * @param page - 1-based results page (20 results per page)
  * @returns Array of books from Open Library
  */
-export async function searchBooks(query: string): Promise<OpenLibraryBook[]> {
+export async function searchBooks(
+  query: string,
+  page: number = 1,
+): Promise<OpenLibraryBook[]> {
   if (!query.trim()) {
     return [];
   }
@@ -48,8 +55,11 @@ export async function searchBooks(query: string): Promise<OpenLibraryBook[]> {
     ].join(",");
 
     const response = await fetch(
-      `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=20&fields=${fields}`,
-      { next: { revalidate: 3600 } }, // Cache for 1 hour
+      `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=20&page=${page}&fields=${fields}`,
+      {
+        next: { revalidate: 3600 }, // Cache for 1 hour
+        signal: AbortSignal.timeout(OPEN_LIBRARY_TIMEOUT_MS),
+      },
     );
 
     if (!response.ok) {
@@ -85,7 +95,10 @@ export async function getBookByISBN(
 
     const response = await fetch(
       `https://openlibrary.org/search.json?isbn=${encodeURIComponent(isbn)}&limit=1&fields=${fields}`,
-      { next: { revalidate: 86400 } }, // Cache for 24 hours
+      {
+        next: { revalidate: 86400 }, // Cache for 24 hours
+        signal: AbortSignal.timeout(OPEN_LIBRARY_TIMEOUT_MS),
+      },
     );
 
     if (!response.ok) {

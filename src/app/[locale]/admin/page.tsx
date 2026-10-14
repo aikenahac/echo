@@ -21,39 +21,41 @@ import {
 } from "@/components/ui/table";
 
 export default async function AdminDashboard() {
-  // Total counts
-  const [totalUsers] = await db.select({ count: count() }).from(users);
-  const [totalBooks] = await db.select({ count: count() }).from(books);
-  const [totalReviews] = await db.select({ count: count() }).from(reviews);
-  const [totalUserBooks] = await db
-    .select({ count: count() })
-    .from(userBooks);
-
-  // New users last 30 days
   const thirtyDaysAgo = subDays(new Date(), 30);
-  const [newUsers] = await db
-    .select({ count: count() })
-    .from(users)
-    .where(sql`${users.createdAt} >= ${thirtyDaysAgo.toISOString()}`);
 
-  // Most popular books (by user_books count)
-  const popularBooks = await db
-    .select({
-      book: books,
-      userCount: count(userBooks.id),
-    })
-    .from(books)
-    .leftJoin(userBooks, eq(books.id, userBooks.bookId))
-    .groupBy(books.id)
-    .orderBy(desc(count(userBooks.id)))
-    .limit(10);
-
-  // Recent users
-  const recentUsers = await db
-    .select()
-    .from(users)
-    .orderBy(desc(users.createdAt))
-    .limit(5);
+  const [
+    [totalUsers],
+    [totalBooks],
+    [totalReviews],
+    [totalUserBooks],
+    [newUsers],
+    popularBooks,
+    recentUsers,
+  ] = await Promise.all([
+    // Total counts
+    db.select({ count: count() }).from(users),
+    db.select({ count: count() }).from(books),
+    db.select({ count: count() }).from(reviews),
+    db.select({ count: count() }).from(userBooks),
+    // New users last 30 days
+    db
+      .select({ count: count() })
+      .from(users)
+      .where(sql`${users.createdAt} >= ${thirtyDaysAgo.toISOString()}`),
+    // Most popular books (by user_books count)
+    db
+      .select({
+        book: books,
+        userCount: count(userBooks.id),
+      })
+      .from(books)
+      .leftJoin(userBooks, eq(books.id, userBooks.bookId))
+      .groupBy(books.id)
+      .orderBy(desc(count(userBooks.id)))
+      .limit(10),
+    // Recent users
+    db.select().from(users).orderBy(desc(users.createdAt)).limit(5),
+  ]);
 
   return (
     <div className="space-y-8">

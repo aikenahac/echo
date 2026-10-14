@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Trash2, Loader2 } from "lucide-react";
+import { Trash2, LoaderCircle } from "lucide-react";
 import { deleteReviewAsAdmin } from "@/app/[locale]/actions/admin";
 import { toast } from "sonner";
 
@@ -41,7 +41,7 @@ export function DeleteReviewButton({ reviewId }: DeleteReviewButtonProps) {
       disabled={isDeleting}
     >
       {isDeleting ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
+        <LoaderCircle className="h-4 w-4 animate-spin" />
       ) : (
         <>
           <Trash2 className="h-4 w-4 mr-2" />

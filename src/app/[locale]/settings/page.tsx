@@ -1,107 +1,153 @@
-import { auth } from "@clerk/nextjs/server";
-import { redirect } from "@/i18n/routing";
-import { db } from "@/db";
-import { users, userSubscriptions } from "@/db/schema";
-import { eq } from "drizzle-orm";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { format } from "date-fns";
+import { getFormatter, getTranslations } from "next-intl/server";
+import { Link, redirect } from "@/i18n/routing";
+import { getViewer, isPaidPlan } from "@/lib/auth";
+import { getAppearance } from "@/lib/appearance";
+import { getLibraryLayout } from "@/lib/library-layout";
+import { Icon } from "@/components/echo/icons";
+import { AvatarTile, GroupLabel, ScreenTitle } from "@/components/echo/primitives";
+import { Stamp } from "@/components/echo/stamp";
+import {
+  AccountRow,
+  AppearanceRow,
+  BillingRow,
+  DeleteAccountRow,
+  LayoutRow,
+  SignOutRow,
+} from "@/components/settings/settings-controls";
 
-export default async function SettingsPage({ params }: { params: { locale: string } }) {
-  const { userId } = await auth();
-  if (!userId) {
-    redirect({ href: "/", locale: params.locale });
+export async function generateMetadata() {
+  const t = await getTranslations("settingsPage");
+  return { title: t("title") };
+}
+
+const row = "flex min-h-[52px] items-center gap-3 py-3 text-[17px]";
+
+function Group({ label, children }: { label?: string; children: React.ReactNode }) {
+  return (
+    <section className="mt-8">
+      {label && <GroupLabel className="mb-1">{label}</GroupLabel>}
+      <div className="[&>*+*]:hairline-t">{children}</div>
+    </section>
+  );
+}
+
+export default async function SettingsPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+
+  // Cached per request (also used by the layout)
+  const user = await getViewer();
+  if (!user) {
+    return redirect({ href: "/", locale });
   }
 
-  const user = await db.query.users.findFirst({
-    where: eq(users.id, userId!),
-  });
+  const [t, format, appearance, layout] = await Promise.all([
+    getTranslations("settingsPage"),
+    getFormatter(),
+    getAppearance(),
+    getLibraryLayout(),
+  ]);
 
-  const subscription = await db.query.userSubscriptions.findFirst({
-    where: eq(userSubscriptions.userId, userId!),
-    with: { plan: true },
-  });
+  const subscription = user.subscription;
+  const plan = subscription?.plan;
+  const paid = isPaidPlan(plan);
+  const name = user.displayName || user.username || user.email;
+  const longDate = (d: Date) =>
+    format.dateTime(d, { day: "numeric", month: "short", year: "numeric" });
 
   return (
-    <div className="container mx-auto px-4 py-12 max-w-4xl">
-      <h1 className="text-4xl font-bold mb-2">Settings</h1>
-      <p className="text-muted-foreground mb-8">
-        Manage your account settings and preferences
-      </p>
-
-      <div className="space-y-6">
-        {/* Account Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Account Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Email</label>
-              <p className="text-base">{user?.email || "Not available"}</p>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-muted-foreground">Username</label>
-              <p className="text-base">{user?.username || "Not set"}</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Subscription Information */}
-        {subscription && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Subscription</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Current Plan</label>
-                  <p className="text-2xl font-bold">{subscription.plan.name}</p>
-                </div>
-                <Badge variant={subscription.status === "active" ? "default" : "secondary"}>
-                  {subscription.status}
-                </Badge>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Price</label>
-                <p className="text-base">
-                  {subscription.plan.price === 0 ? (
-                    "Free"
-                  ) : (
-                    <>
-                      €{(subscription.plan.price / 100).toFixed(2)}
-                      <span className="text-sm text-muted-foreground">
-                        /{subscription.plan.interval === "lifetime" ? "lifetime" : subscription.plan.interval}
-                      </span>
-                    </>
-                  )}
-                </p>
-              </div>
-
-              {subscription.plan.interval !== "lifetime" && subscription.currentPeriodEnd && (
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">
-                    {subscription.cancelAtPeriodEnd ? "Expires" : "Renews"}
-                  </label>
-                  <p className="text-base">
-                    {format(new Date(subscription.currentPeriodEnd), "MMMM d, yyyy")}
-                  </p>
-                </div>
-              )}
-
-              {subscription.plan.interval === "lifetime" && (
-                <div className="pt-4 border-t">
-                  <p className="text-sm text-muted-foreground">
-                    🎉 You have lifetime access! No renewal required.
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
+    <div className="mx-auto w-full max-w-[680px] px-5 pt-[max(12px,env(safe-area-inset-top))] pb-12 md:px-10 md:pt-10">
+      <div className="flex h-[52px] items-center">
+        <ScreenTitle>{t("title")}</ScreenTitle>
       </div>
+
+      <Group>
+        <AccountRow
+          name={name}
+          email={user.email}
+          avatar={<AvatarTile name={name} src={user.profilePictureUrl} size={44} />}
+          profile={{
+            username: user.username,
+            displayName: user.displayName,
+            bio: user.bio,
+            profilePictureUrl: user.profilePictureUrl,
+          }}
+        />
+      </Group>
+
+      <Group label={t("plan")}>
+        {paid && plan ? (
+          <>
+            <div className={row}>
+              <span className="flex-1">{plan.name}</span>
+              {plan.interval === "lifetime" && (
+                <Stamp size="xs" rotate={-4}>
+                  {t("lifetime")}
+                </Stamp>
+              )}
+            </div>
+            {plan.interval === "lifetime" ? (
+              <div className={row}>
+                <span className="flex-1">{t("paidOnce")}</span>
+                <span className="text-ink-2 tnum">{longDate(subscription.createdAt)}</span>
+              </div>
+            ) : subscription?.currentPeriodEnd ? (
+              <div className={row}>
+                <span className="flex-1">
+                  {subscription.cancelAtPeriodEnd ? t("expires") : t("renews")}
+                </span>
+                <span className="text-ink-2 tnum">
+                  {longDate(subscription.currentPeriodEnd)}
+                </span>
+              </div>
+            ) : null}
+            {subscription?.stripeCustomerId && <BillingRow />}
+          </>
+        ) : (
+          <>
+            <div className={row}>
+              <span className="flex-1">{t("free")}</span>
+            </div>
+            <Link href="/subscription" className={`${row} text-pink-ink`}>
+              <span className="flex-1">
+                <span className="block font-semibold">{t("premiumRow")}</span>
+                <span className="block text-[13px] text-ink-2">{t("premiumUpsell")}</span>
+              </span>
+              <Icon name="forward" size={16} />
+            </Link>
+          </>
+        )}
+      </Group>
+
+      <Group label={t("app")}>
+        <AppearanceRow initial={appearance} />
+        <div className={row}>
+          <span className="flex-1">{t("language")}</span>
+          <span className="text-ink-2">{t("languageValue")}</span>
+        </div>
+        <LayoutRow initial={layout} />
+      </Group>
+
+      <Group label={t("legal")}>
+        <Link href="/documents/terms-of-service" className={row}>
+          <span className="flex-1">{t("terms")}</span>
+          <Icon name="forward" size={16} className="text-ink-3" />
+        </Link>
+        <Link href="/documents/privacy-policy" className={row}>
+          <span className="flex-1">{t("privacy")}</span>
+          <Icon name="forward" size={16} className="text-ink-3" />
+        </Link>
+      </Group>
+
+      <Group>
+        <SignOutRow />
+        <DeleteAccountRow />
+      </Group>
+
+      <p className="mt-10 text-center text-[13px] text-ink-3">{t("version")}</p>
     </div>
   );
 }
