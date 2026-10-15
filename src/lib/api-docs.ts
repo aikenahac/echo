@@ -799,7 +799,7 @@ export const apiEndpoints: ApiEndpoint[] = [
         description: "Upload URL",
         example: {
           uploadUrl: "https://bucket.s3.amazonaws.com/pfp/user_123/1736935200000.jpg?X-Amz-...",
-          publicUrl: "https://cdn.example.com/pfp/user_123/1736935200000.jpg",
+          publicUrl: "https://echoreads.b-cdn.net/pfp/user_123/1736935200000.jpg",
           expiresIn: 300,
         },
       },
@@ -1082,7 +1082,7 @@ export const apiEndpoints: ApiEndpoint[] = [
         description: "Upload URL",
         example: {
           uploadUrl: "https://bucket.s3.amazonaws.com/collections/user_123/uuid-1736935200000.png?X-Amz-...",
-          publicUrl: "https://cdn.example.com/collections/user_123/uuid-1736935200000.png",
+          publicUrl: "https://echoreads.b-cdn.net/collections/user_123/uuid-1736935200000.png",
           expiresIn: 300,
         },
       },
