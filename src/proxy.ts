@@ -37,7 +37,9 @@ export default clerkMiddleware(async (auth, req) => {
 export const config = {
   matcher: [
     // Skip Next.js internals, static files, and webhook routes
-    // BUT include API routes (except webhooks) for Clerk authentication
-    "/((?!_next|api/webhooks|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    // BUT include API routes (except webhooks) for Clerk authentication.
+    // Paths under /en/ always run the proxy even with a file extension: the
+    // locale layout calls auth(), so a probe like /en/x.zip must not skip it.
+    "/((?!_next|api/webhooks|(?!en/)[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
   ],
 };
