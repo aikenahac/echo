@@ -11,10 +11,16 @@ import {
   Code,
   House,
   CreditCard,
+  LifeBuoy,
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
-const navItems = [
+const navItems: {
+  title: string;
+  href: string;
+  icon: typeof Users;
+  adminOnly?: boolean;
+}[] = [
   {
     title: "Dashboard",
     href: "/admin",
@@ -41,13 +47,25 @@ const navItems = [
     icon: BookOpen,
   },
   {
+    title: "Support",
+    href: "/admin/support",
+    icon: LifeBuoy,
+    adminOnly: true,
+  },
+  {
     title: "API Playground",
     href: "/admin/api-playground",
     icon: Code,
   },
 ];
 
-export function AdminNav() {
+export function AdminNav({
+  isAdmin,
+  openSupportCount,
+}: {
+  isAdmin: boolean;
+  openSupportCount: number;
+}) {
   const pathname = usePathname();
 
   return (
@@ -61,7 +79,9 @@ export function AdminNav() {
         <Separator />
 
         <div className="space-y-1">
-          {navItems.map((item) => {
+          {navItems
+            .filter((item) => isAdmin || !item.adminOnly)
+            .map((item) => {
             const isActive = pathname === item.href;
             const Icon = item.icon;
 
@@ -78,6 +98,14 @@ export function AdminNav() {
               >
                 <Icon className="h-4 w-4" />
                 {item.title}
+                {item.href === "/admin/support" && openSupportCount > 0 ? (
+                  <span
+                    className="ml-auto rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground"
+                    aria-label={`${openSupportCount} open tickets`}
+                  >
+                    {openSupportCount}
+                  </span>
+                ) : null}
               </Link>
             );
           })}

@@ -15,7 +15,7 @@ interface NavigationProps {
 // Paths that render without the app chrome (signed-out pages and first run).
 const BARE_PATHS = [
   /^\/[a-z]{2}\/?$/,
-  /^\/[a-z]{2}\/(sign-in|sign-up|reset-password|sso-callback|pricing|documents)(\/|$)/,
+  /^\/[a-z]{2}\/(sign-in|sign-up|reset-password|sso-callback|pricing|documents|support)(\/|$)/,
 ];
 
 export function isBarePath(pathname: string) {

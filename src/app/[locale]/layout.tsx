@@ -127,6 +127,7 @@ const CLIENT_MESSAGE_NAMESPACES = [
   "profile",
   "settingsPage",
   "shelf",
+  "support",
   "you",
 ];
 

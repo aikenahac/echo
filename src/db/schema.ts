@@ -212,6 +212,35 @@ export const auditLogs = pgTable(
   }),
 );
 
+// Support tickets submitted from the public /support page
+export const supportTicketStatusEnum = pgEnum("support_ticket_status", [
+  "open",
+  "in_progress",
+  "resolved",
+]);
+
+export const supportTickets = pgTable(
+  "support_tickets",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    name: text("name").notNull(),
+    email: text("email").notNull(),
+    message: text("message").notNull(),
+    status: supportTicketStatusEnum("status").default("open").notNull(),
+    internalNote: text("internal_note"),
+    userAgent: text("user_agent"),
+    ipHash: text("ip_hash"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    resolvedAt: timestamp("resolved_at"),
+    deletedAt: timestamp("deleted_at"), // soft delete
+  },
+  (table) => ({
+    statusIdx: index("support_tickets_status_idx").on(table.status),
+    createdAtIdx: index("support_tickets_created_at_idx").on(table.createdAt),
+  }),
+);
+
 // Subscription Plans table
 export const subscriptionPlans = pgTable(
   "subscription_plans",

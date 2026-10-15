@@ -94,3 +94,46 @@ export async function sendWelcomeToPremiumEmail(
     `,
   });
 }
+
+const oneLine = (value: string) => value.replace(/[\r\n]+/g, " ").trim();
+
+export async function sendSupportTicketNotification(ticket: {
+  id: string;
+  name: string;
+  email: string;
+  message: string;
+}) {
+  const to = process.env.SUPPORT_EMAIL;
+  if (!to) throw new Error("SUPPORT_EMAIL is not set");
+
+  await getResend().emails.send({
+    from: fromEmail(),
+    to,
+    replyTo: ticket.email,
+    subject: `Support request from ${oneLine(ticket.name)}`,
+    html: `
+      <p><strong>${escapeHtml(ticket.name)}</strong> &lt;${escapeHtml(ticket.email)}&gt;</p>
+      <pre style="white-space:pre-wrap;font-family:inherit">${escapeHtml(ticket.message)}</pre>
+      <p><a href="${process.env.NEXT_PUBLIC_BASE_URL}/admin/support/${ticket.id}">Open in admin</a></p>
+    `,
+  });
+}
+
+export async function sendSupportAcknowledgement(ticket: {
+  name: string;
+  email: string;
+  message: string;
+}) {
+  await getResend().emails.send({
+    from: fromEmail(),
+    to: ticket.email,
+    replyTo: process.env.SUPPORT_EMAIL,
+    subject: "We got your message",
+    html: `
+      <h2>Hi ${escapeHtml(ticket.name)},</h2>
+      <p>Thanks for contacting Echo. We received your message and will reply to this address.</p>
+      <p>Your message:</p>
+      <pre style="white-space:pre-wrap;font-family:inherit">${escapeHtml(ticket.message)}</pre>
+    `,
+  });
+}

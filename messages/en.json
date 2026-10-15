@@ -57,7 +57,34 @@
     "legalDocuments": "Documents",
     "copyright": "© {year} Echo",
     "followTwitter": "Follow on X (Twitter)",
-    "bookData": "Book data from Open Library"
+    "bookData": "Book data from Open Library",
+    "support": "Support"
+  },
+  "support": {
+    "metaTitle": "Support",
+    "metaDescription": "Get help with Echo Reads. Send us a message and we will reply by email.",
+    "title": "Support",
+    "intro": "Questions, bugs or feedback? Send us a message and we will reply by email.",
+    "name": "Name",
+    "email": "Email",
+    "message": "Message",
+    "messagePlaceholder": "How can we help?",
+    "charCount": "{count} / {max}",
+    "submit": "Send message",
+    "sending": "Sending…",
+    "successTitle": "Thanks, we'll reply to {email}",
+    "successBody": "Your message is with us. We usually answer within a couple of days.",
+    "serverError": "Something went wrong and your message was not sent. Please try again.",
+    "rateLimited": "You have sent several messages recently. Please try again later.",
+    "errors": {
+      "nameRequired": "Enter your name.",
+      "nameTooLong": "Name can be at most 100 characters.",
+      "emailRequired": "Enter your email address.",
+      "emailTooLong": "Email can be at most 254 characters.",
+      "emailInvalid": "Enter a valid email address.",
+      "messageTooShort": "Write at least 10 characters.",
+      "messageTooLong": "Message can be at most 5,000 characters."
+    }
   },
   "pricing": {
     "faq": {

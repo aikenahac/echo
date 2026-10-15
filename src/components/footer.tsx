@@ -32,6 +32,9 @@ export function Footer() {
           <Link href="/documents/terms-of-service" className="hover:text-ink">
             {t("termsOfService")}
           </Link>
+          <Link href="/support" className="hover:text-ink">
+            {t("support")}
+          </Link>
           <Link href="/documents" className="hover:text-ink">
             {t("legalDocuments")}
           </Link>
