@@ -13,6 +13,7 @@ import { AuthTitle } from "./auth-title";
 import { OAuthButtons } from "./oauth-buttons";
 import { clerkMessage, useFinishAuth } from "./use-finish-auth";
 import { useCountdown } from "./use-countdown";
+import { LegalCheckbox } from "./legal-checkbox";
 
 export function SignUpForm() {
   const t = useTranslations("auth");
@@ -21,9 +22,10 @@ export function SignUpForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
+  const [legalAccepted, setLegalAccepted] = useState(false);
   const [step, setStep] = useState<"form" | "verify">("form");
   const [error, setError] = useState<{
-    field: "email" | "password" | "code" | "global";
+    field: "email" | "password" | "legal" | "code" | "global";
     message: string;
   } | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -37,9 +39,12 @@ export function SignUpForm() {
     if (!email.trim()) return setError({ field: "email", message: t("errors.emailRequired") });
     if (!longEnough) return setError({ field: "password", message: t("errors.passwordShort") });
 
-    const { error } = await signUp.password({ emailAddress: email.trim(), password });
+    if (!legalAccepted) return setError({ field: "legal", message: t("errors.legalRequired") });
+
+    const { error } = await signUp.password({ emailAddress: email.trim(), password, legalAccepted });
     if (error) {
       const f = errors.fields;
+      if (f.legalAccepted) return setError({ field: "legal", message: f.legalAccepted.longMessage || f.legalAccepted.message });
       if (f.emailAddress) return setError({ field: "email", message: f.emailAddress.longMessage || f.emailAddress.message });
       if (f.password) return setError({ field: "password", message: f.password.longMessage || f.password.message });
       return setError({ field: "global", message: clerkMessage(error, t("errors.generic")) });
@@ -157,6 +162,15 @@ export function SignUpForm() {
           hint={<PasswordRule ok={longEnough} label={t("signUp.rule")} />}
         />
       </div>
+      <LegalCheckbox
+        checked={legalAccepted}
+        onChange={(checked) => {
+          setLegalAccepted(checked);
+          if (checked && error?.field === "legal") setError(null);
+        }}
+        error={error?.field === "legal" ? error.message : null}
+        className="mt-5"
+      />
       {/* Clerk's bot protection mounts here when enabled */}
       <div id="clerk-captcha" className="mt-4" />
       {error?.field === "global" && <p role="alert" className="mt-3 text-[13px] text-negative">{error.message}</p>}
