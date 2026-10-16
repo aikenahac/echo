@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 344 344">
+  <rect id="Background" width="344" height="344" rx="76" fill="#FF6BA8"/>
+  <path id="Ribbon Back" d="M178 0h70v226l-35-30-35 30z" fill="#B3165A"/>
+  <path id="Ribbon Front" d="M124 0h70v250l-35-30-35 30z" fill="#170B11"/>
+</svg>

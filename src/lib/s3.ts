@@ -12,8 +12,17 @@ let s3Client: S3Client | null = null;
 
 function getS3() {
   if (!s3Client) {
+    const endpoint = process.env.AWS_S3_ENDPOINT || undefined;
     s3Client = new S3Client({
       region: process.env.AWS_REGION!,
+      // S3-compatible providers (Wasabi) need their own endpoint, and
+      // path-style URLs (https://<endpoint>/<bucket>/<key>)
+      endpoint,
+      forcePathStyle: Boolean(endpoint),
+      // The SDK's default flexible checksums sign a CRC32 of the empty body
+      // into presigned PUT URLs, which non-AWS providers reject
+      requestChecksumCalculation: "WHEN_REQUIRED",
+      responseChecksumValidation: "WHEN_REQUIRED",
       credentials: {
         accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
