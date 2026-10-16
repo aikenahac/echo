@@ -5,6 +5,7 @@ import { deleteReview, createOrUpdateReview } from "@/app/[locale]/actions/revie
 import { db } from "@/db";
 import { reviews } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
+import { isBlockedEitherWay } from "@/lib/blocks";
 import { publicUserColumns, publicUserExtras } from "@/lib/public-user";
 
 /**
@@ -25,6 +26,13 @@ export const GET = withAuth(async (request, { user, params }) => {
 
   // Only owner can see private reviews
   if (review.isPrivate && review.userId !== user.id) {
+    throw new ApiError("Review not found", 404);
+  }
+
+  if (
+    review.userId !== user.id &&
+    (await isBlockedEitherWay(user.id, review.userId))
+  ) {
     throw new ApiError("Review not found", 404);
   }
 

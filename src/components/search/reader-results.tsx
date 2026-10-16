@@ -7,6 +7,7 @@ import { followUser, unfollowUser } from "@/app/[locale]/actions/social";
 import { Capsule } from "@/components/echo/buttons";
 import { AdminBadge } from "@/components/echo/admin-badge";
 import { AvatarTile } from "@/components/echo/primitives";
+import { ModerationMenu } from "@/components/moderation/moderation-menu";
 
 export type Reader = {
   id: string;
@@ -89,6 +90,7 @@ export function ReaderResults({
               >
                 {on ? t("following") : t("follow")}
               </Capsule>
+              <ModerationMenu userId={r.id} userName={name} />
             </li>
           );
         })}

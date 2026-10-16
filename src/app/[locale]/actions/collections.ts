@@ -9,7 +9,8 @@ import {
   userBooks,
   userSubscriptions,
 } from "@/db/schema";
-import { eq, and, desc, sql, inArray, count } from "drizzle-orm";
+import { eq, and, desc, sql, inArray, notInArray, count } from "drizzle-orm";
+import { getBlockedIds } from "@/lib/blocks";
 import { after } from "next/server";
 import { revalidateLocalized } from "@/lib/revalidate";
 import {
@@ -633,8 +634,14 @@ export async function unfollowCollection(collectionId: string) {
  */
 export async function getPublicCollections(limit: number = 20) {
   try {
+    const { userId } = await auth();
+    const blockedIds = userId ? await getBlockedIds(userId) : [];
+
     const publicCollections = await db.query.collections.findMany({
-      where: eq(collections.isPublic, true),
+      where: and(
+        eq(collections.isPublic, true),
+        blockedIds.length ? notInArray(collections.userId, blockedIds) : undefined,
+      ),
       orderBy: [desc(collections.createdAt)],
       limit: Math.min(Math.max(Math.trunc(limit) || 20, 1), 50),
       with: {

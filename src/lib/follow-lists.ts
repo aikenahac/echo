@@ -1,6 +1,7 @@
 import { db } from "@/db";
 import { follows, users } from "@/db/schema";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, notInArray } from "drizzle-orm";
+import { getBlockedIds } from "@/lib/blocks";
 import { isAdminSql } from "@/lib/public-user";
 
 /**
@@ -20,6 +21,8 @@ export async function getFollowList(
       ? [follows.followingId, follows.followerId]
       : [follows.followerId, follows.followingId];
 
+  const blockedIds = await getBlockedIds(viewerId);
+
   const rows = await db
     .select({
       id: users.id,
@@ -31,7 +34,12 @@ export async function getFollowList(
     })
     .from(follows)
     .innerJoin(users, eq(users.id, listedColumn))
-    .where(eq(matchColumn, userId))
+    .where(
+      and(
+        eq(matchColumn, userId),
+        blockedIds.length ? notInArray(listedColumn, blockedIds) : undefined,
+      ),
+    )
     .orderBy(desc(follows.createdAt), users.id)
     .limit(limit + 1) // Fetch one extra to check if there are more
     .offset(offset);

@@ -1,11 +1,12 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { and, eq, ilike, ne, or } from "drizzle-orm";
+import { and, eq, ilike, ne, notInArray, or } from "drizzle-orm";
 import { db } from "@/db";
 import { follows, userBooks, users } from "@/db/schema";
 import { publicUserColumns, publicUserExtras } from "@/lib/public-user";
 import { escapeLike } from "@/lib/utils";
+import { getBlockedIds } from "@/lib/blocks";
 import { SearchView, type SearchTab } from "@/components/search/search-view";
 import type { Owned } from "@/components/search/book-results";
 
@@ -28,6 +29,8 @@ export default async function SearchPage({
   const query = q?.trim().slice(0, 200) || "";
   const tab: SearchTab = tabParam === "readers" ? "readers" : "books";
 
+  const blockedIds = tab === "readers" ? await getBlockedIds(userId) : [];
+
   const [library, followingList, readers] = await Promise.all([
     tab === "books"
       ? db.query.userBooks.findMany({
@@ -44,6 +47,7 @@ export default async function SearchPage({
       ? db.query.users.findMany({
           where: and(
             ne(users.id, userId),
+            blockedIds.length ? notInArray(users.id, blockedIds) : undefined,
             or(
               ilike(users.username, `%${escapeLike(query)}%`),
               ilike(users.displayName, `%${escapeLike(query)}%`),

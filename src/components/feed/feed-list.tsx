@@ -8,6 +8,7 @@ import { AdminBadge } from "@/components/echo/admin-badge";
 import { Cover } from "@/components/echo/cover";
 import { AvatarTile, Stars } from "@/components/echo/primitives";
 import { Stamp } from "@/components/echo/stamp";
+import { ModerationMenu } from "@/components/moderation/moderation-menu";
 import type { FeedActivity } from "@/lib/feed";
 import { cn } from "@/lib/utils";
 
@@ -116,6 +117,11 @@ function FeedItem({
             : t("startedReading")}
       </span>
       <span className="ml-auto pl-2 text-[13px] whitespace-nowrap text-ink-2">{when}</span>
+      {a.type === "review" && (
+        <span className="-mt-1.5 -mr-1.5 ml-1">
+          <ModerationMenu userId={a.user.id} userName={name} reviewId={a.data.id} />
+        </span>
+      )}
     </p>
   );
 

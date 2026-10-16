@@ -3,7 +3,8 @@ import { createApiResponse } from "@/lib/api-auth";
 import { db } from "@/db";
 import { publicUserExtras } from "@/lib/public-user";
 import { users, follows } from "@/db/schema";
-import { or, ilike, eq, and, inArray, ne } from "drizzle-orm";
+import { or, ilike, eq, and, inArray, ne, notInArray } from "drizzle-orm";
+import { getBlockedIds } from "@/lib/blocks";
 import { escapeLike } from "@/lib/utils";
 
 /**
@@ -27,12 +28,14 @@ export const GET = withAuth(async (request, { user }) => {
   }
 
   const pattern = `%${escapeLike(query)}%`;
+  const blockedIds = await getBlockedIds(user.id);
 
   // Search for users (excluding the current user). Emails are never searched
   // or returned, so they can't be enumerated.
   const searchResults = await db.query.users.findMany({
     where: and(
       ne(users.id, user.id),
+      blockedIds.length ? notInArray(users.id, blockedIds) : undefined,
       or(ilike(users.username, pattern), ilike(users.displayName, pattern))
     ),
     columns: {

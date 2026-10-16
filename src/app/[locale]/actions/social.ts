@@ -6,6 +6,7 @@ import { follows, users } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { revalidateLocalized } from "@/lib/revalidate";
 import { getFeedPage } from "@/lib/feed";
+import { isBlockedEitherWay } from "@/lib/blocks";
 
 /**
  * Follow a user
@@ -28,7 +29,8 @@ export async function followUser(followingId: string) {
       columns: { id: true },
     });
 
-    if (!target) {
+    // A blocked user (either way) looks like a missing one
+    if (!target || (await isBlockedEitherWay(userId, followingId))) {
       return { error: "User not found" };
     }
 

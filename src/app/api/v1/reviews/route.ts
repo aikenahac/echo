@@ -4,7 +4,8 @@ import { createApiResponse } from "@/lib/api-auth";
 import { createOrUpdateReview } from "@/app/[locale]/actions/reviews";
 import { db } from "@/db";
 import { follows, reviews } from "@/db/schema";
-import { and, desc, eq, inArray, or } from "drizzle-orm";
+import { and, desc, eq, inArray, notInArray, or } from "drizzle-orm";
+import { getBlockedIds } from "@/lib/blocks";
 import { isUuid } from "@/lib/utils";
 import { publicUserColumns, publicUserExtras } from "@/lib/public-user";
 
@@ -80,9 +81,11 @@ export const GET = withAuth(async (request, { user }) => {
     });
   } else if (bookId) {
     // Get reviews for a specific book (only user's own private reviews + all public)
+    const blockedIds = await getBlockedIds(user.id);
     query = db.query.reviews.findMany({
       where: and(
         eq(reviews.bookId, bookId),
+        blockedIds.length ? notInArray(reviews.userId, blockedIds) : undefined,
         or(eq(reviews.isPrivate, false), eq(reviews.userId, user.id)),
       ),
       with: { user: { columns: publicUserColumns, extras: publicUserExtras }, book: true },

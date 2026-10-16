@@ -193,6 +193,86 @@ export const follows = pgTable(
   }),
 );
 
+// Blocks: blockerId no longer sees (and is not seen by) blockedId
+export const blocks = pgTable(
+  "blocks",
+  {
+    blockerId: text("blocker_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    blockedId: text("blocked_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.blockerId, table.blockedId] }),
+    // Lookups by blocker are covered by the primary key
+    blockedIdx: index("blocks_blocked_idx").on(table.blockedId),
+  }),
+);
+
+// Reports of users and reviews, triaged in the admin panel
+export const reportTargetTypeEnum = pgEnum("report_target_type", [
+  "user",
+  "review",
+]);
+
+export const reportReasonEnum = pgEnum("report_reason", [
+  "spam",
+  "harassment",
+  "hate",
+  "inappropriate",
+  "other",
+]);
+
+export const reportStatusEnum = pgEnum("report_status", [
+  "open",
+  "resolved",
+  "dismissed",
+]);
+
+export const reports = pgTable(
+  "reports",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    reporterId: text("reporter_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    targetType: reportTargetTypeEnum("target_type").notNull(),
+    // User id for user reports, review id for review reports. No FK so the
+    // report survives deletion of a reported review.
+    targetId: text("target_id").notNull(),
+    // The user who owns the reported content (the user itself for user reports)
+    targetUserId: text("target_user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    reason: reportReasonEnum("reason").notNull(),
+    details: text("details"),
+    // Reported review text at the time of the report
+    contentSnapshot: text("content_snapshot"),
+    status: reportStatusEnum("status").default("open").notNull(),
+    resolutionNote: text("resolution_note"),
+    resolvedBy: text("resolved_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    resolvedAt: timestamp("resolved_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    reporterTargetIdx: uniqueIndex("reports_reporter_target_idx").on(
+      table.reporterId,
+      table.targetType,
+      table.targetId,
+    ),
+    statusCreatedAtIdx: index("reports_status_created_at_idx").on(
+      table.status,
+      table.createdAt,
+    ),
+    targetUserIdx: index("reports_target_user_idx").on(table.targetUserId),
+  }),
+);
+
 // Audit Logs table
 export const auditLogs = pgTable(
   "audit_logs",
@@ -432,6 +512,32 @@ export const followsRelations = relations(follows, ({ one }) => ({
     fields: [follows.followingId],
     references: [users.id],
     relationName: "following",
+  }),
+}));
+
+export const blocksRelations = relations(blocks, ({ one }) => ({
+  blocker: one(users, {
+    fields: [blocks.blockerId],
+    references: [users.id],
+    relationName: "blocker",
+  }),
+  blocked: one(users, {
+    fields: [blocks.blockedId],
+    references: [users.id],
+    relationName: "blocked",
+  }),
+}));
+
+export const reportsRelations = relations(reports, ({ one }) => ({
+  reporter: one(users, {
+    fields: [reports.reporterId],
+    references: [users.id],
+    relationName: "reporter",
+  }),
+  targetUser: one(users, {
+    fields: [reports.targetUserId],
+    references: [users.id],
+    relationName: "reportTarget",
   }),
 }));
 

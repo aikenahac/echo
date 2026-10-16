@@ -19,6 +19,7 @@ import { Icon } from "@/components/echo/icons";
 import { AvatarTile, SectionHead } from "@/components/echo/primitives";
 import { Stamp } from "@/components/echo/stamp";
 import { ConfirmSheet } from "@/components/library/book-actions-menu";
+import { ModerationMenu } from "@/components/moderation/moderation-menu";
 import { ReadingHero, StarPicker } from "@/components/library/reading-hero";
 import {
   DropdownMenu,
@@ -251,7 +252,7 @@ export function BookDetail({
                     return (
                       <li key={r.id} className="flex gap-3 py-3.5 [&+li]:hairline-t">
                         <AvatarTile name={name} src={r.user.profilePictureUrl} blurhash={r.user.profilePictureBlurhash} />
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1">
                           <p className="text-[15px]">
                             <b className="font-semibold">{name}</b>
                             {r.user.isAdmin && <AdminBadge size={13} className="-mt-0.5 ml-1" />}
@@ -259,6 +260,7 @@ export function BookDetail({
                           </p>
                           <p className="mt-0.5 text-[15px] leading-[21px] whitespace-pre-line">{r.content}</p>
                         </div>
+                        <ModerationMenu userId={r.user.id} userName={name} reviewId={r.id} />
                       </li>
                     );
                   })}

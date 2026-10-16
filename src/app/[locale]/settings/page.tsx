@@ -133,6 +133,13 @@ export default async function SettingsPage({
         <LayoutRow initial={layout} />
       </Group>
 
+      <Group label={t("privacyGroup")}>
+        <Link href="/settings/blocked" className={row}>
+          <span className="flex-1">{t("blockedUsers")}</span>
+          <Icon name="forward" size={16} className="text-ink-3" />
+        </Link>
+      </Group>
+
       <Group label={t("legal")}>
         <Link href="/documents/terms-of-service" className={row}>
           <span className="flex-1">{t("terms")}</span>

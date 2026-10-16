@@ -10,6 +10,7 @@ import {
 } from "@/db/schema";
 import { and, asc, count, eq, getTableColumns } from "drizzle-orm";
 import { publicUserColumns, publicUserExtras } from "@/lib/public-user";
+import { isBlockedEitherWay } from "@/lib/blocks";
 import { getProfileShelves, getYearStats } from "@/lib/reading-stats";
 
 /**
@@ -26,7 +27,7 @@ export const GET = withAuth(async (request, { user: viewer, params }) => {
     extras: publicUserExtras,
   });
 
-  if (!profile) {
+  if (!profile || (await isBlockedEitherWay(viewer.id, userId))) {
     throw new ApiError("User not found", 404);
   }
 

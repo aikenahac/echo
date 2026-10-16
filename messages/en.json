@@ -423,7 +423,9 @@
     "deleteBody": "Your library, reviews, collections and follows are deleted for good. An active subscription is cancelled.",
     "deleteConfirm": "Delete account",
     "cancel": "Cancel",
-    "version": "Echo for the web"
+    "version": "Echo for the web",
+    "privacyGroup": "Privacy",
+    "blockedUsers": "Blocked users"
   },
   "coll": {
     "back": "Back",
@@ -519,5 +521,34 @@
   },
   "badges": {
     "systemAdmin": "System Administrator"
+  },
+  "moderation": {
+    "more": "More actions for {name}",
+    "reportUser": "Report user",
+    "reportReview": "Report review",
+    "block": "Block user",
+    "reportUserTitle": "Report user",
+    "reportReviewTitle": "Report review",
+    "reportBody": "Tell us what's wrong. Reports are private and reviewed by our team.",
+    "reason": "Reason",
+    "reasons": {
+      "spam": "Spam",
+      "harassment": "Harassment or bullying",
+      "hate": "Hate speech",
+      "inappropriate": "Inappropriate content",
+      "other": "Something else"
+    },
+    "details": "Details (optional)",
+    "detailsPlaceholder": "Anything else we should know?",
+    "submit": "Send report",
+    "cancel": "Cancel",
+    "reported": "Thanks, we'll take a look.",
+    "blockConfirmTitle": "Block {name}?",
+    "blockConfirm": "You won't see each other's reviews or activity, and you'll stop following each other.",
+    "blocked": "Blocked {name}",
+    "blockedTitle": "Blocked users",
+    "blockedBody": "Blocked readers can't see your activity and you can't see theirs.",
+    "noneBlocked": "You haven't blocked anyone.",
+    "unblock": "Unblock"
   }
 }

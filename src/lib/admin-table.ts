@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { UserRole } from "@/lib/auth";
 import { SUPPORT_STATUSES } from "@/lib/support";
+import { REPORT_STATUSES, REPORT_TARGET_TYPES } from "@/lib/reports";
 
 // Shared shape of every admin list: the page, page size, sort and filters
 // live in the URL; the search term never does (it is sent through a server
@@ -139,6 +140,15 @@ export const reviewsTable = defineTable({
   sort: ["createdAt", "user", "book"],
   defaultSort: { id: "createdAt", desc: true },
   filters: { visibility: z.enum(["public", "private"]) },
+});
+
+export const reportsTable = defineTable({
+  sort: ["createdAt", "reason", "status"],
+  defaultSort: { id: "createdAt", desc: true },
+  filters: {
+    status: z.enum(REPORT_STATUSES),
+    type: z.enum(REPORT_TARGET_TYPES),
+  },
 });
 
 export const supportTable = defineTable({

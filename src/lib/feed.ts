@@ -71,6 +71,7 @@ export async function getFeedPage(userId: string, offset: number, limit: number)
       user: r.user,
       book: r.book,
       data: {
+        id: r.id,
         content: r.content,
         isPrivate: r.isPrivate,
       },

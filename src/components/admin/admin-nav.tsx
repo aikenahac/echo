@@ -12,6 +12,7 @@ import {
   House,
   CreditCard,
   LifeBuoy,
+  Flag,
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
@@ -42,6 +43,11 @@ const navItems: {
     icon: MessageSquare,
   },
   {
+    title: "Reports",
+    href: "/admin/reports",
+    icon: Flag,
+  },
+  {
     title: "Books",
     href: "/admin/content/books",
     icon: BookOpen,
@@ -62,9 +68,11 @@ const navItems: {
 export function AdminNav({
   isAdmin,
   openSupportCount,
+  openReportsCount,
 }: {
   isAdmin: boolean;
   openSupportCount: number;
+  openReportsCount: number;
 }) {
   const pathname = usePathname();
 
@@ -98,6 +106,14 @@ export function AdminNav({
               >
                 <Icon className="h-4 w-4" />
                 {item.title}
+                {item.href === "/admin/reports" && openReportsCount > 0 ? (
+                  <span
+                    className="ml-auto rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground"
+                    aria-label={`${openReportsCount} open reports`}
+                  >
+                    {openReportsCount}
+                  </span>
+                ) : null}
                 {item.href === "/admin/support" && openSupportCount > 0 ? (
                   <span
                     className="ml-auto rounded-full bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground"
