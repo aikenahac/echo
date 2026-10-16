@@ -1,278 +1,128 @@
-# Echo - Book Reading Tracker
+<div align="center">
 
-Echo is a modern, full-featured book reading tracker that helps you organize your reading journey, discover new books, and connect with fellow readers.
+<img src=".github/assets/echo-icon.svg" alt="Echo" width="120" />
 
-## Features
+# Echo
 
-### Library Management
-- Organize books into three categories: **Want to Read**, **Currently Reading**, and **Finished**
-- Multiple view modes: Grid and List layouts with preference persistence
-- Hybrid book search (internal database + Open Library API fallback)
-- Track reading progress with page counts and completion percentages
+**Every page, counted.**
 
-### Reading Experience
-- Progress tracking with visual progress bars
-- 5-star rating system for finished books
-- Write and manage book reviews (public or private)
-- Celebrate reading milestones
+Log where you stopped, rate what you finish, and see what your friends are reading.
 
-### Social Features
-- Follow other readers to see their activity
-- Share reviews and reading progress
-- Activity feed showing what friends are reading
-- User profiles with reading statistics
+[![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)](https://nextjs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org)
+[![Drizzle](https://img.shields.io/badge/Drizzle-ORM-C5F74F?logo=drizzle&logoColor=black)](https://orm.drizzle.team)
+[![Clerk](https://img.shields.io/badge/Auth-Clerk-6C47FF?logo=clerk&logoColor=white)](https://clerk.com)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
 
-### Internationalization
-- Multi-language support using next-intl
-- Fully localized interface
-- Easy to add new languages
+[Features](#-features) · [Getting started](#-getting-started) · [Deployment](#-deployment)
 
-### Modern UI/UX
-- Beautiful, responsive design with Tailwind CSS v4
-- shadcn/ui component library for consistent styling
-- Dark mode support
-- Lucide icons throughout
-- Smooth animations and transitions
+</div>
 
-## Tech Stack
+---
 
-### Frontend
-- **Next.js 16.0.5** - React framework with App Router
-- **TypeScript** - Type-safe development
-- **Tailwind CSS v4** - Utility-first styling
-- **shadcn/ui** - High-quality component library
-- **next-intl** - Internationalization
-- **lucide-react** - Icon library
-- **sonner** - Toast notifications
+## 📖 What is Echo
 
-### Backend
-- **PostgreSQL** - Primary database
-- **Drizzle ORM** - Type-safe database queries
-- **Clerk** - Authentication and user management
+Echo is a calm little reading tracker. Keep your books on shelves, count the pages as you go, write down what you thought when you finish, and follow the people whose taste you trust.
 
-### APIs
-- **Open Library API** - External book data source
+This repository is the **web app**. A companion iOS and Android app (React Native + Expo) shares the same design and backend.
 
-## Getting Started
+<p align="center">
+  <img src=".github/assets/feature-graphic.png" alt="Echo: Every page, counted." width="720" />
+</p>
 
-### Prerequisites
-- Node.js 18+ and pnpm
-- PostgreSQL database
-- Clerk account for authentication
+## ✨ Features
 
-### Installation
+- 📚 **Library shelves**: Want to read, Reading, Finished and Favourites, in a grid or list
+- 🔢 **Page counter**: log where you stopped and watch the progress fill in
+- ⭐ **Ratings and reviews**: star your finished books and write reviews, public or private
+- 🗂️ **Collections**: group books your own way, with a custom icon (Premium)
+- 👥 **Friends feed**: follow other readers and see what they start, finish and review
+- 🔎 **Search**: one place for books and readers, backed by [Open Library](https://openlibrary.org)
+- 🌗 **Light and dark**: follows your system, or pick one in Settings
+- 🌍 **Ready for translation**: every string lives in `messages/`
 
-1. Clone the repository:
-```bash
-git clone <repository-url>
-cd echo
-```
+### Plans
 
-2. Install dependencies:
+Echo is **free, with no limit on books**. **Premium** adds collections and helps keep a small app going. Payments run through [Lemon Squeezy](https://lemonsqueezy.com), which also handles taxes.
+
+## 🚀 Getting started
+
+### You'll need
+
+- [Node.js](https://nodejs.org) 24 and [pnpm](https://pnpm.io)
+- [Docker](https://www.docker.com), or any PostgreSQL database
+- A free [Clerk](https://clerk.com) application for sign-in
+
+### Run it locally
+
 ```bash
 pnpm install
 ```
 
-3. Set up environment variables:
-Create a `.env` file in the root directory with the following variables:
-
-```env
-# Database
-DATABASE_URL="postgresql://..."
-
-# Clerk Authentication
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_..."
-CLERK_SECRET_KEY="sk_..."
-
-# Clerk URLs (optional, can use defaults)
-NEXT_PUBLIC_CLERK_SIGN_IN_URL="/"
-NEXT_PUBLIC_CLERK_SIGN_UP_URL="/"
-```
-
-# Lemon Squeezy (for payments)
-LEMON_SQUEEZY_API_KEY=...
-LEMON_SQUEEZY_STORE_ID=...
-LEMON_SQUEEZY_WEBHOOK_SECRET=...
-LEMON_SQUEEZY_TEST_MODE=true
-
-# Resend (for emails)
-RESEND_API_KEY=re_...
-RESEND_FROM_EMAIL=noreply@yourdomain.com
-
-# App URLs
-NEXT_PUBLIC_BASE_URL=http://localhost:3000
-
-Where to Get Each Variable
-
-1. Lemon Squeezy API Key & Store ID (LEMON_SQUEEZY_API_KEY & LEMON_SQUEEZY_STORE_ID)
-
-Steps:
-1. Go to https://lemonsqueezy.com and create an account (or log in)
-2. Turn on Test Mode (recommended for development) in the sidebar
-3. Go to Settings → API and create a key → LEMON_SQUEEZY_API_KEY
-4. Your store ID is shown under Settings → Stores → LEMON_SQUEEZY_STORE_ID
-5. Set LEMON_SQUEEZY_TEST_MODE=true while using a test-mode key
-6. Create a subscription product, then add its variant ID as a plan in /admin
-
-Lemon Squeezy is the merchant of record: it collects and remits VAT/sales tax.
-
-2. Lemon Squeezy Webhook Secret (LEMON_SQUEEZY_WEBHOOK_SECRET)
-
-1. In the Lemon Squeezy dashboard go to Settings → Webhooks → Add webhook
-2. URL: https://yourdomain.com/api/webhooks/lemonsqueezy (a tunnel URL for local testing)
-3. Enter a signing secret of your choosing → LEMON_SQUEEZY_WEBHOOK_SECRET
-4. Subscribe to: subscription_created, subscription_updated, subscription_cancelled,
-   subscription_resumed, subscription_expired, subscription_paused, subscription_unpaused,
-   subscription_payment_success, subscription_payment_failed, subscription_payment_recovered
-
-3. Resend API Key (RESEND_API_KEY)
-
-Steps:
-1. Go to https://resend.com and sign up
-2. After signing in, go to API Keys
-3. Click Create API Key
-4. Give it a name (e.g., "Echo Development")
-5. Copy the key → RESEND_API_KEY (starts with re_)
-
-⚠️ Important: You can only see the key once, so copy it immediately!
-
-4. Resend From Email (RESEND_FROM_EMAIL)
-
-Steps:
-1. In Resend dashboard, go to Domains
-2. Add and verify your domain (e.g., yourdomain.com)
-3. Follow DNS verification steps
-4. Once verified, you can use emails like:
-  - noreply@yourdomain.com
-  - hello@yourdomain.com
-
-For testing without a domain:
-- Resend provides onboarding@resend.dev for testing
-- Use: RESEND_FROM_EMAIL=onboarding@resend.dev
-- ⚠️ This only works for sending to your own email address
-
-5. Base URL (NEXT_PUBLIC_BASE_URL)
-
-For local development:
-NEXT_PUBLIC_BASE_URL=http://localhost:3000
-
-For production:
-NEXT_PUBLIC_BASE_URL=https://yourdomain.com
-
-Testing Webhooks Locally
-
-Lemon Squeezy needs a public URL. Expose your dev server with a tunnel
-(e.g. `ngrok http 3000` or `cloudflared tunnel --url http://localhost:3000`),
-then point a test-mode webhook at https://<tunnel-host>/api/webhooks/lemonsqueezy
-using the signing secret you put in LEMON_SQUEEZY_WEBHOOK_SECRET. You can resend
-past deliveries from Settings → Webhooks → Recent deliveries.
-
-4. Set up the database:
 ```bash
-# Generate migrations
-pnpm drizzle-kit generate
-
-# Push schema to database
-pnpm drizzle-kit push
+cp .env.example .env
 ```
 
-5. Run the development server:
+Add your Clerk keys to `.env`. The rest can wait until you need it (see [Environment](#-environment)).
+
+```bash
+docker compose up -d
+```
+
+```bash
+pnpm db:push
+```
+
 ```bash
 pnpm dev
 ```
 
-6. Open [http://localhost:3000](http://localhost:3000) in your browser.
+Then open [http://localhost:3000](http://localhost:3000) and create an account.
 
-## Project Structure
+> [!TIP]
+> Want a full library to play with? After signing in once, run
+> `pnpm db:seed:dev --email you@example.com` to fill your account with books, reviews and a circle of readers to follow. It only runs against a local database.
 
-```
-src/
-  app/
-    [locale]/          # Localized routes
-      actions/         # Server actions
-      books/           # Book-related pages
-      feed/            # Activity feed
-      library/         # User library
-      profile/         # User profile
-      users/           # User search
-    globals.css        # Global styles
-    layout.tsx         # Root layout
-  components/          # React components
-    ui/                # shadcn/ui components
-  db/
-    schema.ts          # Database schema
-  hooks/               # Custom React hooks
-  i18n/                # Internationalization config
-  lib/                 # Utility functions
-  types/               # TypeScript types
-  messages/            # Translation files
-    en.json            # English translations
-```
+## 🔑 Environment
 
-## Database Schema
+All variables are listed in [`.env.example`](.env.example).
 
-Echo uses the following main tables:
+| Variable | Needed for |
+| --- | --- |
+| `DATABASE_URL` | **Required.** Postgres connection string |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY` | **Required.** Sign-in |
+| `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` | The local Docker database |
+| `NEXT_PUBLIC_BASE_URL` | Links in emails and checkouts |
+| `LEMON_SQUEEZY_*` | Premium checkout and subscription webhooks |
+| `RESEND_API_KEY`, `RESEND_FROM_EMAIL` | Sending email |
+| `SUPPORT_EMAIL`, `SUPPORT_IP_SALT` | The support page |
+| `OPEN_LIBRARY_CONTACT` | Identifying Echo to the Open Library API |
 
-- **users** - User profiles (synced with Clerk)
-- **books** - Book information
-- **user_books** - User's library with reading status and progress
-- **reviews** - Book reviews
-- **follows** - Social follow relationships
+## 🛠️ Scripts
 
-## Key Features
+| Command | What it does |
+| --- | --- |
+| `pnpm dev` | Start the dev server |
+| `pnpm build` / `pnpm start` | Build and run for production |
+| `pnpm lint` / `pnpm format` | Lint, or format and auto-fix |
+| `pnpm test` | Run the tests |
+| `pnpm db:push` | Apply the schema to your dev database |
+| `pnpm db:generate` | Create a migration for production |
+| `pnpm db:studio` | Browse the database in Drizzle Studio |
+| `pnpm db:seed:dev` | Fill a local account with sample data |
 
-### Hybrid Search
-Echo implements a smart hybrid search strategy:
-1. First searches your internal database for books you and others have added
-2. Falls back to Open Library API only when no internal matches found
-3. Shows visual indicators for data source (Database vs. External)
+## 📦 Deployment
 
-### Username Setup Flow
-New users are prompted to set a username with a non-dismissible dialog, ensuring all users have proper profiles before accessing the app.
+Echo ships as a single Docker image (see the [`Dockerfile`](Dockerfile)).
 
-### Layout Preferences
-Users can switch between grid and list views in their library, with preferences saved to localStorage for persistence.
+- Only public values (`NEXT_PUBLIC_*`, `AWS_S3_PUBLIC_URL`) are needed at build time. Secrets are passed to the container when it runs.
+- Database migrations run automatically every time the container starts.
+- Production runs on [Dokploy](https://dokploy.com) with a separate Postgres service.
 
-## Development
+## 🙏 Acknowledgments
 
-### Available Scripts
-
-```bash
-# Development server
-pnpm dev
-
-# Build for production
-pnpm build
-
-# Start production server
-pnpm start
-
-# Database commands
-pnpm drizzle-kit generate  # Generate migrations
-pnpm drizzle-kit push      # Push schema to database
-pnpm drizzle-kit studio    # Open Drizzle Studio
-```
-
-### Adding New Components
-
-shadcn/ui components can be added using:
-```bash
-pnpm dlx shadcn@latest add <component-name>
-```
-
-### Adding Translations
-
-1. Add new keys to `messages/en.json`
-2. Create new language files in `messages/` directory
-3. Update `src/i18n/routing.ts` to include new locales
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## Acknowledgments
-
-- Book data provided by [Open Library](https://openlibrary.org/)
-- Authentication powered by [Clerk](https://clerk.com/)
-- UI components from [shadcn/ui](https://ui.shadcn.com/)
-- Icons from [Lucide](https://lucide.dev/)
+- Book data from [Open Library](https://openlibrary.org)
+- Sign-in by [Clerk](https://clerk.com)
+- Payments by [Lemon Squeezy](https://lemonsqueezy.com)
+- UI primitives from [shadcn/ui](https://ui.shadcn.com)
