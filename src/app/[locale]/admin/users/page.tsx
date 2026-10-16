@@ -1,21 +1,19 @@
 import { db } from "@/db";
-import { users, subscriptionPlans } from "@/db/schema";
+import { subscriptionPlans } from "@/db/schema";
 import { UsersDataTable } from "@/components/admin/users-data-table";
-import { desc, asc } from "drizzle-orm";
+import { listUsersAdmin } from "@/app/[locale]/actions/admin";
+import type { RawTableParams } from "@/lib/admin-table";
+import { asc } from "drizzle-orm";
 
-export default async function UsersManagementPage() {
-  const [allUsers, plans] = await Promise.all([
-    db.query.users.findMany({
-      orderBy: [desc(users.createdAt)],
-      with: {
-        subscription: {
-          with: {
-            plan: true,
-          },
-        },
-      },
-    }),
+export default async function UsersManagementPage({
+  searchParams,
+}: {
+  searchParams: Promise<RawTableParams>;
+}) {
+  const [initial, plans] = await Promise.all([
+    searchParams.then(listUsersAdmin),
     db.query.subscriptionPlans.findMany({
+      columns: { id: true, name: true, price: true, interval: true },
       orderBy: [asc(subscriptionPlans.sortOrder)],
     }),
   ]);
@@ -29,7 +27,7 @@ export default async function UsersManagementPage() {
         </p>
       </div>
 
-      <UsersDataTable data={allUsers} plans={plans} />
+      <UsersDataTable initial={initial} plans={plans} />
     </div>
   );
 }

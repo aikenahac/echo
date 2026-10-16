@@ -11,14 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { PopularBooksTable, RecentUsersTable } from "@/components/admin/dashboard-tables";
 
 export default async function AdminDashboard() {
   const thirtyDaysAgo = subDays(new Date(), 30);
@@ -45,7 +38,9 @@ export default async function AdminDashboard() {
     // Most popular books (by user_books count)
     db
       .select({
-        book: books,
+        id: books.id,
+        title: books.title,
+        author: books.author,
         userCount: count(userBooks.id),
       })
       .from(books)
@@ -54,7 +49,11 @@ export default async function AdminDashboard() {
       .orderBy(desc(count(userBooks.id)))
       .limit(10),
     // Recent users
-    db.select().from(users).orderBy(desc(users.createdAt)).limit(5),
+    db
+      .select({ id: users.id, email: users.email, username: users.username, role: users.role })
+      .from(users)
+      .orderBy(desc(users.createdAt))
+      .limit(5),
   ]);
 
   return (
@@ -102,28 +101,7 @@ export default async function AdminDashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Author</TableHead>
-                  <TableHead className="text-right">Users</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {popularBooks.map((item) => (
-                  <TableRow key={item.book.id}>
-                    <TableCell className="font-medium">
-                      {item.book.title}
-                    </TableCell>
-                    <TableCell>{item.book.author}</TableCell>
-                    <TableCell className="text-right">
-                      {item.userCount}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <PopularBooksTable data={popularBooks} />
           </CardContent>
         </Card>
 
@@ -133,28 +111,7 @@ export default async function AdminDashboard() {
             <CardDescription>Newest registered users</CardDescription>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Username</TableHead>
-                  <TableHead>Role</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {recentUsers.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell className="font-medium">{user.email}</TableCell>
-                    <TableCell>{user.username || "—"}</TableCell>
-                    <TableCell>
-                      <span className="text-xs bg-muted px-2 py-1 rounded">
-                        {user.role}
-                      </span>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <RecentUsersTable data={recentUsers} />
           </CardContent>
         </Card>
       </div>

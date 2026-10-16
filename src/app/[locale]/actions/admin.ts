@@ -9,10 +9,20 @@ import {
   books,
   subscriptionPlans,
   userSubscriptions,
+  userBooks,
 } from "@/db/schema";
-import { eq, desc, asc } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, or, type SQL } from "drizzle-orm";
 import { revalidateLocalized } from "@/lib/revalidate";
 import { getLemonSqueezy } from "@/lib/lemonsqueezy";
+import { escapeLike } from "@/lib/utils";
+import {
+  booksTable,
+  offsetOf,
+  paged,
+  reviewsTable,
+  usersTable,
+  type RawTableParams,
+} from "@/lib/admin-table";
 
 /**
  * Look up a Lemon Squeezy variant for a plan: it must exist and be a
@@ -437,28 +447,156 @@ export async function grantPremiumSubscription(
 }
 
 /**
- * Get all users with their subscription details (admin only)
+ * One page of users with their subscription (moderators and admins, like the
+ * admin users page)
  */
-export async function getAllUsersWithSubscriptions() {
-  await requireRole(["admin"]);
+export async function listUsersAdmin(input: RawTableParams) {
+  await requireRole(["moderator", "admin"]);
 
-  try {
-    const allUsers = await db.query.users.findMany({
-      orderBy: [desc(users.createdAt)],
+  const query = usersTable.parse(input);
+  const conditions: SQL[] = [];
+  if (query.filters.role) conditions.push(eq(users.role, query.filters.role));
+  if (query.search) {
+    const pattern = `%${escapeLike(query.search)}%`;
+    const match = or(ilike(users.email, pattern), ilike(users.username, pattern));
+    if (match) conditions.push(match);
+  }
+  const where = and(...conditions);
+
+  const sortColumn = {
+    email: users.email,
+    username: users.username,
+    role: users.role,
+    createdAt: users.createdAt,
+  }[query.sort.id];
+
+  const [rows, [totals]] = await Promise.all([
+    db.query.users.findMany({
+      columns: { id: true, email: true, username: true, bio: true, role: true, createdAt: true },
+      where,
+      orderBy: [query.sort.desc ? desc(sortColumn) : asc(sortColumn), asc(users.id)],
+      limit: query.pageSize,
+      offset: offsetOf(query),
       with: {
         subscription: {
-          with: {
-            plan: true,
+          columns: {
+            id: true,
+            status: true,
+            currentPeriodStart: true,
+            currentPeriodEnd: true,
+            cancelAtPeriodEnd: true,
+            lemonSqueezySubscriptionId: true,
           },
+          with: { plan: { columns: { id: true, name: true, price: true, interval: true } } },
         },
       },
-    });
+    }),
+    db.select({ total: count() }).from(users).where(where),
+  ]);
 
-    return { users: allUsers };
-  } catch (error) {
-    console.error("Error fetching users with subscriptions:", error);
-    return { error: "Failed to fetch users" };
+  return paged(rows, totals.total, query);
+}
+
+/** One page of the book catalog with how many libraries hold each book */
+export async function listBooksAdmin(input: RawTableParams) {
+  await requireRole(["moderator", "admin"]);
+
+  const query = booksTable.parse(input);
+  const where = query.search
+    ? or(
+        ilike(books.title, `%${escapeLike(query.search)}%`),
+        ilike(books.author, `%${escapeLike(query.search)}%`),
+        ilike(books.isbn, `%${escapeLike(query.search)}%`),
+      )
+    : undefined;
+
+  const userCount = count(userBooks.id);
+  const sortColumn = {
+    title: books.title,
+    author: books.author,
+    pages: books.pages,
+    publishedYear: books.publishedYear,
+    userCount,
+  }[query.sort.id];
+
+  const [rows, [totals]] = await Promise.all([
+    db
+      .select({
+        id: books.id,
+        title: books.title,
+        author: books.author,
+        isbn: books.isbn,
+        coverUrl: books.coverUrl,
+        pages: books.pages,
+        publishedYear: books.publishedYear,
+        userCount,
+      })
+      .from(books)
+      .leftJoin(userBooks, eq(books.id, userBooks.bookId))
+      .where(where)
+      .groupBy(books.id)
+      .orderBy(query.sort.desc ? desc(sortColumn) : asc(sortColumn), asc(books.id))
+      .limit(query.pageSize)
+      .offset(offsetOf(query)),
+    db.select({ total: count() }).from(books).where(where),
+  ]);
+
+  return paged(rows, totals.total, query);
+}
+
+/** One page of reviews with their author and book, for moderation */
+export async function listReviewsAdmin(input: RawTableParams) {
+  await requireRole(["moderator", "admin"]);
+
+  const query = reviewsTable.parse(input);
+  const conditions: SQL[] = [];
+  if (query.filters.visibility) {
+    conditions.push(eq(reviews.isPrivate, query.filters.visibility === "private"));
   }
+  if (query.search) {
+    const pattern = `%${escapeLike(query.search)}%`;
+    const match = or(
+      ilike(reviews.content, pattern),
+      ilike(books.title, pattern),
+      ilike(users.username, pattern),
+      ilike(users.email, pattern),
+    );
+    if (match) conditions.push(match);
+  }
+  const where = and(...conditions);
+
+  const sortColumn = {
+    createdAt: reviews.createdAt,
+    user: users.username,
+    book: books.title,
+  }[query.sort.id];
+
+  const [rows, [totals]] = await Promise.all([
+    db
+      .select({
+        id: reviews.id,
+        content: reviews.content,
+        isPrivate: reviews.isPrivate,
+        createdAt: reviews.createdAt,
+        user: { username: users.username, email: users.email },
+        book: { title: books.title, author: books.author },
+      })
+      .from(reviews)
+      .innerJoin(users, eq(reviews.userId, users.id))
+      .innerJoin(books, eq(reviews.bookId, books.id))
+      .where(where)
+      .orderBy(query.sort.desc ? desc(sortColumn) : asc(sortColumn), asc(reviews.id))
+      .limit(query.pageSize)
+      .offset(offsetOf(query)),
+    db
+      .select({ total: count() })
+      .from(reviews)
+      .innerJoin(users, eq(reviews.userId, users.id))
+      .innerJoin(books, eq(reviews.bookId, books.id))
+      .where(where),
+  ]);
+
+  return paged(rows, totals.total, query);
 }
 
 /**

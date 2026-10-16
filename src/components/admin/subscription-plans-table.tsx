@@ -1,17 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { createColumnHelper } from "@tanstack/react-table";
 import { SquarePen } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { DataTable } from "@/components/admin/data-table/data-table";
+import { DataTableRowActions } from "@/components/admin/data-table/data-table-row-actions";
+import type { DataTableFeatures } from "@/components/admin/data-table/features";
 import { EditPlanDialog } from "./edit-plan-dialog";
 
 interface Plan {
@@ -26,66 +22,75 @@ interface Plan {
   sortOrder: number;
 }
 
+const columnHelper = createColumnHelper<DataTableFeatures, Plan>();
+
+// A handful of plans: one page, no paging or sorting (they keep sortOrder)
 export function SubscriptionPlansTable({ plans }: { plans: Plan[] }) {
   const [editingPlan, setEditingPlan] = useState<Plan | null>(null);
 
+  const columns = columnHelper.columns([
+    columnHelper.accessor("name", {
+      header: "Name",
+      cell: ({ row }) => <span className="font-medium">{row.original.name}</span>,
+    }),
+    columnHelper.accessor("price", {
+      header: "Price",
+      cell: ({ row }) =>
+        row.original.price === 0 ? "Free" : `€${(row.original.price / 100).toFixed(2)}`,
+    }),
+    columnHelper.accessor("interval", {
+      header: "Interval",
+      meta: { className: "capitalize" },
+    }),
+    columnHelper.accessor("isActive", {
+      header: "Status",
+      cell: ({ row }) => (
+        <Badge variant={row.original.isActive ? "default" : "secondary"}>
+          {row.original.isActive ? "Active" : "Inactive"}
+        </Badge>
+      ),
+    }),
+    columnHelper.accessor("isInternal", {
+      header: "Visibility",
+      cell: ({ row }) => (
+        <Badge variant={row.original.isInternal ? "outline" : "default"}>
+          {row.original.isInternal ? "Internal" : "Public"}
+        </Badge>
+      ),
+    }),
+    columnHelper.accessor("lemonSqueezyVariantId", {
+      header: "Variant ID",
+      cell: ({ row }) => (
+        <span className="font-mono text-xs">{row.original.lemonSqueezyVariantId || "—"}</span>
+      ),
+    }),
+    columnHelper.display({
+      id: "actions",
+      cell: ({ row }) => (
+        <DataTableRowActions>
+          <DropdownMenuItem onClick={() => setEditingPlan(row.original)}>
+            <SquarePen />
+            Edit plan
+          </DropdownMenuItem>
+        </DataTableRowActions>
+      ),
+      meta: { className: "w-12" },
+    }),
+  ]);
+
   return (
     <>
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Price</TableHead>
-              <TableHead>Interval</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Visibility</TableHead>
-              <TableHead>Variant ID</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {plans.map((plan) => (
-                <TableRow key={plan.id}>
-                  <TableCell className="font-medium">{plan.name}</TableCell>
-                  <TableCell>
-                    {plan.price === 0
-                      ? "Free"
-                      : `€${(plan.price / 100).toFixed(2)}`}
-                  </TableCell>
-                  <TableCell className="capitalize">{plan.interval}</TableCell>
-                  <TableCell>
-                    <Badge variant={plan.isActive ? "default" : "secondary"}>
-                      {plan.isActive ? "Active" : "Inactive"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={plan.isInternal ? "outline" : "default"}>
-                      {plan.isInternal ? "Internal" : "Public"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="font-mono text-xs">
-                    {plan.lemonSqueezyVariantId || "—"}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setEditingPlan(plan)}
-                    >
-                      <SquarePen className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+      <DataTable
+        columns={columns}
+        data={plans}
+        getRowId={(plan) => plan.id}
+        emptyMessage="No plans yet"
+      />
 
       {editingPlan && (
         <EditPlanDialog
           plan={editingPlan}
-          open={!!editingPlan}
+          open
           onOpenChange={(open) => !open && setEditingPlan(null)}
         />
       )}

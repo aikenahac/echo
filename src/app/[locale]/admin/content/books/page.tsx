@@ -1,19 +1,13 @@
-import { db } from "@/db";
-import { books, userBooks } from "@/db/schema";
-import { desc, count, eq } from "drizzle-orm";
 import { BooksDataTable } from "@/components/admin/books-data-table";
+import { listBooksAdmin } from "@/app/[locale]/actions/admin";
+import type { RawTableParams } from "@/lib/admin-table";
 
-export default async function BooksManagementPage() {
-  // Get all books with user count
-  const allBooks = await db
-    .select({
-      book: books,
-      userCount: count(userBooks.id),
-    })
-    .from(books)
-    .leftJoin(userBooks, eq(books.id, userBooks.bookId))
-    .groupBy(books.id)
-    .orderBy(desc(count(userBooks.id)));
+export default async function BooksManagementPage({
+  searchParams,
+}: {
+  searchParams: Promise<RawTableParams>;
+}) {
+  const initial = await listBooksAdmin(await searchParams);
 
   return (
     <div className="space-y-6">
@@ -24,7 +18,7 @@ export default async function BooksManagementPage() {
         </p>
       </div>
 
-      <BooksDataTable data={allBooks} />
+      <BooksDataTable initial={initial} />
     </div>
   );
 }

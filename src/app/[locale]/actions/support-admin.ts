@@ -1,12 +1,13 @@
 "use server";
 
-import { and, count, desc, eq, ilike, isNull, or, type SQL } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, isNull, or, type SQL } from "drizzle-orm";
 import { db } from "@/db";
 import { auditLogs, supportTickets } from "@/db/schema";
 import { getCurrentUser, requireRole } from "@/lib/auth";
 import { revalidateLocalized } from "@/lib/revalidate";
+import { offsetOf, paged, supportTable, type RawTableParams } from "@/lib/admin-table";
+import { escapeLike } from "@/lib/utils";
 import {
-  SUPPORT_PAGE_SIZE,
   supportNoteSchema,
   supportStatusSchema,
   supportTicketIdSchema,
@@ -15,8 +16,6 @@ import {
 
 // Every export here is gated by requireRole(["admin"]). Moderators can open
 // the admin panel but tickets hold personal data, so they get nothing.
-
-const escapeLike = (value: string) => value.replace(/[\\%_]/g, "\\$&");
 
 const listColumns = {
   id: supportTickets.id,
@@ -27,26 +26,17 @@ const listColumns = {
   createdAt: supportTickets.createdAt,
 };
 
-/** Tickets, newest first, filtered by status and/or a search term. */
-export async function listSupportTickets(input: {
-  status?: SupportStatus;
-  search?: string;
-  page?: number;
-}) {
+/** Tickets filtered by status and/or a search term, one page at a time. */
+export async function listSupportTickets(input: RawTableParams) {
   await requireRole(["admin"]);
 
-  const status = input.status
-    ? supportStatusSchema.safeParse(input.status)
-    : null;
-  if (status && !status.success) return { error: "Invalid status" as const };
-
-  const page = Number.isInteger(input.page) && input.page! > 0 ? input.page! : 1;
-  const term = input.search?.trim().slice(0, 100);
+  const query = supportTable.parse(input);
+  const { status } = query.filters;
 
   const conditions: SQL[] = [isNull(supportTickets.deletedAt)];
-  if (status?.success) conditions.push(eq(supportTickets.status, status.data));
-  if (term) {
-    const pattern = `%${escapeLike(term)}%`;
+  if (status) conditions.push(eq(supportTickets.status, status));
+  if (query.search) {
+    const pattern = `%${escapeLike(query.search)}%`;
     const match = or(
       ilike(supportTickets.name, pattern),
       ilike(supportTickets.email, pattern),
@@ -56,27 +46,32 @@ export async function listSupportTickets(input: {
   }
   const where = and(...conditions);
 
+  const sortColumn = {
+    createdAt: supportTickets.createdAt,
+    name: supportTickets.name,
+    status: supportTickets.status,
+  }[query.sort.id];
+
   const [tickets, [totals]] = await Promise.all([
     db
       .select(listColumns)
       .from(supportTickets)
       .where(where)
-      .orderBy(desc(supportTickets.createdAt))
-      .limit(SUPPORT_PAGE_SIZE)
-      .offset((page - 1) * SUPPORT_PAGE_SIZE),
+      .orderBy(query.sort.desc ? desc(sortColumn) : asc(sortColumn), desc(supportTickets.id))
+      .limit(query.pageSize)
+      .offset(offsetOf(query)),
     db.select({ total: count() }).from(supportTickets).where(where),
   ]);
 
-  return {
-    tickets: tickets.map((ticket) => ({
+  return paged(
+    tickets.map((ticket) => ({
       ...ticket,
       // Only a preview leaves the server for the list
       message: ticket.message.slice(0, 200),
     })),
-    total: totals.total,
-    page,
-    pageCount: Math.max(1, Math.ceil(totals.total / SUPPORT_PAGE_SIZE)),
-  };
+    totals.total,
+    query,
+  );
 }
 
 export async function getSupportTicket(id: string) {

@@ -72,4 +72,3 @@ export const supportNoteSchema = z
   .max(SUPPORT_LIMITS.noteMax)
   .transform((note) => (note === "" ? null : note));
 
-export const SUPPORT_PAGE_SIZE = 25;

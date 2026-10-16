@@ -5,6 +5,9 @@ import type { SQL } from "drizzle-orm";
 const mocks = vi.hoisted(() => ({
   role: "admin" as string | null,
   where: vi.fn(),
+  orderBy: vi.fn(),
+  limit: vi.fn(),
+  offset: vi.fn(),
   set: vi.fn(),
   updateReturning: vi.fn(),
   auditInsert: vi.fn(),
@@ -31,9 +34,18 @@ vi.mock("@/db", () => {
       mocks.where(condition);
       return selectChain;
     },
-    orderBy: () => selectChain,
-    limit: () => selectChain,
-    offset: () => Promise.resolve(mocks.rows),
+    orderBy: (...order: unknown[]) => {
+      mocks.orderBy(...order);
+      return selectChain;
+    },
+    limit: (n: number) => {
+      mocks.limit(n);
+      return selectChain;
+    },
+    offset: (n: number) => {
+      mocks.offset(n);
+      return Promise.resolve(mocks.rows);
+    },
     then: (resolve: (v: unknown) => unknown) => resolve([{ total: mocks.rows.length }]),
   };
   return {
@@ -118,16 +130,35 @@ describe("listSupportTickets", () => {
     expect(sql).toMatch(/"message" ilike/);
   });
 
-  it("rejects an unknown status", async () => {
-    // @ts-expect-error deliberately invalid
-    expect(await listSupportTickets({ status: "closed" })).toEqual({ error: "Invalid status" });
+  it("ignores an unknown status", async () => {
+    await listSupportTickets({ status: "closed" });
+    expect(render(mocks.where.mock.calls[0][0]).params).not.toContain("closed");
+  });
+
+  it("pages with the requested page size", async () => {
+    mocks.rows = [];
+    const result = await listSupportTickets({ page: "3", pageSize: "10" });
+    expect(mocks.limit).toHaveBeenCalledWith(10);
+    expect(mocks.offset).toHaveBeenCalledWith(20);
+    expect(result).toMatchObject({ page: 3, pageSize: 10 });
+  });
+
+  it("falls back to defaults for bad paging and sort input", async () => {
+    await listSupportTickets({ page: "-4", pageSize: "1000", sort: "email", dir: "sideways" });
+    expect(mocks.limit).toHaveBeenCalledWith(25);
+    expect(mocks.offset).toHaveBeenCalledWith(0);
+    expect(render(mocks.orderBy.mock.calls[0][0]).sql).toBe('"support_tickets"."created_at" desc');
+  });
+
+  it("sorts by an allowlisted column", async () => {
+    await listSupportTickets({ sort: "name", dir: "asc" });
+    expect(render(mocks.orderBy.mock.calls[0][0]).sql).toBe('"support_tickets"."name" asc');
   });
 
   it("returns only a message preview", async () => {
     mocks.rows = [{ id: ID, message: "x".repeat(1000) }];
     const result = await listSupportTickets({});
-    if ("error" in result) throw new Error("unexpected");
-    expect(result.tickets[0].message).toHaveLength(200);
+    expect(result.rows[0].message).toHaveLength(200);
   });
 });
 
