@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { useRouter } from "@/i18n/routing";
 import { deleteAccount } from "@/app/[locale]/actions/profile";
 import { createPortalSession } from "@/app/[locale]/actions/subscriptions";
+import { AdminBadge } from "@/components/echo/admin-badge";
 import { Icon } from "@/components/echo/icons";
 import { ConfirmSheet } from "@/components/library/book-actions-menu";
 import {
@@ -108,11 +109,13 @@ export function AccountRow({
   profile,
   email,
   name,
+  isAdmin,
   avatar,
 }: {
   profile: EditableProfile;
   email: string;
   name: string;
+  isAdmin: boolean;
   avatar: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
@@ -121,7 +124,10 @@ export function AccountRow({
       <button type="button" onClick={() => setOpen(true)} className={`${row} cursor-pointer`}>
         {avatar}
         <span className="min-w-0 flex-1">
-          <span className="block truncate font-semibold">{name}</span>
+          <span className="flex items-center gap-1 font-semibold">
+            <span className="truncate">{name}</span>
+            {isAdmin ? <AdminBadge size={13} focusable={false} /> : null}
+          </span>
           <span className="block truncate text-[13px] text-ink-2">{email}</span>
         </span>
         <Icon name="forward" size={16} className="text-ink-3" />

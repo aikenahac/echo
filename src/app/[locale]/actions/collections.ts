@@ -19,7 +19,7 @@ import {
   collectionCoverPrefix,
 } from "@/lib/s3";
 import { validateImageUpload } from "@/lib/image-validation";
-import { publicUserColumns } from "@/lib/public-user";
+import { publicUserColumns, publicUserExtras } from "@/lib/public-user";
 import { isUuid } from "@/lib/utils";
 
 // Helper function to generate URL-friendly slug
@@ -355,7 +355,7 @@ export async function getCollectionById(identifier: string) {
         ? eq(collections.id, identifier)
         : eq(collections.slug, identifier),
       with: {
-        user: { columns: publicUserColumns },
+        user: { columns: publicUserColumns, extras: publicUserExtras },
         books: {
           with: {
             userBook: {
@@ -638,7 +638,7 @@ export async function getPublicCollections(limit: number = 20) {
       orderBy: [desc(collections.createdAt)],
       limit: Math.min(Math.max(Math.trunc(limit) || 20, 1), 50),
       with: {
-        user: { columns: publicUserColumns },
+        user: { columns: publicUserColumns, extras: publicUserExtras },
         books: {
           limit: 4, // Show first 4 books as preview
           with: {

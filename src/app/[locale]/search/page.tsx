@@ -4,7 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { and, eq, ilike, ne, or } from "drizzle-orm";
 import { db } from "@/db";
 import { follows, userBooks, users } from "@/db/schema";
-import { publicUserColumns } from "@/lib/public-user";
+import { publicUserColumns, publicUserExtras } from "@/lib/public-user";
 import { escapeLike } from "@/lib/utils";
 import { SearchView, type SearchTab } from "@/components/search/search-view";
 import type { Owned } from "@/components/search/book-results";
@@ -50,6 +50,7 @@ export default async function SearchPage({
             ),
           ),
           columns: { ...publicUserColumns, bio: true },
+          extras: publicUserExtras,
           limit: 30,
         })
       : [],

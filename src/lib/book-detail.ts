@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import { books, userBooks, reviews, follows } from "@/db/schema";
 import { eq, and, inArray, desc } from "drizzle-orm";
-import { publicUserColumns } from "@/lib/public-user";
+import { publicUserColumns, publicUserExtras } from "@/lib/public-user";
 
 /**
  * A catalog book with the viewer's library entry, the viewer's review, and
@@ -43,7 +43,7 @@ export async function getCatalogBookDetail(
             ),
           ),
           with: {
-            user: { columns: publicUserColumns },
+            user: { columns: publicUserColumns, extras: publicUserExtras },
           },
           orderBy: [desc(reviews.createdAt)],
         })

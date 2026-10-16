@@ -1,6 +1,7 @@
 import { withAuth, ApiError, parseIntParam } from "@/lib/api-handler";
 import { createApiResponse } from "@/lib/api-auth";
 import { db } from "@/db";
+import { publicUserExtras } from "@/lib/public-user";
 import { users, follows } from "@/db/schema";
 import { or, ilike, eq, and, inArray, ne } from "drizzle-orm";
 import { escapeLike } from "@/lib/utils";
@@ -42,6 +43,7 @@ export const GET = withAuth(async (request, { user }) => {
       profilePictureBlurhash: true,
       bio: true,
     },
+    extras: publicUserExtras,
     limit: limit + 1, // Fetch one extra to check if there are more
   });
 

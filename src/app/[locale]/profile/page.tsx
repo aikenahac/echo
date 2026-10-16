@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/routing";
 import { getViewer } from "@/lib/auth";
 import { getProfileShelves, getYearStats } from "@/lib/reading-stats";
+import { AdminBadge } from "@/components/echo/admin-badge";
 import { Cover } from "@/components/echo/cover";
 import { AvatarTile, PlateNumber } from "@/components/echo/primitives";
 import {
@@ -50,9 +51,12 @@ export default async function ProfilePage() {
             <div className="mt-4 flex items-center gap-4 md:mt-0">
               <AvatarTile name={name} src={user.profilePictureUrl} blurhash={user.profilePictureBlurhash} size={64} className="md:!size-24 md:!text-[44px]" />
               <div className="min-w-0">
-                <h1 className="font-disp truncate text-[28px] leading-[1.05] font-extrabold tracking-[-0.4px] md:text-[44px]">
-                  {name}
-                </h1>
+                <div className="flex items-center gap-2">
+                  <h1 className="font-disp truncate text-[28px] leading-[1.05] font-extrabold tracking-[-0.4px] md:text-[44px]">
+                    {name}
+                  </h1>
+                  {user.role === "admin" ? <AdminBadge size={22} className="md:[&_svg]:size-8" /> : null}
+                </div>
                 {user.username && (
                   <p className="truncate text-[17px] text-ink-2">@{user.username}</p>
                 )}

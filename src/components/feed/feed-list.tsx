@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useFormatter, useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
 import { loadFeedPage } from "@/app/[locale]/actions/social";
+import { AdminBadge } from "@/components/echo/admin-badge";
 import { Cover } from "@/components/echo/cover";
 import { AvatarTile, Stars } from "@/components/echo/primitives";
 import { Stamp } from "@/components/echo/stamp";
@@ -106,7 +107,8 @@ function FeedItem({
   const header = (
     <p className="flex text-[15px] leading-5">
       <span className="min-w-0">
-        <b className="font-semibold">{name}</b>{" "}
+        <b className="font-semibold">{name}</b>
+        {a.user.isAdmin && <AdminBadge size={13} className="-mt-0.5 ml-1" />}{" "}
         {a.type === "review"
           ? t("reviewed")
           : a.data.status === "finished"

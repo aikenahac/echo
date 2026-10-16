@@ -77,6 +77,7 @@ export default async function CollectionPage({
       ownerName={
         collection.user.displayName || collection.user.username || ""
       }
+      ownerIsAdmin={collection.user.isAdmin}
       isFollowing={collection.isFollowing}
       initialLayout={layout}
     />

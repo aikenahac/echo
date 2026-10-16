@@ -11,6 +11,7 @@ import {
   unfollowCollection,
   updateCollection,
 } from "@/app/[locale]/actions/collections";
+import { AdminBadge } from "@/components/echo/admin-badge";
 import { Capsule, IconButton, ToolbarButton, ToolbarGroup } from "@/components/echo/buttons";
 import { Icon } from "@/components/echo/icons";
 import { BookRows, CoverGrid } from "@/components/library/shelf-views";
@@ -38,6 +39,7 @@ export function CollectionDetail({
   books,
   isOwner,
   ownerName,
+  ownerIsAdmin,
   isFollowing: initialFollowing,
   initialLayout,
 }: {
@@ -45,6 +47,7 @@ export function CollectionDetail({
   books: UserBook[];
   isOwner: boolean;
   ownerName: string;
+  ownerIsAdmin: boolean;
   isFollowing: boolean;
   initialLayout: LibraryLayout;
 }) {
@@ -146,6 +149,7 @@ export function CollectionDetail({
                 count: books.length,
               })}
               {!isOwner && <span className="font-normal"> · {t("by", { name: ownerName })}</span>}
+              {!isOwner && ownerIsAdmin && <AdminBadge size={13} />}
             </p>
             {!isOwner && (
               <Capsule

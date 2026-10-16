@@ -9,7 +9,7 @@ import {
   users,
 } from "@/db/schema";
 import { and, asc, count, eq, getTableColumns } from "drizzle-orm";
-import { publicUserColumns } from "@/lib/public-user";
+import { publicUserColumns, publicUserExtras } from "@/lib/public-user";
 import { getProfileShelves, getYearStats } from "@/lib/reading-stats";
 
 /**
@@ -23,6 +23,7 @@ export const GET = withAuth(async (request, { user: viewer, params }) => {
   const profile = await db.query.users.findFirst({
     where: eq(users.id, userId),
     columns: { ...publicUserColumns, bio: true },
+    extras: publicUserExtras,
   });
 
   if (!profile) {

@@ -12,6 +12,7 @@ import {
   updateBookStatus,
 } from "@/app/[locale]/actions/books";
 import { AddToCollectionSheet } from "@/components/collections/add-to-collection-sheet";
+import { AdminBadge } from "@/components/echo/admin-badge";
 import { Capsule, IconButton, ToolbarButton, ToolbarGroup } from "@/components/echo/buttons";
 import { Cover } from "@/components/echo/cover";
 import { Icon } from "@/components/echo/icons";
@@ -253,6 +254,7 @@ export function BookDetail({
                         <div className="min-w-0">
                           <p className="text-[15px]">
                             <b className="font-semibold">{name}</b>
+                            {r.user.isAdmin && <AdminBadge size={13} className="-mt-0.5 ml-1" />}
                             <span className="text-ink-2"> · {shortDate(new Date(r.createdAt))}</span>
                           </p>
                           <p className="mt-0.5 text-[15px] leading-[21px] whitespace-pre-line">{r.content}</p>

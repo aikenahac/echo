@@ -1,6 +1,7 @@
 import { db } from "@/db";
 import { follows, users } from "@/db/schema";
 import { and, desc, eq, inArray } from "drizzle-orm";
+import { isAdminSql } from "@/lib/public-user";
 
 /**
  * A page of a user's followers or of the users they follow (public columns
@@ -26,6 +27,7 @@ export async function getFollowList(
       displayName: users.displayName,
       profilePictureUrl: users.profilePictureUrl,
       profilePictureBlurhash: users.profilePictureBlurhash,
+      isAdmin: isAdminSql(users.role),
     })
     .from(follows)
     .innerJoin(users, eq(users.id, listedColumn))

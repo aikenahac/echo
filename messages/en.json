@@ -516,5 +516,8 @@
       "back": "See plans again",
       "library": "Back to the library"
     }
+  },
+  "badges": {
+    "systemAdmin": "System Administrator"
   }
 }

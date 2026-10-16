@@ -116,6 +116,7 @@ const paths = {
     </>
   ),
   premium: <path d="M4 18h16M5 16l-1-9 5 4 3-6 3 6 5-4-1 9z" />,
+  sparkle: <path d="M12 3.5Q13 11 20.5 12Q13 13 12 20.5Q11 13 3.5 12Q11 11 12 3.5z" />,
 } as const;
 
 export type IconName = keyof typeof paths;

@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import { follows, userBooks, reviews } from "@/db/schema";
 import { eq, and, inArray, desc, or } from "drizzle-orm";
-import { publicUserColumns } from "@/lib/public-user";
+import { publicUserColumns, publicUserExtras } from "@/lib/public-user";
 
 /**
  * One page of the activity feed from users `userId` follows: books they are
@@ -32,7 +32,7 @@ export async function getFeedPage(userId: string, offset: number, limit: number)
       ),
       with: {
         book: true,
-        user: { columns: publicUserColumns },
+        user: { columns: publicUserColumns, extras: publicUserExtras },
       },
       orderBy: [desc(userBooks.updatedAt)],
       limit: window,
@@ -44,7 +44,7 @@ export async function getFeedPage(userId: string, offset: number, limit: number)
       ),
       with: {
         book: true,
-        user: { columns: publicUserColumns },
+        user: { columns: publicUserColumns, extras: publicUserExtras },
       },
       orderBy: [desc(reviews.createdAt)],
       limit: window,

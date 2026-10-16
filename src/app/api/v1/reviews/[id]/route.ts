@@ -5,7 +5,7 @@ import { deleteReview, createOrUpdateReview } from "@/app/[locale]/actions/revie
 import { db } from "@/db";
 import { reviews } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
-import { publicUserColumns } from "@/lib/public-user";
+import { publicUserColumns, publicUserExtras } from "@/lib/public-user";
 
 /**
  * GET /api/v1/reviews/:id
@@ -16,7 +16,7 @@ export const GET = withAuth(async (request, { user, params }) => {
 
   const review = await db.query.reviews.findFirst({
     where: eq(reviews.id, id),
-    with: { user: { columns: publicUserColumns }, book: true },
+    with: { user: { columns: publicUserColumns, extras: publicUserExtras }, book: true },
   });
 
   if (!review) {

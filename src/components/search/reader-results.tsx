@@ -5,11 +5,13 @@ import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { followUser, unfollowUser } from "@/app/[locale]/actions/social";
 import { Capsule } from "@/components/echo/buttons";
+import { AdminBadge } from "@/components/echo/admin-badge";
 import { AvatarTile } from "@/components/echo/primitives";
 
 export type Reader = {
   id: string;
   username: string | null;
+  isAdmin: boolean;
   displayName: string | null;
   profilePictureUrl: string | null;
   profilePictureBlurhash: string | null;
@@ -69,7 +71,10 @@ export function ReaderResults({
             <li key={r.id} className="flex items-start gap-3 py-3.5 [&+li]:hairline-t">
               <AvatarTile name={name} src={r.profilePictureUrl} blurhash={r.profilePictureBlurhash} size={44} />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[17px] font-semibold tracking-[-0.4px]">{name}</p>
+                <p className="flex items-center gap-1 text-[17px] font-semibold tracking-[-0.4px]">
+                  <span className="truncate">{name}</span>
+                  {r.isAdmin && <AdminBadge size={14} />}
+                </p>
                 {r.username && r.displayName && (
                   <p className="truncate text-[13px] text-ink-2">@{r.username}</p>
                 )}

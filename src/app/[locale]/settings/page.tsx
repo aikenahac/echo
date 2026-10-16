@@ -68,6 +68,7 @@ export default async function SettingsPage({
         <AccountRow
           name={name}
           email={user.email}
+          isAdmin={user.role === "admin"}
           avatar={<AvatarTile name={name} src={user.profilePictureUrl} blurhash={user.profilePictureBlurhash} size={44} />}
           profile={{
             username: user.username,

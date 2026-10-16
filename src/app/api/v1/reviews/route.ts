@@ -6,7 +6,7 @@ import { db } from "@/db";
 import { follows, reviews } from "@/db/schema";
 import { and, desc, eq, inArray, or } from "drizzle-orm";
 import { isUuid } from "@/lib/utils";
-import { publicUserColumns } from "@/lib/public-user";
+import { publicUserColumns, publicUserExtras } from "@/lib/public-user";
 
 /**
  * POST /api/v1/reviews
@@ -74,7 +74,7 @@ export const GET = withAuth(async (request, { user }) => {
             .where(eq(follows.followerId, user.id)),
         ),
       ),
-      with: { user: { columns: publicUserColumns }, book: true },
+      with: { user: { columns: publicUserColumns, extras: publicUserExtras }, book: true },
       orderBy: [desc(reviews.createdAt)],
       limit: 100,
     });
@@ -85,7 +85,7 @@ export const GET = withAuth(async (request, { user }) => {
         eq(reviews.bookId, bookId),
         or(eq(reviews.isPrivate, false), eq(reviews.userId, user.id)),
       ),
-      with: { user: { columns: publicUserColumns }, book: true },
+      with: { user: { columns: publicUserColumns, extras: publicUserExtras }, book: true },
       orderBy: [desc(reviews.createdAt)],
       limit: 100,
     });
