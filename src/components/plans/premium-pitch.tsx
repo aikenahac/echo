@@ -2,7 +2,7 @@ import { getTranslations } from "next-intl/server";
 import { Icon } from "@/components/echo/icons";
 import { Stamp } from "@/components/echo/stamp";
 
-const BENEFITS = ["collections", "share", "free", "support"] as const;
+const BENEFITS = ["collections", "share", "support", "newfeat"] as const;
 
 /** PREMIUM stamp, the headline and the benefit list, on the field. */
 export async function PremiumPitch() {

@@ -472,8 +472,8 @@
     "benefits": {
       "collections": "Collections with your own name, colour, icon and cover",
       "share": "Make one public and share its link",
-      "free": "Every book you own is still free, without limits",
-      "support": "Priority support and early features"
+      "support": "Priority support and early features",
+      "newfeat": "Additional premium features coming in the future"
     },
     "price": "<b>€1.99 a month</b> or €19.99 once, for life.",
     "comingSoon": "Coming soon",
