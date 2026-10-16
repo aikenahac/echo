@@ -13,7 +13,7 @@ interface PremiumPaywallDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const BENEFITS = ["collections", "share", "free", "support"] as const;
+const BENEFITS = ["collections", "share", "support", "newfeat"] as const;
 
 /**
  * The Premium paywall: a full pink page with the PREMIUM stamp, shown to free
