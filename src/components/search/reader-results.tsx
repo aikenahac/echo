@@ -12,6 +12,7 @@ export type Reader = {
   username: string | null;
   displayName: string | null;
   profilePictureUrl: string | null;
+  profilePictureBlurhash: string | null;
   bio: string | null;
 };
 
@@ -66,7 +67,7 @@ export function ReaderResults({
           const on = following.has(r.id);
           return (
             <li key={r.id} className="flex items-start gap-3 py-3.5 [&+li]:hairline-t">
-              <AvatarTile name={name} src={r.profilePictureUrl} size={44} />
+              <AvatarTile name={name} src={r.profilePictureUrl} blurhash={r.profilePictureBlurhash} size={44} />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[17px] font-semibold tracking-[-0.4px]">{name}</p>
                 {r.username && r.displayName && (

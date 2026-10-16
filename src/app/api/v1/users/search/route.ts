@@ -39,6 +39,7 @@ export const GET = withAuth(async (request, { user }) => {
       username: true,
       displayName: true,
       profilePictureUrl: true,
+      profilePictureBlurhash: true,
       bio: true,
     },
     limit: limit + 1, // Fetch one extra to check if there are more

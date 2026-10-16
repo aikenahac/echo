@@ -121,7 +121,7 @@ function FeedItem({
     // "started reading": the book has entered "now", so it sits on the field
     return (
       <li className="on-field -mx-5 flex gap-3 bg-field px-5 pt-[18px] pb-[22px] md:-mx-10 md:px-10">
-        <AvatarTile name={name} src={a.user.profilePictureUrl} className="bg-[rgba(255,235,243,.6)] dark:bg-white/10" />
+        <AvatarTile name={name} src={a.user.profilePictureUrl} blurhash={a.user.profilePictureBlurhash} className="bg-[rgba(255,235,243,.6)] dark:bg-white/10" />
         <div className="min-w-0 flex-1">
           {header}
           <Link href={href} className="mt-2.5 flex items-end gap-3">
@@ -143,7 +143,7 @@ function FeedItem({
 
   return (
     <li className={cn("flex gap-3 py-[18px]", !afterBand && "[&:not(:first-child)]:hairline-t")}>
-      <AvatarTile name={name} src={a.user.profilePictureUrl} />
+      <AvatarTile name={name} src={a.user.profilePictureUrl} blurhash={a.user.profilePictureBlurhash} />
       <div className="min-w-0 flex-1">
         {header}
         {a.type === "review" ? (

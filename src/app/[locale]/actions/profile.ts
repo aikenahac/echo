@@ -12,6 +12,7 @@ import {
   profilePicturePrefix,
 } from "@/lib/s3";
 import { validateImageUpload } from "@/lib/image-validation";
+import { blurhashForKey } from "@/lib/blurhash";
 import { usernameFormatError } from "@/lib/username";
 import { AccountDeletionError, deleteUserAccount } from "@/lib/account";
 
@@ -69,12 +70,15 @@ export async function updateProfile(
     }
 
     // Only accept profile pictures uploaded by this user
-    if (
-      profilePictureUrl &&
-      !ownedKeyFromUrl(profilePictureUrl, profilePicturePrefix(userId))
-    ) {
+    const pictureKey = profilePictureUrl
+      ? ownedKeyFromUrl(profilePictureUrl, profilePicturePrefix(userId))
+      : null;
+    if (profilePictureUrl && !pictureKey) {
       return { error: "Invalid profile picture" };
     }
+    const profilePictureBlurhash = pictureKey
+      ? await blurhashForKey(pictureKey)
+      : null;
 
     // Upsert user profile (insert or update)
     await db
@@ -86,6 +90,7 @@ export async function updateProfile(
         bio: bio || null,
         displayName: displayName || null,
         profilePictureUrl: profilePictureUrl || null,
+        profilePictureBlurhash,
       })
       .onConflictDoUpdate({
         target: users.id,
@@ -95,6 +100,7 @@ export async function updateProfile(
           bio: bio || null,
           displayName: displayName || null,
           profilePictureUrl: profilePictureUrl || null,
+          profilePictureBlurhash,
           updatedAt: new Date(),
         },
       });
@@ -103,6 +109,7 @@ export async function updateProfile(
     await ensureFreePlan(userId);
 
     revalidateLocalized("/profile");
+    revalidateLocalized("/settings");
 
     return { success: true };
   } catch (error) {
@@ -178,10 +185,10 @@ export async function updateProfileFields(fields: ProfileFields) {
   }
 
   // Only accept profile pictures uploaded by this user
-  if (
-    updateData.profilePictureUrl &&
-    !ownedKeyFromUrl(updateData.profilePictureUrl, profilePicturePrefix(userId))
-  ) {
+  const pictureKey = updateData.profilePictureUrl
+    ? ownedKeyFromUrl(updateData.profilePictureUrl, profilePicturePrefix(userId))
+    : null;
+  if (updateData.profilePictureUrl && !pictureKey) {
     return { error: "Invalid profile picture" };
   }
 
@@ -197,19 +204,30 @@ export async function updateProfileFields(fields: ProfileFields) {
       }
     }
 
+    // A new (or cleared) picture gets a new (or no) placeholder
+    if ("profilePictureUrl" in updateData) {
+      updateData.profilePictureBlurhash = pictureKey
+        ? await blurhashForKey(pictureKey)
+        : null;
+    }
+
     const [updated] = await db
       .update(users)
       .set({ ...updateData, updatedAt: new Date() })
       .where(eq(users.id, userId))
-      .returning({ id: users.id });
+      .returning({
+        profilePictureUrl: users.profilePictureUrl,
+        profilePictureBlurhash: users.profilePictureBlurhash,
+      });
 
     if (!updated) {
       return { error: "User not found" };
     }
 
     revalidateLocalized("/profile");
+    revalidateLocalized("/settings");
 
-    return { success: true };
+    return { success: true as const, ...updated };
   } catch (error) {
     console.error("Error updating profile:", error);
     return { error: "Failed to update profile" };

@@ -47,6 +47,8 @@ export const users = pgTable(
     bio: text("bio"),
     displayName: text("display_name"),
     profilePictureUrl: text("profile_picture_url"),
+    // Placeholder shown while the photo loads (https://blurha.sh)
+    profilePictureBlurhash: text("profile_picture_blurhash"),
     role: userRoleEnum("role").default("user").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),

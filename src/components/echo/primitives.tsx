@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { Icon } from "./icons";
+import { BlurhashImg } from "./blurhash-img";
 
 /** A big Archivo numeral with the pink plate printed a few points off. */
 export function PlateNumber({
@@ -82,11 +83,14 @@ export function GroupLabel({
 export function AvatarTile({
   name,
   src,
+  blurhash,
   size = 36,
   className,
 }: {
   name: string;
   src?: string | null;
+  /** Placeholder shown while the photo loads */
+  blurhash?: string | null;
   size?: number;
   className?: string;
 }) {
@@ -105,7 +109,9 @@ export function AvatarTile({
         fontStretch: "75%",
       }}
     >
-      {src ? (
+      {src && blurhash ? (
+        <BlurhashImg src={src} blurhash={blurhash} />
+      ) : src ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={src} alt="" className="h-full w-full object-cover" />
       ) : (

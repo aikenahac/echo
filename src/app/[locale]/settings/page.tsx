@@ -68,12 +68,13 @@ export default async function SettingsPage({
         <AccountRow
           name={name}
           email={user.email}
-          avatar={<AvatarTile name={name} src={user.profilePictureUrl} size={44} />}
+          avatar={<AvatarTile name={name} src={user.profilePictureUrl} blurhash={user.profilePictureBlurhash} size={44} />}
           profile={{
             username: user.username,
             displayName: user.displayName,
             bio: user.bio,
             profilePictureUrl: user.profilePictureUrl,
+            profilePictureBlurhash: user.profilePictureBlurhash,
           }}
         />
       </Group>

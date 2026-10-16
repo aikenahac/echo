@@ -7,6 +7,7 @@ export const publicUserColumns = {
   username: true,
   displayName: true,
   profilePictureUrl: true,
+  profilePictureBlurhash: true,
 } as const;
 
 /** A user as selected with publicUserColumns. */
@@ -15,4 +16,5 @@ export type PublicUser = {
   username: string | null;
   displayName: string | null;
   profilePictureUrl: string | null;
+  profilePictureBlurhash: string | null;
 };

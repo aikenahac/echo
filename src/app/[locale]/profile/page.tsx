@@ -36,6 +36,7 @@ export default async function ProfilePage() {
     displayName: user.displayName,
     bio: user.bio,
     profilePictureUrl: user.profilePictureUrl,
+    profilePictureBlurhash: user.profilePictureBlurhash,
   };
 
   return (
@@ -47,7 +48,7 @@ export default async function ProfilePage() {
         <div className="grid gap-8 md:grid-cols-[1fr_auto] md:items-end md:gap-16">
           <div>
             <div className="mt-4 flex items-center gap-4 md:mt-0">
-              <AvatarTile name={name} src={user.profilePictureUrl} size={64} className="md:!size-24 md:!text-[44px]" />
+              <AvatarTile name={name} src={user.profilePictureUrl} blurhash={user.profilePictureBlurhash} size={64} className="md:!size-24 md:!text-[44px]" />
               <div className="min-w-0">
                 <h1 className="font-disp truncate text-[28px] leading-[1.05] font-extrabold tracking-[-0.4px] md:text-[44px]">
                   {name}

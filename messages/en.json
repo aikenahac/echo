@@ -371,6 +371,7 @@
       "title": "Edit profile",
       "addPhoto": "Add photo",
       "changePhoto": "Change photo",
+      "removePhoto": "Remove photo",
       "uploading": "Uploading…",
       "displayName": "Display name",
       "username": "Username",
@@ -382,7 +383,8 @@
       "cancel": "Cancel",
       "saved": "Profile saved",
       "photoInvalid": "Use a JPG, PNG or WEBP image up to 5 MB.",
-      "photoFailed": "Couldn't upload the photo. Try again."
+      "photoFailed": "Couldn't upload the photo. Try again.",
+      "photoRemoveFailed": "Couldn't remove the photo. Try again."
     }
   },
   "settingsPage": {

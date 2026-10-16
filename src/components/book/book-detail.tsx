@@ -249,7 +249,7 @@ export function BookDetail({
                     const name = r.user.displayName || r.user.username || "?";
                     return (
                       <li key={r.id} className="flex gap-3 py-3.5 [&+li]:hairline-t">
-                        <AvatarTile name={name} src={r.user.profilePictureUrl} />
+                        <AvatarTile name={name} src={r.user.profilePictureUrl} blurhash={r.user.profilePictureBlurhash} />
                         <div className="min-w-0">
                           <p className="text-[15px]">
                             <b className="font-semibold">{name}</b>

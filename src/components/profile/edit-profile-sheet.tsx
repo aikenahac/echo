@@ -20,6 +20,7 @@ export type EditableProfile = {
   displayName: string | null;
   bio: string | null;
   profilePictureUrl: string | null;
+  profilePictureBlurhash: string | null;
 };
 
 const BIO_MAX = 1000;
@@ -39,7 +40,10 @@ export function EditProfileSheet({
   const [displayName, setDisplayName] = useState(profile.displayName ?? "");
   const [username, setUsername] = useState(profile.username ?? "");
   const [bio, setBio] = useState(profile.bio ?? "");
-  const [photo, setPhoto] = useState(profile.profilePictureUrl);
+  const [photo, setPhoto] = useState({
+    url: profile.profilePictureUrl,
+    blurhash: profile.profilePictureBlurhash,
+  });
   const [uploading, setUploading] = useState(false);
   const [usernameState, setUsernameState] = useState<
     { ok: true } | { ok: false; message: string } | null
@@ -61,6 +65,30 @@ export function EditProfileSheet({
     };
   }, [username, profile.username]);
 
+  // The photo saves on its own (upload or remove), not with the ✓
+  const savePhoto = async (url: string | null) => {
+    const result = await updateProfileFields({ profilePictureUrl: url });
+    if (result.error || !("profilePictureUrl" in result)) {
+      throw new Error(result.error);
+    }
+    setPhoto({
+      url: result.profilePictureUrl,
+      blurhash: result.profilePictureBlurhash,
+    });
+    router.refresh();
+  };
+
+  const removePhoto = async () => {
+    setUploading(true);
+    try {
+      await savePhoto(null);
+    } catch {
+      toast.error(t("photoRemoveFailed"));
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const upload = async (file: File) => {
     if (!isValidImageType(file.type) || !isValidImageSize(file.size, 5)) {
       toast.error(t("photoInvalid"));
@@ -75,8 +103,8 @@ export function EditProfileSheet({
         body: file,
         headers: { "Content-Type": file.type },
       });
-      if (!response.ok) throw new Error("Upload failed");
-      setPhoto(result.publicUrl ?? null);
+      if (!response.ok || !result.publicUrl) throw new Error("Upload failed");
+      await savePhoto(result.publicUrl);
     } catch {
       toast.error(t("photoFailed"));
     } finally {
@@ -97,7 +125,6 @@ export function EditProfileSheet({
         displayName,
         username,
         bio,
-        profilePictureUrl: photo,
       });
       if (result.error) {
         toast.error(result.error);
@@ -122,7 +149,7 @@ export function EditProfileSheet({
         className="max-md:top-2"
       >
         <div className="flex flex-col items-center pt-2">
-          <AvatarTile name={name} src={photo} size={96} />
+          <AvatarTile name={name} src={photo.url} blurhash={photo.blurhash} size={96} />
           <input
             ref={fileRef}
             type="file"
@@ -140,8 +167,17 @@ export function EditProfileSheet({
             disabled={uploading}
             className="mt-3 cursor-pointer text-[15px] font-semibold text-pink-ink hover:underline disabled:opacity-60"
           >
-            {uploading ? t("uploading") : photo ? t("changePhoto") : t("addPhoto")}
+            {uploading ? t("uploading") : photo.url ? t("changePhoto") : t("addPhoto")}
           </button>
+          {photo.url && !uploading && (
+            <button
+              type="button"
+              onClick={removePhoto}
+              className="mt-1 cursor-pointer text-[13px] font-semibold text-ink-3 hover:underline"
+            >
+              {t("removePhoto")}
+            </button>
+          )}
         </div>
         <div className="mt-6 flex flex-col gap-5">
           <FieldInput

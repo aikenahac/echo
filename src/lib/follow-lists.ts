@@ -25,6 +25,7 @@ export async function getFollowList(
       username: users.username,
       displayName: users.displayName,
       profilePictureUrl: users.profilePictureUrl,
+      profilePictureBlurhash: users.profilePictureBlurhash,
     })
     .from(follows)
     .innerJoin(users, eq(users.id, listedColumn))

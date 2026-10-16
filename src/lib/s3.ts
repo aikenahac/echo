@@ -2,6 +2,7 @@ import {
   S3Client,
   PutObjectCommand,
   DeleteObjectCommand,
+  GetObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { IMAGE_TYPES } from "./image-validation";
@@ -147,6 +148,15 @@ export function ownedKeyFromUrl(
     return null;
   }
   return key;
+}
+
+/** Read an object's bytes from S3 by key. */
+export async function getObjectBytes(key: string) {
+  const { Body } = await getS3().send(
+    new GetObjectCommand({ Bucket: bucketName(), Key: key })
+  );
+  if (!Body) throw new Error(`Empty S3 object: ${key}`);
+  return Body.transformToByteArray();
 }
 
 /**

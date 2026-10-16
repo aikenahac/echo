@@ -358,7 +358,7 @@ export const apiEndpoints: ApiEndpoint[] = [
               content: "Chilling.",
               isPrivate: false,
               createdAt: "2025-01-15T10:00:00Z",
-              user: { id: "user_456", username: "bookworm", displayName: null, profilePictureUrl: null },
+              user: { id: "user_456", username: "bookworm", displayName: null, profilePictureUrl: null, profilePictureBlurhash: null },
             },
           ],
         },
@@ -616,7 +616,7 @@ export const apiEndpoints: ApiEndpoint[] = [
         status: 200,
         description: "Public profile",
         example: {
-          user: { id: "user_456", username: "bookworm", displayName: "Book Worm", profilePictureUrl: null, bio: "I love reading!" },
+          user: { id: "user_456", username: "bookworm", displayName: "Book Worm", profilePictureUrl: null, profilePictureBlurhash: null, bio: "I love reading!" },
           stats: { booksFinishedThisYear: 12, finishedCount: 87 },
           followerCount: 34,
           followingCount: 20,
@@ -649,7 +649,7 @@ export const apiEndpoints: ApiEndpoint[] = [
         status: 200,
         description: "A page of users (isFollowing: whether you follow them)",
         example: {
-          results: [{ id: "user_789", username: "reader123", displayName: null, profilePictureUrl: null, isFollowing: false }],
+          results: [{ id: "user_789", username: "reader123", displayName: null, profilePictureUrl: null, profilePictureBlurhash: null, isFollowing: false }],
           hasMore: false,
         },
       },
@@ -675,7 +675,7 @@ export const apiEndpoints: ApiEndpoint[] = [
         status: 200,
         description: "A page of users (isFollowing: whether you follow them)",
         example: {
-          results: [{ id: "user_456", username: "bookworm", displayName: "Book Worm", profilePictureUrl: null, isFollowing: true }],
+          results: [{ id: "user_456", username: "bookworm", displayName: "Book Worm", profilePictureUrl: null, profilePictureBlurhash: null, isFollowing: true }],
           hasMore: false,
         },
       },
@@ -699,7 +699,7 @@ export const apiEndpoints: ApiEndpoint[] = [
           username: "bookworm",
           bio: "I love reading!",
           displayName: "Book Worm",
-          profilePictureUrl: null,
+          profilePictureUrl: null, profilePictureBlurhash: null,
           role: "user",
           isPremium: false,
           planName: "Free",
@@ -729,8 +729,13 @@ export const apiEndpoints: ApiEndpoint[] = [
     responses: [
       {
         status: 200,
-        description: "Profile updated",
-        example: { success: true },
+        description:
+          "Profile updated. profilePictureBlurhash is generated server-side whenever profilePictureUrl is set (null when cleared).",
+        example: {
+          success: true,
+          profilePictureUrl: "https://s3.example.com/bucket/pfp/user_123/1700000000000.jpg",
+          profilePictureBlurhash: "LEHV6nWB2yk8pyo0adR*.7kCMdnj",
+        },
       },
       {
         status: 400,
@@ -1141,7 +1146,7 @@ export const apiEndpoints: ApiEndpoint[] = [
             isPublic: true,
             bookCount: 12,
             followerCount: 3,
-            user: { id: "user_456", username: "bookworm", displayName: null, profilePictureUrl: null },
+            user: { id: "user_456", username: "bookworm", displayName: null, profilePictureUrl: null, profilePictureBlurhash: null },
             books: [{ id: "uuid...", book: { title: "Dune" } }],
           },
         ],
@@ -1166,7 +1171,7 @@ export const apiEndpoints: ApiEndpoint[] = [
           bookCount: 12,
           followerCount: 3,
           isFollowing: false,
-          user: { id: "user_456", username: "bookworm", displayName: null, profilePictureUrl: null },
+          user: { id: "user_456", username: "bookworm", displayName: null, profilePictureUrl: null, profilePictureBlurhash: null },
           books: [{ id: "uuid...", status: "finished", book: { title: "Dune" } }],
         },
       },
