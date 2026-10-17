@@ -21,7 +21,7 @@ export default function TermsOfServicePage() {
         <div className="space-y-4">
           <h1>Terms of Service</h1>
           <p className="text-lg text-muted-foreground">
-            Last Updated: November 29, 2025
+            Last Updated: October 17, 2026
           </p>
         </div>
 
@@ -48,12 +48,14 @@ export default function TermsOfServicePage() {
         <section className="space-y-4">
           <h2>2. Description of Service</h2>
           <p className="text-base leading-relaxed">
-            Echo Reads is a book tracking and social reading platform that
-            allows users to:
+            Echo Reads is a book tracking and social reading platform,
+            available on the web and as iOS and Android apps, that allows users
+            to:
           </p>
           <ul className="space-y-2 list-disc list-inside text-base leading-relaxed ml-4">
             <li>
-              Track their reading progress and organize their book library
+              Track their reading progress and organize their book library and
+              collections
             </li>
             <li>Rate and review books</li>
             <li>Follow other users and view their reading activity</li>
@@ -61,6 +63,7 @@ export default function TermsOfServicePage() {
               Search for books using our database and the Open Library API
             </li>
             <li>Maintain a personal reading profile</li>
+            <li>Unlock additional features with a Premium subscription</li>
           </ul>
           <p className="text-sm text-muted-foreground mt-2">
             We reserve the right to modify, suspend, or discontinue any aspect
@@ -158,11 +161,66 @@ export default function TermsOfServicePage() {
               do not endorse any User Content and are not responsible for its
               accuracy, quality, or legality.
             </p>
+            <p className="text-base leading-relaxed">
+              You can report users and reviews that break these Terms, and
+              block users you do not want to interact with. We review reports
+              and may remove content or suspend accounts as a result.
+            </p>
+          </div>
+        </section>
+
+        <section className="space-y-6">
+          <h2>5. Premium Subscriptions</h2>
+
+          <div className="space-y-4">
+            <h3>5.1 Purchase</h3>
+            <p className="text-base leading-relaxed">
+              Premium is sold through Lemon Squeezy, which acts as the merchant
+              of record and handles payment, taxes, and invoicing. Your purchase
+              is also subject to{" "}
+              <a
+                href="https://www.lemonsqueezy.com/buyer-terms"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+              >
+                Lemon Squeezy&apos;s Buyer Terms
+              </a>
+              .
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <h3>5.2 Renewal and Cancellation</h3>
+            <p className="text-base leading-relaxed">
+              Subscriptions renew automatically at the end of each billing
+              period until you cancel. You can cancel at any time; you keep
+              Premium until the end of the period you have already paid for.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <h3>5.3 Refunds and Withdrawal</h3>
+            <p className="text-base leading-relaxed">
+              If you are a consumer in the European Union, you may have a
+              statutory right to withdraw from your purchase within 14 days.
+              Refunds are handled in line with applicable consumer law and Lemon
+              Squeezy&apos;s terms. Contact us if you have a billing problem.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <h3>5.4 Price Changes</h3>
+            <p className="text-base leading-relaxed">
+              We may change Premium prices. Any change applies from your next
+              billing period, and we will tell you in advance so you can cancel
+              before it takes effect.
+            </p>
           </div>
         </section>
 
         <section className="space-y-4">
-          <h2>5. Acceptable Use</h2>
+          <h2>6. Acceptable Use</h2>
           <p className="text-base leading-relaxed">You agree not to:</p>
           <ul className="space-y-2 list-disc list-inside text-base leading-relaxed ml-4">
             <li>Use the service for any illegal or unauthorized purpose</li>
@@ -182,10 +240,10 @@ export default function TermsOfServicePage() {
         </section>
 
         <section className="space-y-6">
-          <h2>6. Intellectual Property</h2>
+          <h2>7. Intellectual Property</h2>
 
           <div className="space-y-4">
-            <h3>6.1 Our Content</h3>
+            <h3>7.1 Our Content</h3>
             <p className="text-base leading-relaxed">
               The service, including its design, features, graphics, and
               software, is owned by us and protected by copyright, trademark,
@@ -195,7 +253,7 @@ export default function TermsOfServicePage() {
           </div>
 
           <div className="space-y-4">
-            <h3>6.2 Third-Party Content</h3>
+            <h3>7.2 Third-Party Content</h3>
             <p className="text-base leading-relaxed">
               Book information and cover images are sourced from third-party
               services including Open Library. We do not claim ownership of this
@@ -205,7 +263,7 @@ export default function TermsOfServicePage() {
           </div>
 
           <div className="space-y-4">
-            <h3>6.3 Trademarks</h3>
+            <h3>7.3 Trademarks</h3>
             <p className="text-base leading-relaxed">
               &ldquo;Echo Reads&rdquo; and associated logos are our trademarks.
               You may not use our trademarks without our prior written consent.
@@ -214,10 +272,10 @@ export default function TermsOfServicePage() {
         </section>
 
         <section className="space-y-6">
-          <h2>7. Third-Party Services</h2>
+          <h2>8. Third-Party Services</h2>
 
           <div className="space-y-4">
-            <h3>7.1 Authentication (Clerk)</h3>
+            <h3>8.1 Authentication (Clerk)</h3>
             <p className="text-base leading-relaxed">
               We use Clerk for user authentication. Your use of authentication
               services is subject to{" "}
@@ -234,7 +292,7 @@ export default function TermsOfServicePage() {
           </div>
 
           <div className="space-y-4">
-            <h3>7.2 Book Data (Open Library)</h3>
+            <h3>8.2 Book Data (Open Library)</h3>
             <p className="text-base leading-relaxed">
               Book search and information features use the Open Library API.
               Your use of this data is subject to{" "}
@@ -251,7 +309,25 @@ export default function TermsOfServicePage() {
           </div>
 
           <div className="space-y-4">
-            <h3>7.3 Third-Party Links</h3>
+            <h3>8.3 Payments (Lemon Squeezy)</h3>
+            <p className="text-base leading-relaxed">
+              Premium payments are processed by Lemon Squeezy as merchant of
+              record. See section 5 for details.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <h3>8.4 App Stores</h3>
+            <p className="text-base leading-relaxed">
+              If you download our mobile apps from the Apple App Store or Google
+              Play, your use of the app is also subject to that store&apos;s
+              terms. Apple and Google are not parties to these Terms and are not
+              responsible for the app or its content.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <h3>8.5 Third-Party Links</h3>
             <p className="text-base leading-relaxed">
               Our service may contain links to third-party websites. We are not
               responsible for the content, privacy practices, or terms of
@@ -261,7 +337,7 @@ export default function TermsOfServicePage() {
         </section>
 
         <section className="space-y-4">
-          <h2>8. Privacy</h2>
+          <h2>9. Privacy</h2>
           <p className="text-base leading-relaxed">
             Your use of our service is also governed by our{" "}
             <Link
@@ -276,11 +352,11 @@ export default function TermsOfServicePage() {
         </section>
 
         <section className="space-y-6">
-          <h2>9. Disclaimers</h2>
+          <h2>10. Disclaimers</h2>
 
           <div className="rounded-lg border-l-4 border-yellow-500 bg-yellow-500/5 p-4 space-y-4">
             <div className="space-y-2">
-              <h3 className="text-lg ">9.1 No Warranty</h3>
+              <h3 className="text-lg ">10.1 No Warranty</h3>
               <p className="text-sm leading-relaxed uppercase">
                 THE SERVICE IS PROVIDED &ldquo;AS IS&rdquo; AND &ldquo;AS
                 AVAILABLE&rdquo; WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS
@@ -291,7 +367,7 @@ export default function TermsOfServicePage() {
             </div>
 
             <div className="space-y-2">
-              <h3 className="text-lg ">9.2 Service Availability</h3>
+              <h3 className="text-lg ">10.2 Service Availability</h3>
               <p className="text-sm leading-relaxed">
                 We do not guarantee that the service will be uninterrupted,
                 secure, or error-free. We may suspend or terminate the service
@@ -300,7 +376,7 @@ export default function TermsOfServicePage() {
             </div>
 
             <div className="space-y-2">
-              <h3 className="text-lg ">9.3 Content Accuracy</h3>
+              <h3 className="text-lg ">10.3 Content Accuracy</h3>
               <p className="text-sm leading-relaxed">
                 We do not guarantee the accuracy, completeness, or reliability
                 of any content on our service, including book information, user
@@ -311,7 +387,7 @@ export default function TermsOfServicePage() {
         </section>
 
         <section className="space-y-4">
-          <h2>10. Limitation of Liability</h2>
+          <h2>11. Limitation of Liability</h2>
           <div className="rounded-lg border-l-4 border-red-500 bg-red-500/5 p-4 space-y-3">
             <p className="text-sm leading-relaxed uppercase">
               TO THE MAXIMUM EXTENT PERMITTED BY LAW, WE SHALL NOT BE LIABLE FOR
@@ -330,7 +406,7 @@ export default function TermsOfServicePage() {
         </section>
 
         <section className="space-y-4">
-          <h2>11. Indemnification</h2>
+          <h2>12. Indemnification</h2>
           <p className="text-base leading-relaxed">
             You agree to indemnify, defend, and hold harmless Echo Reads, its
             officers, directors, employees, and agents from any claims, damages,
@@ -346,7 +422,7 @@ export default function TermsOfServicePage() {
         </section>
 
         <section className="space-y-4">
-          <h2>12. DMCA Copyright Policy</h2>
+          <h2>13. Copyright Complaints</h2>
           <p className="text-base leading-relaxed">
             We respect intellectual property rights. If you believe that content
             on our service infringes your copyright, please contact us at{" "}
@@ -373,10 +449,10 @@ export default function TermsOfServicePage() {
         </section>
 
         <section className="space-y-6">
-          <h2>13. Governing Law and Dispute Resolution</h2>
+          <h2>14. Governing Law and Dispute Resolution</h2>
 
           <div className="space-y-4">
-            <h3>13.1 Governing Law</h3>
+            <h3>14.1 Governing Law</h3>
             <p className="text-base leading-relaxed">
               These Terms shall be governed by and construed in accordance with
               the laws of Slovenia, without regard to its conflict of law
@@ -385,7 +461,7 @@ export default function TermsOfServicePage() {
           </div>
 
           <div className="space-y-4">
-            <h3>13.2 Dispute Resolution</h3>
+            <h3>14.2 Dispute Resolution</h3>
             <p className="text-base leading-relaxed">
               Any disputes arising from these Terms or your use of the service
               shall be resolved through good faith negotiations. If negotiations
@@ -395,7 +471,7 @@ export default function TermsOfServicePage() {
           </div>
 
           <div className="space-y-4">
-            <h3>13.3 EU Users</h3>
+            <h3>14.3 EU Users</h3>
             <p className="text-base leading-relaxed">
               If you are a consumer in the European Union, you may also bring a
               claim in the courts of your country of residence.
@@ -404,10 +480,10 @@ export default function TermsOfServicePage() {
         </section>
 
         <section className="space-y-6">
-          <h2>14. General Provisions</h2>
+          <h2>15. General Provisions</h2>
 
           <div className="space-y-4">
-            <h3>14.1 Entire Agreement</h3>
+            <h3>15.1 Entire Agreement</h3>
             <p className="text-base leading-relaxed">
               These Terms, together with our Privacy Policy, constitute the
               entire agreement between you and Echo Reads regarding the service.
@@ -415,7 +491,7 @@ export default function TermsOfServicePage() {
           </div>
 
           <div className="space-y-4">
-            <h3>14.2 Severability</h3>
+            <h3>15.2 Severability</h3>
             <p className="text-base leading-relaxed">
               If any provision of these Terms is found to be invalid or
               unenforceable, the remaining provisions shall remain in full force
@@ -424,7 +500,7 @@ export default function TermsOfServicePage() {
           </div>
 
           <div className="space-y-4">
-            <h3>14.3 Waiver</h3>
+            <h3>15.3 Waiver</h3>
             <p className="text-base leading-relaxed">
               Our failure to enforce any right or provision of these Terms shall
               not constitute a waiver of such right or provision.
@@ -432,7 +508,7 @@ export default function TermsOfServicePage() {
           </div>
 
           <div className="space-y-4">
-            <h3>14.4 Assignment</h3>
+            <h3>15.4 Assignment</h3>
             <p className="text-base leading-relaxed">
               You may not assign or transfer these Terms without our prior
               written consent. We may assign these Terms at any time without
@@ -441,7 +517,7 @@ export default function TermsOfServicePage() {
           </div>
 
           <div className="space-y-4">
-            <h3>14.5 No Agency</h3>
+            <h3>15.5 No Agency</h3>
             <p className="text-base leading-relaxed">
               These Terms do not create any agency, partnership, joint venture,
               or employment relationship between you and Echo Reads.
@@ -450,7 +526,7 @@ export default function TermsOfServicePage() {
         </section>
 
         <section className="space-y-4">
-          <h2>15. Contact Information</h2>
+          <h2>16. Contact Information</h2>
           <p className="text-base leading-relaxed">
             If you have questions about these Terms, please contact us at:
           </p>
@@ -471,7 +547,7 @@ export default function TermsOfServicePage() {
         </section>
 
         <section className="space-y-4">
-          <h2>16. Changes to Service</h2>
+          <h2>17. Changes to Service</h2>
           <p className="text-base leading-relaxed">
             We reserve the right to modify, suspend, or discontinue any part of
             the service at any time. We may also impose limits on certain
@@ -481,7 +557,7 @@ export default function TermsOfServicePage() {
         </section>
 
         <section className="space-y-4">
-          <h2>17. Survival</h2>
+          <h2>18. Survival</h2>
           <p className="text-base leading-relaxed">
             Upon termination of these Terms or your account, the following
             sections shall survive: User Content (license), Intellectual

@@ -22,7 +22,7 @@ export default function PrivacyPolicyPage() {
         <div className="space-y-4">
           <h1>Privacy Policy</h1>
           <p className="text-lg text-muted-foreground">
-            Last Updated: November 29, 2025
+            Last Updated: October 17, 2026
           </p>
         </div>
 
@@ -36,7 +36,7 @@ export default function PrivacyPolicyPage() {
             ensuring you have a positive experience on our platform. This
             Privacy Policy explains how we collect, use, disclose, and safeguard
             your information when you use our book tracking and social reading
-            application.
+            service, both on the web and in our iOS and Android apps.
           </p>
           <p className="text-base leading-relaxed">
             Echo Reads is operated by{" "}
@@ -78,15 +78,29 @@ export default function PrivacyPolicyPage() {
               </li>
               <li>
                 <strong>Profile Information:</strong> Optional biographical
-                information and profile customization data.
+                information, a profile picture, and profile customization data.
               </li>
               <li>
                 <strong>Reading Data:</strong> Information about books you add
                 to your library, reading status, progress, ratings, and reviews.
               </li>
               <li>
-                <strong>User-Generated Content:</strong> Reviews, comments, and
-                other content you create on our platform.
+                <strong>User-Generated Content:</strong> Reviews, comments,
+                collections, and other content you create on our platform.
+              </li>
+              <li>
+                <strong>Subscription Information:</strong> If you buy Premium,
+                payment is handled by Lemon Squeezy. We receive your name, email
+                address, and subscription status, but never your card details.
+              </li>
+              <li>
+                <strong>Support Requests:</strong> Your name, email address, and
+                message when you contact us through the support form.
+              </li>
+              <li>
+                <strong>Reports and Blocks:</strong> When you report a user or
+                review, we store who reported it, the reason, and any details
+                you add. We also store the list of users you have blocked.
               </li>
             </ul>
           </div>
@@ -124,10 +138,38 @@ export default function PrivacyPolicyPage() {
           </div>
 
           <div className="space-y-4">
+            <h3>Crash and Error Reports (Mobile App)</h3>
+            <p className="text-base leading-relaxed">
+              When our mobile app crashes or hits an error, it sends an error
+              report to our self-hosted Bugsink instance (a Sentry-compatible
+              error tracker) running on our own server in the European Union.
+              These reports are not shared with any third party. A report may
+              include:
+            </p>
+            <ul className="space-y-2 list-disc list-inside text-base leading-relaxed ml-4">
+              <li>The error message and technical details of where it occurred</li>
+              <li>Your user ID and username</li>
+              <li>Your IP address</li>
+              <li>Device model, operating system, and app version</li>
+            </ul>
+            <div className="rounded-lg border-l-4 border-primary bg-primary/5 p-4">
+              <p className="text-sm leading-relaxed">
+                <strong>Important:</strong> We only collect error reports, and
+                only from released versions of the app. We do not record
+                sessions, take screenshots, measure performance, or track how
+                you use the app. Reports are used solely to find and fix bugs,
+                based on our legitimate interest in keeping the app working, and
+                are kept only for a limited time before being deleted.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
             <h3>Third-Party Authentication (Clerk)</h3>
             <p className="text-base leading-relaxed">
-              We use Clerk for authentication and user management. Clerk
-              collects and processes certain information independently:
+              We use Clerk for authentication and user management, including
+              sign-in with third-party providers such as Apple. Clerk collects
+              and processes certain information independently:
             </p>
             <ul className="space-y-2 list-disc list-inside text-base leading-relaxed ml-4">
               <li>Email addresses</li>
@@ -165,9 +207,16 @@ export default function PrivacyPolicyPage() {
             </li>
             <li>Communicate with you about your account and service updates</li>
             <li>
+              Process Premium subscriptions and send related emails (welcome,
+              renewal reminders, failed payments, cancellations)
+            </li>
+            <li>Respond to support requests</li>
+            <li>Review reports and moderate content</li>
+            <li>
               Analyze usage patterns to improve user experience (via anonymous
               analytics)
             </li>
+            <li>Diagnose and fix crashes and errors in our mobile app</li>
             <li>Prevent fraud and ensure platform security</li>
           </ul>
         </section>
@@ -210,12 +259,32 @@ export default function PrivacyPolicyPage() {
                 <strong>Clerk:</strong> Authentication and user management
               </li>
               <li>
-                <strong>Hosting Provider:</strong> Application and database
-                hosting
+                <strong>Lemon Squeezy:</strong> Payment processing for Premium,
+                acting as merchant of record (see{" "}
+                <a
+                  href="https://www.lemonsqueezy.com/privacy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  Lemon Squeezy&apos;s Privacy Policy
+                </a>
+                )
+              </li>
+              <li>
+                <strong>Resend:</strong> Delivery of transactional emails
+              </li>
+              <li>
+                <strong>Hosting Provider:</strong> Application, database, and
+                file storage hosting (EU-based)
               </li>
               <li>
                 <strong>Plausible Analytics:</strong> Self-hosted,
                 privacy-focused analytics (EU-based)
+              </li>
+              <li>
+                <strong>Bugsink:</strong> Self-hosted crash and error reporting
+                for the mobile app (EU-based)
               </li>
             </ul>
           </div>
@@ -237,11 +306,23 @@ export default function PrivacyPolicyPage() {
             <ul className="space-y-2 list-disc list-inside text-base leading-relaxed ml-4">
               <li>
                 <strong>Application Data:</strong> Stored in secure databases
-                with encryption at rest
+                with encryption at rest in the European Union
+              </li>
+              <li>
+                <strong>Profile Pictures:</strong> Stored in file storage in
+                the European Union
               </li>
               <li>
                 <strong>Analytics Data:</strong> Stored on our self-hosted
                 Plausible instance in the European Union
+              </li>
+              <li>
+                <strong>Crash Reports:</strong> Stored on our self-hosted
+                Bugsink instance in the European Union
+              </li>
+              <li>
+                <strong>Payment Data:</strong> Managed by Lemon Squeezy (see
+                their privacy policy for details)
               </li>
               <li>
                 <strong>Authentication Data:</strong> Managed by Clerk (see
@@ -278,8 +359,12 @@ export default function PrivacyPolicyPage() {
             <ul className="space-y-2 list-disc list-inside text-base leading-relaxed ml-4">
               <li>Access your personal information</li>
               <li>Update or correct your information</li>
-              <li>Delete your account and associated data</li>
-              <li>Export your data</li>
+              <li>
+                Delete your account and associated data (in Settings, or by
+                contacting us)
+              </li>
+              <li>Request a copy of your data by contacting us</li>
+              <li>Block other users so they can no longer interact with you</li>
               <li>Opt out of optional features</li>
             </ul>
           </div>
@@ -299,7 +384,9 @@ export default function PrivacyPolicyPage() {
             <ul className="space-y-2 list-disc list-inside text-base leading-relaxed ml-4">
               <li>
                 <strong>First-Party Cookies:</strong> We use essential cookies
-                for authentication and session management
+                for authentication and session management, and preference
+                cookies that remember your appearance (light/dark) and library
+                layout
               </li>
               <li>
                 <strong>Analytics Cookies:</strong> Our Plausible Analytics does
@@ -407,6 +494,27 @@ export default function PrivacyPolicyPage() {
               do not use automated decision-making or profiling
             </li>
           </ul>
+          <p className="text-base leading-relaxed">
+            We process your data on these legal bases: to perform our contract
+            with you (providing your account, library, and subscription); our
+            legitimate interests (security, moderation, anonymous analytics,
+            and crash reporting); and legal obligations (such as keeping
+            billing records).
+          </p>
+          <p className="text-base leading-relaxed">
+            You also have the right to lodge a complaint with a supervisory
+            authority. In Slovenia, this is the Information Commissioner
+            (Informacijski pooblaščenec,{" "}
+            <a
+              href="https://www.ip-rs.si"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline"
+            >
+              ip-rs.si
+            </a>
+            ).
+          </p>
           <p className="text-sm text-muted-foreground mt-2">
             To exercise these rights, please contact us at{" "}
             <a
