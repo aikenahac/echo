@@ -46,6 +46,7 @@ export async function ensureFreePlan(userId: string) {
       .values({
         userId,
         planId: freePlan.id,
+        source: "manual",
         status: "active",
         currentPeriodStart: new Date(),
         // Far future for free plan

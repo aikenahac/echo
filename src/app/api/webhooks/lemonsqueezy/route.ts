@@ -189,6 +189,14 @@ async function handleSubscriptionUpdate(
   const isNewSubscription =
     existingSubscription?.lemonSqueezySubscriptionId !== subscription.id;
 
+  // A replaced web subscription must not overwrite active store or manual access.
+  if (
+    existingSubscription &&
+    existingSubscription.source !== "lemonsqueezy" &&
+    ["active", "trialing"].includes(existingSubscription.status) &&
+    isPaidPlan(existingSubscription.plan)
+  ) return;
+
   // Ignore stale events from an older subscription that has been replaced
   if (
     existingSubscription?.lemonSqueezySubscriptionId &&
@@ -213,8 +221,11 @@ async function handleSubscriptionUpdate(
   }
 
   const periodEnd = subscription.endsAt ?? subscription.renewsAt;
-  const values = {
+  const values: typeof userSubscriptions.$inferInsert = {
+    userId,
     planId: plan.id,
+    source: "lemonsqueezy",
+    storeProductId: null,
     lemonSqueezySubscriptionId: subscription.id,
     lemonSqueezyCustomerId: String(subscription.customerId),
     status,
@@ -228,7 +239,7 @@ async function handleSubscriptionUpdate(
 
   await db
     .insert(userSubscriptions)
-    .values({ userId, ...values })
+    .values(values)
     .onConflictDoUpdate({
       target: userSubscriptions.userId,
       set: { ...values, updatedAt: new Date() },
@@ -261,7 +272,7 @@ async function handleSubscriptionExpired(
     customData,
   );
 
-  if (!userId || !userSub) return;
+  if (!userId || !userSub || userSub.source !== "lemonsqueezy") return;
 
   // Ignore expiry of a subscription the user no longer has
   if (
@@ -314,7 +325,7 @@ async function handlePaymentFailed(subscriptionId: number) {
     ),
   });
 
-  if (!subscription) return;
+  if (!subscription || subscription.source !== "lemonsqueezy") return;
 
   await db
     .update(userSubscriptions)

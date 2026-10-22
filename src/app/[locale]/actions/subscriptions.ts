@@ -82,7 +82,7 @@ export async function createPortalSession() {
       where: eq(userSubscriptions.userId, userId),
     });
 
-    if (!subscription?.lemonSqueezySubscriptionId) {
+    if (subscription?.source !== "lemonsqueezy" || !subscription.lemonSqueezySubscriptionId) {
       return { error: "No subscription found" };
     }
 
@@ -187,6 +187,7 @@ export async function upgradeToFreePlan(planId: string) {
       .values({
         userId,
         planId: plan.id,
+        source: "manual",
         status: "active",
         currentPeriodStart: new Date(),
         currentPeriodEnd: farFuture(),
@@ -196,6 +197,7 @@ export async function upgradeToFreePlan(planId: string) {
         target: userSubscriptions.userId,
         set: {
           planId: plan.id,
+          source: "manual",
           status: "active",
           currentPeriodStart: new Date(),
           currentPeriodEnd: farFuture(),

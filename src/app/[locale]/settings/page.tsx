@@ -106,7 +106,14 @@ export default async function SettingsPage({
                 </span>
               </div>
             ) : null}
-            {subscription?.lemonSqueezySubscriptionId && <BillingRow />}
+            {subscription?.source === "lemonsqueezy" && subscription.lemonSqueezySubscriptionId && <BillingRow />}
+            {(subscription?.source === "app_store" || subscription?.source === "play_store") && (
+              <div className={row}>
+                <span className="text-ink-2">
+                  {t(subscription.source === "app_store" ? "managedInAppStore" : "managedInGooglePlay")}
+                </span>
+              </div>
+            )}
           </>
         ) : (
           <>

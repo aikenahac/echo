@@ -287,6 +287,8 @@ export async function deleteUserAsAdmin(targetUserId: string) {
 export async function createSubscriptionPlan(data: {
   name: string;
   lemonSqueezyVariantId: string | null;
+  appStoreProductId: string | null;
+  playStoreProductId: string | null;
   price: number;
   interval: "month" | "year" | "lifetime" | "free";
   isActive: boolean;
@@ -307,7 +309,12 @@ export async function createSubscriptionPlan(data: {
 
     const [plan] = await db
       .insert(subscriptionPlans)
-      .values({ ...data, lemonSqueezyProductId })
+      .values({
+        ...data,
+        appStoreProductId: data.appStoreProductId || null,
+        playStoreProductId: data.playStoreProductId || null,
+        lemonSqueezyProductId,
+      })
       .returning();
 
     await db.insert(auditLogs).values({
@@ -335,6 +342,8 @@ export async function updateSubscriptionPlan(
   data: Partial<{
     name: string;
     lemonSqueezyVariantId: string | null;
+    appStoreProductId: string | null;
+    playStoreProductId: string | null;
     price: number;
     interval: "month" | "year" | "lifetime" | "free";
     isActive: boolean;
@@ -357,6 +366,13 @@ export async function updateSubscriptionPlan(
       update.lemonSqueezyProductId = String(variant.productId);
     } else if (data.lemonSqueezyVariantId === null) {
       update.lemonSqueezyProductId = null;
+    }
+
+    if (data.appStoreProductId !== undefined) {
+      update.appStoreProductId = data.appStoreProductId || null;
+    }
+    if (data.playStoreProductId !== undefined) {
+      update.playStoreProductId = data.playStoreProductId || null;
     }
 
     await db
@@ -414,6 +430,7 @@ export async function grantPremiumSubscription(
       .insert(userSubscriptions)
       .values({
         userId: targetUserId,
+        source: "manual",
         planId,
         status: "active",
         currentPeriodStart: new Date(),
@@ -421,9 +438,15 @@ export async function grantPremiumSubscription(
       .onConflictDoUpdate({
         target: userSubscriptions.userId,
         set: {
+          source: "manual",
+          storeProductId: null,
+          lemonSqueezySubscriptionId: null,
+          lemonSqueezyCustomerId: null,
+          cancelAtPeriodEnd: false,
           planId,
           status: "active",
           currentPeriodStart: new Date(),
+          canceledAt: null,
           currentPeriodEnd: null, // Manual grants don't expire
           updatedAt: new Date(),
         },
@@ -620,6 +643,7 @@ export async function revokeUserSubscription(targetUserId: string) {
       .insert(userSubscriptions)
       .values({
         userId: targetUserId,
+        source: "manual",
         planId: freePlan.id,
         status: "active",
         currentPeriodStart: new Date(),
@@ -627,9 +651,13 @@ export async function revokeUserSubscription(targetUserId: string) {
       .onConflictDoUpdate({
         target: userSubscriptions.userId,
         set: {
+          source: "manual",
+          storeProductId: null,
+          lemonSqueezySubscriptionId: null,
+          lemonSqueezyCustomerId: null,
+          cancelAtPeriodEnd: false,
           planId: freePlan.id,
           status: "canceled",
-          lemonSqueezySubscriptionId: null,
           canceledAt: new Date(),
           updatedAt: new Date(),
         },

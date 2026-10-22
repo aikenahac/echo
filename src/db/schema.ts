@@ -28,6 +28,13 @@ export const billingIntervalEnum = pgEnum("billing_interval", [
   "free",
 ]);
 
+export const subscriptionSourceEnum = pgEnum("subscription_source", [
+  "lemonsqueezy",
+  "app_store",
+  "play_store",
+  "manual",
+]);
+
 export const subscriptionStatusEnum = pgEnum("subscription_status", [
   "active",
   "canceled",
@@ -331,6 +338,8 @@ export const subscriptionPlans = pgTable(
     name: text("name").notNull(),
     lemonSqueezyVariantId: text("ls_variant_id").unique(), // Lemon Squeezy variant; nullable for free/internal plans
     lemonSqueezyProductId: text("ls_product_id"),
+    appStoreProductId: text("app_store_product_id").unique(),
+    playStoreProductId: text("play_store_product_id").unique(),
     price: integer("price").notNull().default(0), // Price in cents
     interval: billingIntervalEnum("interval").notNull().default("free"),
     isActive: boolean("is_active").default(true).notNull(),
@@ -357,6 +366,8 @@ export const userSubscriptions = pgTable(
     planId: uuid("plan_id")
       .notNull()
       .references(() => subscriptionPlans.id),
+    source: subscriptionSourceEnum("source").notNull().default("lemonsqueezy"),
+    storeProductId: text("store_product_id"),
     lemonSqueezySubscriptionId: text("ls_subscription_id").unique(),
     lemonSqueezyCustomerId: text("ls_customer_id"),
     status: subscriptionStatusEnum("status").notNull().default("active"),

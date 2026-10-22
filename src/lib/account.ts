@@ -19,7 +19,8 @@ export async function deleteUserAccount(userId: string) {
   });
 
   if (
-    subscription?.lemonSqueezySubscriptionId &&
+    subscription?.source === "lemonsqueezy" &&
+    subscription.lemonSqueezySubscriptionId &&
     ["active", "trialing", "past_due", "unpaid", "incomplete"].includes(
       subscription.status,
     )

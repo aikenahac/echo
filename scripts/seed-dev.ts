@@ -610,6 +610,7 @@ async function main() {
   const paidAt = new Date(thisYear, 2, 4);
   await db.insert(userSubscriptions).values({
     userId: me.id,
+    source: "manual",
     planId: plan.id,
     status: "active",
     currentPeriodStart: paidAt,

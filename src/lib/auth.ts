@@ -5,6 +5,8 @@ import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { ensureFreePlan } from "@/lib/provisioning";
 
+export { isPaidPlan } from "@/lib/plans";
+
 export type UserRole = "user" | "moderator" | "admin";
 
 const findViewer = (userId: string) =>
@@ -50,17 +52,6 @@ export const getViewer = cache(async () => {
   return (await findViewer(userId)) ?? null;
 });
 
-/**
- * Whether the plan is a paid plan (paid, has a Lemon Squeezy variant, or lifetime)
- */
-export function isPaidPlan(
-  plan: { price: number; lemonSqueezyVariantId: string | null; interval: string } | null | undefined
-) {
-  return !!(
-    plan &&
-    (plan.price > 0 || plan.lemonSqueezyVariantId !== null || plan.interval === "lifetime")
-  );
-}
 
 /**
  * Get the currently authenticated user from the database

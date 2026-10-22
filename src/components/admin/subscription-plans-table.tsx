@@ -19,6 +19,8 @@ interface Plan {
   isInternal: boolean;
   lemonSqueezyVariantId: string | null;
   lemonSqueezyProductId: string | null;
+  appStoreProductId: string | null;
+  playStoreProductId: string | null;
   sortOrder: number;
 }
 
@@ -62,6 +64,18 @@ export function SubscriptionPlansTable({ plans }: { plans: Plan[] }) {
       header: "Variant ID",
       cell: ({ row }) => (
         <span className="font-mono text-xs">{row.original.lemonSqueezyVariantId || "—"}</span>
+      ),
+    }),
+    columnHelper.accessor("appStoreProductId", {
+      header: "App Store product ID",
+      cell: ({ row }) => (
+        <span className="font-mono text-xs">{row.original.appStoreProductId || "—"}</span>
+      ),
+    }),
+    columnHelper.accessor("playStoreProductId", {
+      header: "Play Store product ID",
+      cell: ({ row }) => (
+        <span className="font-mono text-xs">{row.original.playStoreProductId || "—"}</span>
       ),
     }),
     columnHelper.display({

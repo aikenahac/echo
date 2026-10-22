@@ -1219,7 +1219,7 @@ export const apiEndpoints: ApiEndpoint[] = [
     method: "GET",
     path: "/api/v1/subscriptions",
     category: "Subscriptions",
-    description: "Get your current subscription and plan details",
+    description: "Get your current subscription and plan details. Subscription source is lemonsqueezy, app_store, play_store, or manual.",
     requiresAuth: true,
     responses: [
       {
@@ -1229,6 +1229,7 @@ export const apiEndpoints: ApiEndpoint[] = [
           subscription: {
             id: "uuid...",
             status: "active",
+            source: "lemonsqueezy",
             currentPeriodStart: "2025-01-01T00:00:00Z",
             currentPeriodEnd: "2025-02-01T00:00:00Z",
             cancelAtPeriodEnd: false,
@@ -1268,6 +1269,35 @@ export const apiEndpoints: ApiEndpoint[] = [
     ],
   },
   
+
+  {
+    method: "POST",
+    path: "/api/v1/subscriptions/sync",
+    category: "Subscriptions",
+    description: "Refresh App Store / Google Play Premium from RevenueCat after purchase or restore. Returns the same body as GET /api/v1/subscriptions, including subscription.source (lemonsqueezy, app_store, play_store, or manual). If RevenueCat is unavailable, returns the current saved state. Limited to 5 requests per user per minute.",
+    requiresAuth: true,
+    responses: [
+      {
+        status: 200,
+        description: "Current subscription and plan details (same as GET /api/v1/subscriptions)",
+        example: {
+          subscription: {
+            id: "uuid...",
+            source: "app_store",
+            status: "active",
+            currentPeriodStart: "2025-01-01T00:00:00Z",
+            currentPeriodEnd: "2025-02-01T00:00:00Z",
+            cancelAtPeriodEnd: false,
+          },
+          plan: { id: "uuid...", name: "Premium Monthly", price: 999, interval: "month" },
+          isActive: true,
+          isFree: false,
+        },
+      },
+      { status: 401, description: "Unauthorized", example: { error: "Unauthorized" } },
+      { status: 429, description: "Rate limit exceeded", example: { error: "Too many requests" } },
+    ],
+  },
 
   // Feed API
   {

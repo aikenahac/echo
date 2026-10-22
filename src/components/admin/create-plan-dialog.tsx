@@ -32,6 +32,8 @@ export function CreatePlanDialog() {
   const [formData, setFormData] = useState({
     name: "",
     lemonSqueezyVariantId: "",
+    appStoreProductId: "",
+    playStoreProductId: "",
     price: 0,
     interval: "month" as PlanInterval,
     sortOrder: 10,
@@ -45,6 +47,8 @@ export function CreatePlanDialog() {
       const result = await createSubscriptionPlan({
         name: formData.name,
         lemonSqueezyVariantId: formData.lemonSqueezyVariantId || null,
+        appStoreProductId: formData.appStoreProductId || null,
+        playStoreProductId: formData.playStoreProductId || null,
         price: Math.round(formData.price * 100), // Convert to cents
         interval: formData.interval,
         isActive: true,
@@ -60,6 +64,8 @@ export function CreatePlanDialog() {
         setFormData({
           name: "",
           lemonSqueezyVariantId: "",
+          appStoreProductId: "",
+          playStoreProductId: "",
           price: 0,
           interval: "month",
           sortOrder: 10,
@@ -157,6 +163,38 @@ export function CreatePlanDialog() {
               />
               <p className="text-xs text-muted-foreground">
                 Leave empty for free tier
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="appStoreProductId">App Store product ID</Label>
+              <Input
+                id="appStoreProductId"
+                value={formData.appStoreProductId}
+                onChange={(e) =>
+                  setFormData({ ...formData, appStoreProductId: e.target.value })
+                }
+                placeholder="echo_premium_monthly"
+                className="font-mono text-sm"
+              />
+              <p className="text-xs text-muted-foreground">
+                Leave empty if unavailable in this store
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="playStoreProductId">Play Store product ID</Label>
+              <Input
+                id="playStoreProductId"
+                value={formData.playStoreProductId}
+                onChange={(e) =>
+                  setFormData({ ...formData, playStoreProductId: e.target.value })
+                }
+                placeholder="echo_premium_monthly"
+                className="font-mono text-sm"
+              />
+              <p className="text-xs text-muted-foreground">
+                Leave empty if unavailable in this store
               </p>
             </div>
 
