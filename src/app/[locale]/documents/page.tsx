@@ -20,7 +20,7 @@ const DOCUMENTS = [
   {
     key: "terms",
     href: "/documents/terms-of-service",
-    lastUpdated: "November 29, 2025",
+    lastUpdated: "October 24, 2026",
   },
 ] as const;
 
