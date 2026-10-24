@@ -21,7 +21,7 @@ export default function TermsOfServicePage() {
         <div className="space-y-4">
           <h1>Terms of Service</h1>
           <p className="text-lg text-muted-foreground">
-            Last Updated: October 17, 2026
+            Last Updated: October 24, 2026
           </p>
         </div>
 
@@ -48,9 +48,8 @@ export default function TermsOfServicePage() {
         <section className="space-y-4">
           <h2>2. Description of Service</h2>
           <p className="text-base leading-relaxed">
-            Echo Reads is a book tracking and social reading platform,
-            available on the web and as iOS and Android apps, that allows users
-            to:
+            Echo Reads is a book tracking and social reading platform, available
+            on the web and as iOS and Android apps, that allows users to:
           </p>
           <ul className="space-y-2 list-disc list-inside text-base leading-relaxed ml-4">
             <li>
@@ -162,9 +161,9 @@ export default function TermsOfServicePage() {
               accuracy, quality, or legality.
             </p>
             <p className="text-base leading-relaxed">
-              You can report users and reviews that break these Terms, and
-              block users you do not want to interact with. We review reports
-              and may remove content or suspend accounts as a result.
+              You can report users and reviews that break these Terms, and block
+              users you do not want to interact with. We review reports and may
+              remove content or suspend accounts as a result.
             </p>
           </div>
         </section>
@@ -175,27 +174,54 @@ export default function TermsOfServicePage() {
           <div className="space-y-4">
             <h3>5.1 Purchase</h3>
             <p className="text-base leading-relaxed">
-              Premium is sold through Lemon Squeezy, which acts as the merchant
-              of record and handles payment, taxes, and invoicing. Your purchase
-              is also subject to{" "}
-              <a
-                href="https://www.lemonsqueezy.com/buyer-terms"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary hover:underline"
-              >
-                Lemon Squeezy&apos;s Buyer Terms
-              </a>
-              .
+              Premium is an auto-renewable subscription, offered with monthly
+              and yearly billing periods. Prices are shown before you buy. Where
+              you buy it decides who processes the payment:
             </p>
+            <ul className="space-y-2 list-disc list-inside text-base leading-relaxed ml-4">
+              <li>
+                <strong>On the web,</strong> Premium is sold through Lemon
+                Squeezy, which acts as the merchant of record and handles
+                payment, taxes, and invoicing. Your purchase is also subject to{" "}
+                <a
+                  href="https://www.lemonsqueezy.com/buyer-terms"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  Lemon Squeezy&apos;s Buyer Terms
+                </a>
+                .
+              </li>
+              <li>
+                <strong>In the iOS app,</strong> Premium is sold as an in-app
+                purchase through Apple. Payment is charged to your Apple Account
+                when you confirm the purchase. See also section 19.
+              </li>
+              <li>
+                <strong>In the Android app,</strong> Premium is sold through
+                Google Play and is charged to your Google Play account.
+              </li>
+            </ul>
           </div>
 
           <div className="space-y-4">
             <h3>5.2 Renewal and Cancellation</h3>
             <p className="text-base leading-relaxed">
               Subscriptions renew automatically at the end of each billing
-              period until you cancel. You can cancel at any time; you keep
-              Premium until the end of the period you have already paid for.
+              period, at the then-current price, until you cancel. You can
+              cancel at any time; you keep Premium until the end of the period
+              you have already paid for.
+            </p>
+            <p className="text-base leading-relaxed">
+              For subscriptions bought in the iOS app, your Apple Account is
+              charged for renewal within 24 hours before the end of the current
+              period, unless auto-renew is turned off at least 24 hours before
+              the period ends. You can manage or cancel these subscriptions in
+              your Apple Account settings (Settings &rarr; your name &rarr;
+              Subscriptions). Google Play subscriptions are managed in the
+              Google Play Store. Deleting the app or your Echo Reads account
+              does not cancel a store subscription.
             </p>
           </div>
 
@@ -204,8 +230,11 @@ export default function TermsOfServicePage() {
             <p className="text-base leading-relaxed">
               If you are a consumer in the European Union, you may have a
               statutory right to withdraw from your purchase within 14 days.
-              Refunds are handled in line with applicable consumer law and Lemon
-              Squeezy&apos;s terms. Contact us if you have a billing problem.
+              Refunds for web purchases are handled in line with applicable
+              consumer law and Lemon Squeezy&apos;s terms. Refunds for purchases
+              made through the App Store or Google Play are handled by Apple or
+              Google under their own policies; we cannot issue them ourselves.
+              Contact us if you have a billing problem.
             </p>
           </div>
 
@@ -302,7 +331,8 @@ export default function TermsOfServicePage() {
                 rel="noopener noreferrer"
                 className="text-primary hover:underline"
               >
-                the Internet Archive&apos;s Terms of Use (which cover Open Library)
+                the Internet Archive&apos;s Terms of Use (which cover Open
+                Library)
               </a>
               .
             </p>
@@ -322,7 +352,8 @@ export default function TermsOfServicePage() {
               If you download our mobile apps from the Apple App Store or Google
               Play, your use of the app is also subject to that store&apos;s
               terms. Apple and Google are not parties to these Terms and are not
-              responsible for the app or its content.
+              responsible for the app or its content. Additional terms for the
+              iOS app are set out in section 19.
             </p>
           </div>
 
@@ -562,8 +593,142 @@ export default function TermsOfServicePage() {
             Upon termination of these Terms or your account, the following
             sections shall survive: User Content (license), Intellectual
             Property, Disclaimers, Limitation of Liability, Indemnification,
-            Governing Law, and General Provisions.
+            Governing Law, General Provisions, and Apple App Store Terms.
           </p>
+        </section>
+
+        <section id="app-store" className="space-y-6 scroll-mt-8">
+          <h2>19. Apple App Store Terms (End User License Agreement)</h2>
+          <p className="text-base leading-relaxed">
+            This section applies if you download or use the Echo Reads app on an
+            Apple-branded device (iPhone, iPad, or other Apple product) obtained
+            from the Apple App Store (the &ldquo;iOS App&rdquo;). Together with
+            the rest of these Terms, it forms the end user license agreement
+            (EULA) for the iOS App. If this section conflicts with any other
+            part of these Terms, this section applies to your use of the iOS
+            App.
+          </p>
+
+          <div className="space-y-4">
+            <h3>19.1 Acknowledgement</h3>
+            <p className="text-base leading-relaxed">
+              These Terms are concluded between you and Aerio, Aiken Tine Ahac
+              s.p. only, and not with Apple Inc. (&ldquo;Apple&rdquo;). We, not
+              Apple, are solely responsible for the iOS App and its content.
+              These Terms may not provide for usage rules for the iOS App that
+              conflict with the Apple Media Services Terms and Conditions in
+              effect when you accept them (the &ldquo;Usage Rules&rdquo;).
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <h3>19.2 Scope of License</h3>
+            <p className="text-base leading-relaxed">
+              We grant you a limited, non-transferable license to use the iOS
+              App on any Apple-branded products that you own or control, as
+              permitted by the Usage Rules, except that the iOS App may be
+              accessed and used by other accounts associated with you through
+              Family Sharing or volume purchasing.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <h3>19.3 Maintenance and Support</h3>
+            <p className="text-base leading-relaxed">
+              We are solely responsible for providing any maintenance and
+              support services for the iOS App, as described in these Terms or
+              as required by applicable law. Apple has no obligation whatsoever
+              to furnish any maintenance or support services for the iOS App.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <h3>19.4 Warranty</h3>
+            <p className="text-base leading-relaxed">
+              We are solely responsible for any product warranties, whether
+              express or implied by law, to the extent not effectively
+              disclaimed. If the iOS App fails to conform to any applicable
+              warranty, you may notify Apple, and Apple will refund the purchase
+              price (if any) for the iOS App to you. To the maximum extent
+              permitted by applicable law, Apple has no other warranty
+              obligation whatsoever with respect to the iOS App, and any other
+              claims, losses, liabilities, damages, costs, or expenses
+              attributable to any failure to conform to any warranty are our
+              sole responsibility.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <h3>19.5 Product Claims</h3>
+            <p className="text-base leading-relaxed">
+              We, not Apple, are responsible for addressing any claims by you or
+              any third party relating to the iOS App or your possession and/or
+              use of it, including: (i) product liability claims; (ii) any claim
+              that the iOS App fails to conform to any applicable legal or
+              regulatory requirement; and (iii) claims arising under consumer
+              protection, privacy, or similar legislation, including in
+              connection with the iOS App&apos;s use of the HealthKit and
+              HomeKit frameworks, if any. Nothing in these Terms limits our
+              liability to you beyond what is permitted by applicable law.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <h3>19.6 Intellectual Property Rights</h3>
+            <p className="text-base leading-relaxed">
+              If any third party claims that the iOS App or your possession and
+              use of it infringes that third party&apos;s intellectual property
+              rights, we, not Apple, will be solely responsible for the
+              investigation, defense, settlement, and discharge of that claim.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <h3>19.7 Legal Compliance</h3>
+            <p className="text-base leading-relaxed">
+              You represent and warrant that (i) you are not located in a
+              country that is subject to a U.S. Government embargo, or that has
+              been designated by the U.S. Government as a &ldquo;terrorist
+              supporting&rdquo; country; and (ii) you are not listed on any U.S.
+              Government list of prohibited or restricted parties.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <h3>19.8 Developer Name and Address</h3>
+            <p className="text-base leading-relaxed">
+              Questions, complaints, or claims about the iOS App should be
+              directed to Aerio, Aiken Tine Ahac s.p., Štihova ulica 13, 1000
+              Ljubljana, Slovenia, email{" "}
+              <a
+                href="mailto:me@aiken.si"
+                className="text-primary hover:underline"
+              >
+                me@aiken.si
+              </a>
+              .
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <h3>19.9 Third-Party Terms of Agreement</h3>
+            <p className="text-base leading-relaxed">
+              You must comply with applicable third-party terms of agreement
+              when using the iOS App, such as your wireless data service
+              agreement.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <h3>19.10 Third-Party Beneficiary</h3>
+            <p className="text-base leading-relaxed">
+              Apple and Apple&apos;s subsidiaries are third-party beneficiaries
+              of these Terms, and upon your acceptance of these Terms, Apple
+              will have the right (and will be deemed to have accepted the
+              right) to enforce these Terms against you as a third-party
+              beneficiary.
+            </p>
+          </div>
         </section>
       </div>
     </div>
