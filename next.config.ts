@@ -13,6 +13,9 @@ const nextConfig: NextConfig = {
   /* config options here */
   output: "standalone",
   reactCompiler: true,
+  experimental: {
+    agentUpgrade: "security",
+  },
   images: {
     remotePatterns: [
       ...(s3PublicUrl
