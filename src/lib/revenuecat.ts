@@ -27,6 +27,8 @@ type RcSubscription = {
   store: string;
   period_type: "normal" | "trial" | "intro" | "prepaid";
   unsubscribe_detected_at: string | null;
+  /** Google Play base plan, when product_identifier doesn't carry it */
+  product_plan_identifier?: string | null;
 };
 
 type RcNonSubscription = { store: string; purchase_date: string };
@@ -57,7 +59,7 @@ export type StoreState =
   | {
       active: true;
       source: StoreSource;
-      /** Store product id; Play subscriptions drop the ":basePlan" suffix */
+      /** Store product id; Play subscriptions are "subscription:basePlan" (monthly and yearly share a subscription) */
       productId: string;
       lifetime: boolean;
       trialing: boolean;
@@ -80,13 +82,16 @@ export function resolveStoreState(subscriber: RcSubscriber, now = new Date()): S
   const lifetime = entitlement.expires_date === null;
   if (!lifetime && Math.max(...ends) <= now.getTime()) return { active: false };
 
-  const productId = entitlement.product_identifier.split(":")[0];
+  const [baseId, basePlan] = entitlement.product_identifier.split(":");
   const subscription = subscriber.subscriptions[entitlement.product_identifier]
-    ?? subscriber.subscriptions[productId];
-  const purchase = subscriber.non_subscriptions[productId]?.at(-1);
+    ?? subscriber.subscriptions[baseId];
+  const purchase = subscriber.non_subscriptions[baseId]?.at(-1);
   const source = toSource(lifetime ? purchase?.store : subscription?.store);
   // Promotional or web (Stripe) grants in RevenueCat aren't ours to mirror
   if (!source) return { active: false };
+
+  const plan = basePlan ?? subscription?.product_plan_identifier;
+  const productId = source === "play_store" && !lifetime && plan ? `${baseId}:${plan}` : baseId;
 
   return {
     active: true,

@@ -70,12 +70,18 @@ describe("resolveStoreState", () => {
     expect(resolveStoreState(subscriber(), now)).toEqual(monthly);
   });
 
-  it("strips the Play base plan suffix from the product ID", () => {
+  it("keeps the Play base plan in the product ID", () => {
     expect(resolveStoreState(subscriber({
-      productId: "echo_premium_monthly:monthly", store: "play_store",
+      productId: "echo_premium:yearly", store: "play_store",
     }), now)).toMatchObject({
-      active: true, source: "play_store", productId: "echo_premium_monthly",
+      active: true, source: "play_store", productId: "echo_premium:yearly",
     });
+  });
+
+  it("adds the Play base plan when RevenueCat reports it separately", () => {
+    const yearly = subscriber({ productId: "echo_premium", store: "play_store" });
+    yearly.subscriptions.echo_premium!.product_plan_identifier = "yearly";
+    expect(resolveStoreState(yearly, now)).toMatchObject({ productId: "echo_premium:yearly" });
   });
 
   it("returns inactive for expired access", () => {
