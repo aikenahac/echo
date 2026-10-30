@@ -37,6 +37,7 @@ This is a Next.js 16 App Router project with internationalization using `next-in
 - `src/app/[locale]/search` - Search (`?q=&tab=books|readers`); `/books/search` and `/users/search` redirect here
 - `src/app/[locale]/feed/` - Friends feed
 - `src/app/[locale]/profile/`, `settings/` - You and Settings
+- `src/app/[locale]/redeem` - Redeem a promo code (`?code=` prefill); codes are managed at `/admin/promo-codes`. A grant has `source: "promo"`, expires lazily via `expirePromoGrant` (`src/lib/promo.ts`), and gives way to a real purchase
 
 Signed-out pages (welcome, auth, pricing, documents) render without the app chrome; see `isBarePath` in `src/components/navigation.tsx`.
 

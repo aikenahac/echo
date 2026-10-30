@@ -427,7 +427,9 @@
     "cancel": "Cancel",
     "version": "Echo for the web",
     "privacyGroup": "Privacy",
-    "blockedUsers": "Blocked users"
+    "blockedUsers": "Blocked users",
+    "redeemCode": "Redeem a code",
+    "promoGrant": "Granted with a code"
   },
   "coll": {
     "back": "Back",
@@ -552,5 +554,27 @@
     "blockedBody": "Blocked readers can't see your activity and you can't see theirs.",
     "noneBlocked": "You haven't blocked anyone.",
     "unblock": "Unblock"
+  },
+  "redeem": {
+    "title": "Redeem a code",
+    "body": "Have a promo code? Enter it to unlock Echo Premium for free.",
+    "label": "Code",
+    "submit": "Redeem",
+    "redeeming": "Redeeming…",
+    "successTitle": "Premium is yours.",
+    "successUntil": "Collections are open until {date}.",
+    "successLifetime": "Collections are open, for life.",
+    "library": "Go to your library",
+    "errors": {
+      "invalid": "That code doesn't exist. Check it and try again.",
+      "inactive": "This code is no longer active.",
+      "usedUp": "This code has been used up.",
+      "alreadyRedeemed": "You've already redeemed this code.",
+      "alreadyPremium": "You already have Premium, so there's nothing to unlock.",
+      "rateLimited": "Too many tries. Wait a few minutes and try again.",
+      "unauthorized": "Sign in to redeem a code.",
+      "server": "Something went wrong. Try again."
+    },
+    "haveCode": "Have a code? Redeem it"
   }
 }

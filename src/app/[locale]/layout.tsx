@@ -127,6 +127,7 @@ const CLIENT_MESSAGE_NAMESPACES = [
   "paywall",
   "plans",
   "profile",
+  "redeem",
   "settingsPage",
   "shelf",
   "support",

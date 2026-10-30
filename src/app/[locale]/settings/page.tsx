@@ -54,6 +54,9 @@ export default async function SettingsPage({
   const subscription = user.subscription;
   const plan = subscription?.plan;
   const paid = isPaidPlan(plan);
+  const promo = subscription?.source === "promo";
+  // A promo grant's term comes from the code, not the plan's interval
+  const lifetime = promo ? !subscription.currentPeriodEnd : plan?.interval === "lifetime";
   const name = user.displayName || user.username || user.email;
   const longDate = (d: Date) =>
     format.dateTime(d, { day: "numeric", month: "short", year: "numeric" });
@@ -85,13 +88,32 @@ export default async function SettingsPage({
           <>
             <div className={row}>
               <span className="flex-1">{plan.name}</span>
-              {plan.interval === "lifetime" && (
+              {lifetime && (
                 <Stamp size="xs" rotate={-4}>
                   {t("lifetime")}
                 </Stamp>
               )}
             </div>
-            {plan.interval === "lifetime" ? (
+            {promo ? (
+              <>
+                <div className={row}>
+                  <span className="flex-1">{t("promoGrant")}</span>
+                  <span className="text-ink-2 tnum">{longDate(subscription.currentPeriodStart ?? subscription.createdAt)}</span>
+                </div>
+                {subscription.currentPeriodEnd && (
+                  <>
+                    <div className={row}>
+                      <span className="flex-1">{t("expires")}</span>
+                      <span className="text-ink-2 tnum">{longDate(subscription.currentPeriodEnd)}</span>
+                    </div>
+                    <Link href="/subscription" className={`${row} text-pink-ink`}>
+                      <span className="flex-1 font-semibold">{t("managePlans")}</span>
+                      <Icon name="forward" size={16} />
+                    </Link>
+                  </>
+                )}
+              </>
+            ) : lifetime ? (
               <div className={row}>
                 <span className="flex-1">{t("paidOnce")}</span>
                 <span className="text-ink-2 tnum">{longDate(subscription.currentPeriodStart ?? subscription.createdAt)}</span>
@@ -126,6 +148,10 @@ export default async function SettingsPage({
                 <span className="block text-[13px] text-ink-2">{t("premiumUpsell")}</span>
               </span>
               <Icon name="forward" size={16} />
+            </Link>
+            <Link href="/redeem" className={row}>
+              <span className="flex-1">{t("redeemCode")}</span>
+              <Icon name="forward" size={16} className="text-ink-3" />
             </Link>
           </>
         )}

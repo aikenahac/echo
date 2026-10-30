@@ -45,11 +45,13 @@ export async function createCheckoutSession(planId: string) {
       }),
     ]);
 
-    // Prevents paying twice, e.g. a lifetime purchase on top of a subscription
+    // Prevents paying twice, e.g. a lifetime purchase on top of a subscription.
+    // A time-limited promo grant may be replaced by a purchase.
     if (
       current &&
       ["active", "trialing"].includes(current.status) &&
-      isPaidPlan(current.plan)
+      isPaidPlan(current.plan) &&
+      !(current.source === "promo" && current.currentPeriodEnd)
     ) {
       return { error: "You already have Premium" };
     }

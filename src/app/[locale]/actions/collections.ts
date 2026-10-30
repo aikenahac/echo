@@ -11,6 +11,7 @@ import {
 } from "@/db/schema";
 import { eq, and, desc, sql, inArray, notInArray, count } from "drizzle-orm";
 import { getBlockedIds } from "@/lib/blocks";
+import { expirePromoGrant } from "@/lib/promo";
 import { after } from "next/server";
 import { revalidateLocalized } from "@/lib/revalidate";
 import {
@@ -88,6 +89,7 @@ function sanitizeCollectionInput(
 
 // Helper function to check if user has collection access (paid plan)
 async function checkCollectionAccess(userId: string): Promise<boolean> {
+  await expirePromoGrant(userId);
   const subscription = await db.query.userSubscriptions.findFirst({
     where: eq(userSubscriptions.userId, userId),
     with: { plan: true },

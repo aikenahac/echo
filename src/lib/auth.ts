@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { ensureFreePlan } from "@/lib/provisioning";
+import { expirePromoGrant } from "@/lib/promo";
 
 export { isPaidPlan } from "@/lib/plans";
 
@@ -31,7 +32,12 @@ export const getViewer = cache(async () => {
   if (!userId) return null;
 
   const user = await findViewer(userId);
-  if (user?.subscription) return user;
+  const sub = user?.subscription;
+  if (sub?.source === "promo" && sub.currentPeriodEnd && sub.currentPeriodEnd < new Date()) {
+    await expirePromoGrant(userId);
+    return (await findViewer(userId)) ?? null;
+  }
+  if (sub) return user;
 
   // First visit: create the user row (Clerk is only called in this case)
   if (!user) {

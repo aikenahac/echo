@@ -13,6 +13,7 @@ import {
   CreditCard,
   LifeBuoy,
   Flag,
+  Ticket,
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
@@ -36,6 +37,12 @@ const navItems: {
     title: "Subscriptions",
     href: "/admin/subscriptions",
     icon: CreditCard,
+  },
+  {
+    title: "Promo Codes",
+    href: "/admin/promo-codes",
+    icon: Ticket,
+    adminOnly: true,
   },
   {
     title: "Reviews",

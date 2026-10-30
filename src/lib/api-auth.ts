@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { ensureFreePlan } from "@/lib/provisioning";
+import { expirePromoGrant } from "@/lib/promo";
 
 /**
  * Create a user in the database from Clerk user data
@@ -19,6 +20,7 @@ async function ensureUserExists(userId: string) {
   });
 
   if (user) {
+    await expirePromoGrant(userId);
     return user;
   }
 

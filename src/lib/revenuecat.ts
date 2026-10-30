@@ -127,6 +127,8 @@ export function shouldWrite(existing: ExistingRow | undefined, state: StoreState
     return !!existing && isStoreSource(existing.source) && holdsPremium(existing);
   }
   if (!existing || !holdsPremium(existing)) return true;
+  // A promo grant gives way to a real purchase
+  if (existing.source === "promo") return true;
   if (!isStoreSource(existing.source)) return false;
   return state.lifetime || existing.plan.interval !== "lifetime";
 }

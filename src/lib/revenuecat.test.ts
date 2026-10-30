@@ -136,6 +136,12 @@ describe("shouldWrite", () => {
   it("preserves active manual access", () => {
     expect(shouldWrite(existing("manual"), monthly)).toBe(false);
   });
+  it("replaces active promo access with active store access", () => {
+    expect(shouldWrite(existing("promo"), monthly)).toBe(true);
+  });
+  it("does not deactivate promo access", () => {
+    expect(shouldWrite(existing("promo"), { active: false })).toBe(false);
+  });
   it("preserves store lifetime access over monthly access", () => {
     expect(shouldWrite(existing("play_store", "active", "lifetime"), monthly)).toBe(false);
   });

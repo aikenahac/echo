@@ -13,6 +13,7 @@ const isProtectedRoute = createRouteMatcher([
   "/:locale/users/search(.*)",
   "/:locale/settings(.*)",
   "/:locale/subscription(.*)",
+  "/:locale/redeem(.*)",
   "/:locale/admin(.*)",
 ]);
 

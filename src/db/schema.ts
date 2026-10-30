@@ -33,6 +33,7 @@ export const subscriptionSourceEnum = pgEnum("subscription_source", [
   "app_store",
   "play_store",
   "manual",
+  "promo",
 ]);
 
 export const subscriptionStatusEnum = pgEnum("subscription_status", [
@@ -387,6 +388,50 @@ export const userSubscriptions = pgTable(
   }),
 );
 
+// Promo codes: redeeming one grants its plan for a fixed time, without payment
+export const promoDurationUnitEnum = pgEnum("promo_duration_unit", [
+  "month",
+  "year",
+  "lifetime",
+]);
+
+export const promoCodes = pgTable("promo_codes", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  code: text("code").notNull().unique(), // Normalized: uppercase A-Z0-9
+  planId: uuid("plan_id")
+    .notNull()
+    .references(() => subscriptionPlans.id),
+  durationUnit: promoDurationUnitEnum("duration_unit").notNull(),
+  durationCount: integer("duration_count"), // null for lifetime
+  maxUses: integer("max_uses"), // null = unlimited
+  redeemedCount: integer("redeemed_count").default(0).notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  note: text("note"),
+  createdBy: text("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const promoRedemptions = pgTable(
+  "promo_redemptions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    codeId: uuid("code_id")
+      .notNull()
+      .references(() => promoCodes.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    redeemedAt: timestamp("redeemed_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    codeUserIdx: uniqueIndex("promo_redemptions_code_user_idx").on(
+      table.codeId,
+      table.userId,
+    ),
+    userIdx: index("promo_redemptions_user_idx").on(table.userId),
+  }),
+);
+
 // Processed payment webhook deliveries (for idempotency - Lemon Squeezy retries
 // deliveries and events have no ID, so the id is a SHA-256 of the raw body)
 export const webhookEvents = pgTable("webhook_events", {
@@ -563,8 +608,28 @@ export const subscriptionPlansRelations = relations(
   subscriptionPlans,
   ({ many }) => ({
     subscriptions: many(userSubscriptions),
+    promoCodes: many(promoCodes),
   }),
 );
+
+export const promoCodesRelations = relations(promoCodes, ({ one, many }) => ({
+  plan: one(subscriptionPlans, {
+    fields: [promoCodes.planId],
+    references: [subscriptionPlans.id],
+  }),
+  redemptions: many(promoRedemptions),
+}));
+
+export const promoRedemptionsRelations = relations(promoRedemptions, ({ one }) => ({
+  code: one(promoCodes, {
+    fields: [promoRedemptions.codeId],
+    references: [promoCodes.id],
+  }),
+  user: one(users, {
+    fields: [promoRedemptions.userId],
+    references: [users.id],
+  }),
+}));
 
 export const userSubscriptionsRelations = relations(
   userSubscriptions,

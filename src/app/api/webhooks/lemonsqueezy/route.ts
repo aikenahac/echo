@@ -202,9 +202,10 @@ async function handleSubscriptionUpdate(
     existingSubscription?.lemonSqueezySubscriptionId !== subscription.id;
 
   // A replaced web subscription must not overwrite active store, manual or
-  // lifetime access.
+  // lifetime access. A promo grant gives way to a real purchase.
   if (
     existingSubscription &&
+    existingSubscription.source !== "promo" &&
     (existingSubscription.source !== "lemonsqueezy" ||
       existingSubscription.plan.interval === "lifetime") &&
     ["active", "trialing"].includes(existingSubscription.status) &&
@@ -262,7 +263,7 @@ async function handleSubscriptionUpdate(
   console.log("Subscription synced for user:", userId, "- Plan:", plan.name, "- Status:", subscription.status);
 
   // Send welcome email when the user moves from a free plan to an active paid plan
-  if (isActive && isPaidPlan(plan) && !isPaidPlan(existingSubscription?.plan)) {
+  if (isActive && isPaidPlan(plan) && !hadPaidAccess(existingSubscription)) {
     const user = await db.query.users.findFirst({
       where: eq(users.id, userId),
     });
@@ -338,6 +339,11 @@ async function handleSubscriptionExpired(
 }
 
 /** The user ID passed as checkout custom data, if any. */
+/** Paid access before this event; a promo grant doesn't count, so buying after one still welcomes the user */
+function hadPaidAccess(row: { source: string; plan: Parameters<typeof isPaidPlan>[0] } | undefined) {
+  return !!row && row.source !== "promo" && isPaidPlan(row.plan);
+}
+
 function customUserId(customData: WebhookCustomData) {
   const userId = customData.user_id;
   return typeof userId === "string" ? userId : undefined;
@@ -399,7 +405,7 @@ async function handleOrderCreated(
 
   console.log("Lifetime plan granted to user:", userId, "- Order:", order.id);
 
-  if (existing && isPaidPlan(existing.plan) && ["active", "trialing"].includes(existing.status)) {
+  if (existing && hadPaidAccess(existing) && ["active", "trialing"].includes(existing.status)) {
     return;
   }
 
