@@ -45,7 +45,9 @@ export default async function SubscriptionPage({
       <div className="mx-auto grid w-full max-w-[1180px] gap-10 px-5 pt-[max(24px,env(safe-area-inset-top))] pb-12 md:px-10 md:pt-16 lg:grid-cols-[1.2fr_1fr] lg:items-end lg:gap-20">
         <PremiumPitch />
         <PlanSelector
-          plans={availablePlans}
+          plans={availablePlans.filter(
+            (p) => p.price === 0 || p.lemonSqueezyVariantId,
+          )}
           currentPlanId={subscription?.planId}
           comingSoon={!isLemonSqueezyConfigured()}
         />

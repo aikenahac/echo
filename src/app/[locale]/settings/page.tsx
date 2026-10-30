@@ -94,7 +94,7 @@ export default async function SettingsPage({
             {plan.interval === "lifetime" ? (
               <div className={row}>
                 <span className="flex-1">{t("paidOnce")}</span>
-                <span className="text-ink-2 tnum">{longDate(subscription.createdAt)}</span>
+                <span className="text-ink-2 tnum">{longDate(subscription.currentPeriodStart ?? subscription.createdAt)}</span>
               </div>
             ) : subscription?.currentPeriodEnd ? (
               <div className={row}>

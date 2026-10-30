@@ -13,13 +13,17 @@ import {
   subscriptionPlans,
   webhookEvents,
 } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import {
   sendWelcomeToPremiumEmail,
   sendPaymentFailedEmail,
   sendSubscriptionCanceledEmail,
 } from "@/lib/email";
-import { getLemonSqueezy } from "@/lib/lemonsqueezy";
+import {
+  getLemonSqueezy,
+  parseOrder,
+  type LemonSqueezyOrder,
+} from "@/lib/lemonsqueezy";
 import { isPaidPlan } from "@/lib/auth";
 
 // Force this route to be dynamic and disable caching
@@ -118,7 +122,16 @@ export async function POST(req: NextRequest) {
         break;
 
       case "unknown":
-        console.log(`Unhandled event type: ${event.eventName}`);
+        switch (event.eventName) {
+          case "order_created":
+            await handleOrderCreated(parseOrder(event.data), event.customData);
+            break;
+          case "order_refunded":
+            await handleOrderRefunded(parseOrder(event.data), event.customData);
+            break;
+          default:
+            console.log(`Unhandled event type: ${event.eventName}`);
+        }
         break;
     }
 
@@ -142,8 +155,7 @@ async function findSubscriptionRow(
   subscription: LemonSqueezySubscription,
   customData: WebhookCustomData,
 ) {
-  const customUserId = customData.user_id;
-  const userId = typeof customUserId === "string" ? customUserId : undefined;
+  const userId = customUserId(customData);
   if (userId) {
     const row = await db.query.userSubscriptions.findFirst({
       where: eq(userSubscriptions.userId, userId),
@@ -189,10 +201,12 @@ async function handleSubscriptionUpdate(
   const isNewSubscription =
     existingSubscription?.lemonSqueezySubscriptionId !== subscription.id;
 
-  // A replaced web subscription must not overwrite active store or manual access.
+  // A replaced web subscription must not overwrite active store, manual or
+  // lifetime access.
   if (
     existingSubscription &&
-    existingSubscription.source !== "lemonsqueezy" &&
+    (existingSubscription.source !== "lemonsqueezy" ||
+      existingSubscription.plan.interval === "lifetime") &&
     ["active", "trialing"].includes(existingSubscription.status) &&
     isPaidPlan(existingSubscription.plan)
   ) return;
@@ -272,7 +286,14 @@ async function handleSubscriptionExpired(
     customData,
   );
 
-  if (!userId || !userSub || userSub.source !== "lemonsqueezy") return;
+  if (
+    !userId ||
+    !userSub ||
+    userSub.source !== "lemonsqueezy" ||
+    userSub.plan.interval === "lifetime"
+  ) {
+    return;
+  }
 
   // Ignore expiry of a subscription the user no longer has
   if (
@@ -314,6 +335,126 @@ async function handleSubscriptionExpired(
       console.error("Failed to send cancellation email:", emailError);
     }
   }
+}
+
+/** The user ID passed as checkout custom data, if any. */
+function customUserId(customData: WebhookCustomData) {
+  const userId = customData.user_id;
+  return typeof userId === "string" ? userId : undefined;
+}
+
+/** Find the lifetime plan sold by a one-time variant; subscriptions are handled elsewhere. */
+function findLifetimePlan(variantId: number) {
+  return db.query.subscriptionPlans.findFirst({
+    where: and(
+      eq(subscriptionPlans.lemonSqueezyVariantId, String(variantId)),
+      eq(subscriptionPlans.interval, "lifetime"),
+    ),
+  });
+}
+
+/** A paid one-time order for a lifetime plan grants it for good. */
+async function handleOrderCreated(
+  order: LemonSqueezyOrder,
+  customData: WebhookCustomData,
+) {
+  if (order.status !== "paid") return;
+
+  // order_created also fires for a subscription's first payment
+  const plan = await findLifetimePlan(order.variantId);
+  if (!plan) return;
+
+  const userId = customUserId(customData);
+  if (!userId) {
+    console.error("No user ID on lifetime order:", order.id);
+    return;
+  }
+
+  const existing = await db.query.userSubscriptions.findFirst({
+    where: eq(userSubscriptions.userId, userId),
+    with: { plan: true },
+  });
+
+  const values: typeof userSubscriptions.$inferInsert = {
+    userId,
+    planId: plan.id,
+    source: "lemonsqueezy",
+    storeProductId: null,
+    lemonSqueezySubscriptionId: null,
+    lemonSqueezyCustomerId: String(order.customerId),
+    status: "active",
+    currentPeriodStart: new Date(order.createdAt),
+    currentPeriodEnd: null,
+    cancelAtPeriodEnd: false,
+    canceledAt: null,
+  };
+
+  await db
+    .insert(userSubscriptions)
+    .values(values)
+    .onConflictDoUpdate({
+      target: userSubscriptions.userId,
+      set: { ...values, updatedAt: new Date() },
+    });
+
+  console.log("Lifetime plan granted to user:", userId, "- Order:", order.id);
+
+  if (existing && isPaidPlan(existing.plan) && ["active", "trialing"].includes(existing.status)) {
+    return;
+  }
+
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, userId),
+  });
+
+  if (user?.email) {
+    try {
+      await sendWelcomeToPremiumEmail(user.email, user.username || "there");
+    } catch (emailError) {
+      console.error("Failed to send welcome email:", emailError);
+    }
+  }
+}
+
+/** A fully refunded lifetime order takes the user back to the free plan. */
+async function handleOrderRefunded(
+  order: LemonSqueezyOrder,
+  customData: WebhookCustomData,
+) {
+  if (order.status !== "refunded") return;
+
+  const userId = customUserId(customData);
+  if (!userId) return;
+
+  const userSub = await db.query.userSubscriptions.findFirst({
+    where: eq(userSubscriptions.userId, userId),
+    with: { plan: true },
+  });
+
+  // Only revoke the lifetime plan this order bought
+  if (
+    userSub?.source !== "lemonsqueezy" ||
+    userSub.plan.interval !== "lifetime" ||
+    userSub.plan.lemonSqueezyVariantId !== String(order.variantId)
+  ) {
+    return;
+  }
+
+  const freePlan = await db.query.subscriptionPlans.findFirst({
+    where: eq(subscriptionPlans.interval, "free"),
+  });
+
+  await db
+    .update(userSubscriptions)
+    .set({
+      status: "canceled",
+      canceledAt: new Date(),
+      updatedAt: new Date(),
+      ...(freePlan ? { planId: freePlan.id } : {}),
+    })
+    .where(eq(userSubscriptions.userId, userId));
+
+  console.log("Lifetime plan revoked after refund for user:", userId);
 }
 
 async function handlePaymentFailed(subscriptionId: number) {

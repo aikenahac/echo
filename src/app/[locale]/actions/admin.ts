@@ -25,17 +25,25 @@ import {
 } from "@/lib/admin-table";
 
 /**
- * Look up a Lemon Squeezy variant for a plan: it must exist and be a
- * subscription. `getVariant` throws on unknown IDs.
+ * Look up a Lemon Squeezy variant for a plan: it must exist, be a one-time
+ * variant for a lifetime plan and a subscription for a monthly or yearly one.
+ * `getVariant` throws on unknown IDs.
  */
-async function findSubscriptionVariant(variantId: string) {
+async function findPlanVariant(
+  variantId: string,
+  interval: "month" | "year" | "lifetime" | "free",
+) {
+  if (interval === "free") return null;
   try {
     const variant = await getLemonSqueezy().getVariant(variantId);
-    return variant.isSubscription ? variant : null;
+    return variant.isSubscription === (interval !== "lifetime") ? variant : null;
   } catch {
     return null;
   }
 }
+
+const INVALID_VARIANT =
+  "Invalid Lemon Squeezy variant ID: use a single payment variant for lifetime plans and a subscription variant for monthly or yearly ones";
 
 /**
  * Update a user's role (admin only)
@@ -300,9 +308,9 @@ export async function createSubscriptionPlan(data: {
     // The product ID is derived from the variant, never entered by hand
     let lemonSqueezyProductId: string | null = null;
     if (data.lemonSqueezyVariantId) {
-      const variant = await findSubscriptionVariant(data.lemonSqueezyVariantId);
+      const variant = await findPlanVariant(data.lemonSqueezyVariantId, data.interval);
       if (!variant) {
-        return { error: "Invalid Lemon Squeezy variant ID" };
+        return { error: INVALID_VARIANT };
       }
       lemonSqueezyProductId = String(variant.productId);
     }
@@ -358,13 +366,25 @@ export async function updateSubscriptionPlan(
     const update: typeof data & { lemonSqueezyProductId?: string | null } = {
       ...data,
     };
-    if (data.lemonSqueezyVariantId) {
-      const variant = await findSubscriptionVariant(data.lemonSqueezyVariantId);
-      if (!variant) {
-        return { error: "Invalid Lemon Squeezy variant ID" };
+    if (data.lemonSqueezyVariantId || data.interval) {
+      // Either side may change alone; check the variant against the resulting interval
+      const current = await db.query.subscriptionPlans.findFirst({
+        where: eq(subscriptionPlans.id, planId),
+      });
+      if (!current) return { error: "Plan not found" };
+      const variantId =
+        data.lemonSqueezyVariantId !== undefined
+          ? data.lemonSqueezyVariantId
+          : current.lemonSqueezyVariantId;
+      if (variantId) {
+        const variant = await findPlanVariant(variantId, data.interval ?? current.interval);
+        if (!variant) {
+          return { error: INVALID_VARIANT };
+        }
+        update.lemonSqueezyProductId = String(variant.productId);
       }
-      update.lemonSqueezyProductId = String(variant.productId);
-    } else if (data.lemonSqueezyVariantId === null) {
+    }
+    if (data.lemonSqueezyVariantId === null) {
       update.lemonSqueezyProductId = null;
     }
 

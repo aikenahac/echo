@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { users, userSubscriptions, subscriptionPlans } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { revalidateLocalized } from "@/lib/revalidate";
+import { isPaidPlan } from "@/lib/plans";
 import {
   getLemonSqueezy,
   lemonSqueezyStoreId,
@@ -28,7 +29,7 @@ export async function createCheckoutSession(planId: string) {
   }
 
   try {
-    const [user, plan] = await Promise.all([
+    const [user, plan, current] = await Promise.all([
       db.query.users.findFirst({
         where: eq(users.id, userId),
       }),
@@ -38,7 +39,20 @@ export async function createCheckoutSession(planId: string) {
           eq(subscriptionPlans.isActive, true)
         ),
       }),
+      db.query.userSubscriptions.findFirst({
+        where: eq(userSubscriptions.userId, userId),
+        with: { plan: true },
+      }),
     ]);
+
+    // Prevents paying twice, e.g. a lifetime purchase on top of a subscription
+    if (
+      current &&
+      ["active", "trialing"].includes(current.status) &&
+      isPaidPlan(current.plan)
+    ) {
+      return { error: "You already have Premium" };
+    }
 
     if (!plan) {
       return { error: "Plan not found" };

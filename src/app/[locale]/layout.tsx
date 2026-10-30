@@ -116,11 +116,13 @@ export const metadata: Metadata = {
 // Add a namespace here when a client component starts using it.
 const CLIENT_MESSAGE_NAMESPACES = [
   "auth",
+  "badges",
   "coll",
   "collections",
   "detail",
   "find",
   "friends",
+  "moderation",
   "navigation",
   "paywall",
   "plans",
