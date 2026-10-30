@@ -181,7 +181,7 @@ export default async function LocaleLayout({
         className={archivo.variable}
       >
         <head>
-          <script defer data-domain="echobook.club" src="https://plausible.aerio.cloud/js/script.outbound-links.pageview-props.tagged-events.js"></script>
+          <script defer data-domain="echoreads.app" src="https://plausible.aerio.cloud/js/script.outbound-links.pageview-props.tagged-events.js"></script>
         </head>
         <body>
           <NextIntlClientProvider messages={messages}>
