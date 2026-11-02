@@ -14,6 +14,7 @@ import {
   LifeBuoy,
   Flag,
   Ticket,
+  Bell,
 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
@@ -42,6 +43,12 @@ const navItems: {
     title: "Promo Codes",
     href: "/admin/promo-codes",
     icon: Ticket,
+    adminOnly: true,
+  },
+  {
+    title: "Notifications",
+    href: "/admin/notifications",
+    icon: Bell,
     adminOnly: true,
   },
   {

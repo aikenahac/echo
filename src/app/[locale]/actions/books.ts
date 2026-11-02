@@ -6,6 +6,7 @@ import { books, userBooks } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { revalidateLocalized } from "@/lib/revalidate";
 import { after } from "next/server";
+import { notifyReadingActivity } from "@/lib/push";
 import { z } from "zod";
 import { verifyAndMirrorBook } from "@/lib/book-verification";
 import { upsertBooks } from "@/lib/catalog-search";
@@ -88,6 +89,11 @@ export async function addBookToLibrary(
       return { error: "Book already in your library" };
     }
 
+    if (status !== "want") {
+      const kind = status === "reading" ? "started" : "finished";
+      after(() => notifyReadingActivity(userId, userBook.id, userBook.bookId, kind));
+    }
+
     revalidateLocalized("/library", "/books/search");
 
     return { success: true, userBook };
@@ -143,6 +149,11 @@ export async function updateBookStatus(
       .set(updateData)
       .where(eq(userBooks.id, userBookId));
 
+    if (status !== "want" && status !== userBook.status) {
+      const kind = status === "reading" ? "started" : "finished";
+      after(() => notifyReadingActivity(userId, userBookId, userBook.bookId, kind));
+    }
+
     revalidateLocalized("/library", `/books/${userBook.bookId}`);
 
     return { success: true };
@@ -191,6 +202,10 @@ export async function updateBookPageCount(
       .update(userBooks)
       .set(updateData)
       .where(eq(userBooks.id, userBookId));
+
+    if (updateData.status === "reading" && userBook.status !== "reading") {
+      after(() => notifyReadingActivity(userId, userBookId, userBook.bookId, "started"));
+    }
 
     revalidateLocalized("/library", `/books/${userBook.bookId}`);
 
@@ -258,6 +273,12 @@ async function setCurrentPage(userBookId: string, currentPage: number) {
       .update(userBooks)
       .set(updateData)
       .where(eq(userBooks.id, userBookId));
+
+    const newStatus = updateData.status;
+    if (newStatus) {
+      const kind = newStatus === "reading" ? "started" : "finished";
+      after(() => notifyReadingActivity(userId, userBookId, userBook.bookId, kind));
+    }
 
     revalidateLocalized("/library", `/books/${userBook.bookId}`);
 

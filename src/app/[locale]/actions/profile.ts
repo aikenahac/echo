@@ -14,6 +14,10 @@ import {
 import { validateImageUpload } from "@/lib/image-validation";
 import { blurhashForKey } from "@/lib/blurhash";
 import { isAudience, type Audience } from "@/lib/audience";
+import {
+  NOTIFICATION_PREFERENCES,
+  type NotificationPreference,
+} from "@/lib/push";
 import { usernameFormatError } from "@/lib/username";
 import { AccountDeletionError, deleteUserAccount } from "@/lib/account";
 
@@ -127,7 +131,7 @@ export type ProfileFields = {
   profileVisibility?: Audience;
   activityVisibility?: Audience;
   reviewVisibility?: Audience;
-};
+} & Partial<Record<NotificationPreference, boolean>>;
 
 const PROFILE_FIELD_LIMITS = {
   bio: { max: 1000, label: "Bio" },
@@ -137,7 +141,8 @@ const PROFILE_FIELD_LIMITS = {
 /**
  * Partially update the current user's profile. Only fields present in
  * `fields` change; `null` or `""` clears a field. The username can be changed
- * but not cleared. The privacy settings take an audience and can't be cleared.
+ * but not cleared. The privacy settings take an audience and the notification
+ * toggles a boolean; neither can be cleared.
  */
 export async function updateProfileFields(fields: ProfileFields) {
   const { userId } = await auth();
@@ -174,6 +179,15 @@ export async function updateProfileFields(fields: ProfileFields) {
     const value = fields[field];
     if (value === undefined) continue;
     if (!isAudience(value)) {
+      return { error: `Invalid ${field}` };
+    }
+    updateData[field] = value;
+  }
+
+  for (const field of NOTIFICATION_PREFERENCES) {
+    const value = fields[field];
+    if (value === undefined) continue;
+    if (typeof value !== "boolean") {
       return { error: `Invalid ${field}` };
     }
     updateData[field] = value;

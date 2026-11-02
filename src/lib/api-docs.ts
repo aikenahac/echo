@@ -1,7 +1,7 @@
 export interface ApiEndpoint {
   method: "GET" | "POST" | "PUT" | "DELETE";
   path: string;
-  category: "Books" | "Reviews" | "Social" | "Profile" | "Collections" | "Subscriptions" | "Feed";
+  category: "Books" | "Reviews" | "Social" | "Profile" | "Collections" | "Subscriptions" | "Feed" | "Notifications";
   description: string;
   requiresAuth: boolean;
   requestBody?: {
@@ -754,6 +754,43 @@ export const apiEndpoints: ApiEndpoint[] = [
     ],
   },
 
+  // Notifications API
+  {
+    method: "POST",
+    path: "/api/v1/notifications/token",
+    category: "Notifications",
+    description:
+      "Register this device's Expo push token. Call on every launch once permission is granted; a token registered by another account moves to you. Notifications carry data.url, an app path to open on tap, and an Android channelId: follows, activity, reviews, collectionFollows or announcements. Toggles are the notify* fields on /profile.",
+    requiresAuth: true,
+    requestBody: {
+      contentType: "application/json",
+      schema: {
+        token: "string (required, an Expo push token)",
+        platform: '"ios" | "android" (required)',
+      },
+      example: { token: "ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]", platform: "ios" },
+    },
+    responses: [
+      { status: 201, description: "Token registered", example: { success: true } },
+      { status: 400, description: "Not an Expo push token", example: { error: "Invalid push token" } },
+    ],
+  },
+  {
+    method: "DELETE",
+    path: "/api/v1/notifications/token",
+    category: "Notifications",
+    description: "Stop notifications to this device; call before signing out",
+    requiresAuth: true,
+    requestBody: {
+      contentType: "application/json",
+      schema: { token: "string (required)" },
+      example: { token: "ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]" },
+    },
+    responses: [
+      { status: 200, description: "Token removed", example: { success: true } },
+    ],
+  },
+
   // Profile API
   {
     method: "GET",
@@ -776,6 +813,11 @@ export const apiEndpoints: ApiEndpoint[] = [
           profileVisibility: "friends",
           activityVisibility: "followers",
           reviewVisibility: "public",
+          notifyFollows: true,
+          notifyActivity: true,
+          notifyReviews: true,
+          notifyCollectionFollows: true,
+          notifyAnnouncements: true,
           isPremium: false,
           planName: "Free",
           followerCount: 34,
@@ -801,6 +843,11 @@ export const apiEndpoints: ApiEndpoint[] = [
         profileVisibility: '"public" | "followers" | "friends" | "private" (optional): who sees your shelves, stats, collections and follow lists',
         activityVisibility: '"public" | "followers" | "friends" | "private" (optional): who sees your activity, on your profile and in feeds',
         reviewVisibility: '"public" | "followers" | "friends" | "private" (optional): who sees your reviews not marked private',
+        notifyFollows: "boolean (optional): push when someone follows you",
+        notifyActivity: "boolean (optional): push when someone you follow starts or finishes a book",
+        notifyReviews: "boolean (optional): push when someone you follow posts a review",
+        notifyCollectionFollows: "boolean (optional): push when someone follows one of your collections",
+        notifyAnnouncements: "boolean (optional): push announcements from Echo",
       },
       example: {
         bio: "Avid reader and book reviewer",

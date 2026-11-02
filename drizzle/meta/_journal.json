@@ -120,6 +120,13 @@
       "when": 1792323465003,
       "tag": "0016_privacy_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1792323465004,
+      "tag": "0017_push_notifications",
+      "breakpoints": true
     }
   ]
 }

@@ -78,6 +78,16 @@ export const users = pgTable(
     reviewVisibility: audienceEnum("review_visibility")
       .default("public")
       .notNull(),
+    // Push notification categories the user wants (see src/lib/push.ts)
+    notifyFollows: boolean("notify_follows").default(true).notNull(),
+    notifyActivity: boolean("notify_activity").default(true).notNull(),
+    notifyReviews: boolean("notify_reviews").default(true).notNull(),
+    notifyCollectionFollows: boolean("notify_collection_follows")
+      .default(true)
+      .notNull(),
+    notifyAnnouncements: boolean("notify_announcements")
+      .default(true)
+      .notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
@@ -457,6 +467,31 @@ export const promoRedemptions = pgTable(
 export const webhookEvents = pgTable("webhook_events", {
   id: text("id").primaryKey(), // SHA-256 hex of the raw request body
   type: text("type").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Expo push tokens, one row per device; the token moves to whoever signed in
+// on the device last
+export const pushTokens = pgTable(
+  "push_tokens",
+  {
+    token: text("token").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    platform: text("platform").notNull(), // "ios" | "android"
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    lastSeenAt: timestamp("last_seen_at").defaultNow().notNull(),
+  },
+  (table) => ({
+    userIdIdx: index("push_tokens_user_id_idx").on(table.userId),
+  }),
+);
+
+// Notification events already sent, so the same event never notifies twice
+// (e.g. "follow:{followerId}:{followingId}" after an unfollow and refollow)
+export const notificationEvents = pgTable("notification_events", {
+  key: text("key").primaryKey(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

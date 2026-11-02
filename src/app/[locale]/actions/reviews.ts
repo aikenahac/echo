@@ -5,6 +5,8 @@ import { db } from "@/db";
 import { reviews } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { revalidateLocalized } from "@/lib/revalidate";
+import { after } from "next/server";
+import { notifyNewReview } from "@/lib/push";
 
 const MAX_REVIEW_LENGTH = 10_000;
 
@@ -32,7 +34,7 @@ export async function createOrUpdateReview(
 
   try {
     // One review per user per book: create it or update the existing one
-    await db
+    const [review] = await db
       .insert(reviews)
       .values({
         userId,
@@ -47,7 +49,13 @@ export async function createOrUpdateReview(
           isPrivate,
           updatedAt: new Date(),
         },
-      });
+      })
+      .returning({ id: reviews.id });
+
+    // Notifies once per review, so edits don't notify again
+    if (review && !isPrivate) {
+      after(() => notifyNewReview(userId, review.id));
+    }
 
     revalidateLocalized(`/books/${bookId}`, "/feed");
 

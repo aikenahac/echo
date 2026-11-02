@@ -13,6 +13,7 @@ import { eq, and, desc, sql, inArray, notInArray, count } from "drizzle-orm";
 import { getBlockedIds } from "@/lib/blocks";
 import { expirePromoGrant } from "@/lib/promo";
 import { after } from "next/server";
+import { notifyCollectionFollow } from "@/lib/push";
 import { revalidateLocalized } from "@/lib/revalidate";
 import {
   generateCollectionCoverUploadUrl,
@@ -585,6 +586,8 @@ export async function followCollection(collectionId: string) {
     if (!created) {
       return { error: "Already following this collection" };
     }
+
+    after(() => notifyCollectionFollow(userId, collectionId));
 
     revalidateLocalized(`/library/collections/${collection.slug}`);
     return { success: true };

@@ -41,6 +41,7 @@
     "date-fns": "^4.4.0",
     "dotenv": "^18.0.7",
     "drizzle-orm": "^0.45.4",
+    "expo-server-sdk": "^8.0.0",
     "lucide-react": "^1.55.0",
     "next": "16.4.3",
     "next-intl": "^4.14.9",

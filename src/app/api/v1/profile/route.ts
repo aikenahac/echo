@@ -56,8 +56,11 @@ export const GET = withAuth(async (request, { user }) => {
  * Partially update current user's profile. Only fields present in the body
  * change; null or "" clears a field (except username, which can't be cleared).
  * Body: { username?, bio?, displayName?, profilePictureUrl?,
- *   profileVisibility?, activityVisibility?, reviewVisibility? }
- * The visibility fields take "public" | "followers" | "friends" | "private".
+ *   profileVisibility?, activityVisibility?, reviewVisibility?,
+ *   notifyFollows?, notifyActivity?, notifyReviews?,
+ *   notifyCollectionFollows?, notifyAnnouncements? }
+ * The visibility fields take "public" | "followers" | "friends" | "private";
+ * the notify fields are booleans (push notification categories).
  */
 export const PUT = withAuth(async (request) => {
   const body = await request.json();
@@ -74,6 +77,11 @@ export const PUT = withAuth(async (request) => {
     profileVisibility,
     activityVisibility,
     reviewVisibility,
+    notifyFollows,
+    notifyActivity,
+    notifyReviews,
+    notifyCollectionFollows,
+    notifyAnnouncements,
   } = body;
 
   const result = await updateProfileFields({
@@ -84,6 +92,11 @@ export const PUT = withAuth(async (request) => {
     profileVisibility,
     activityVisibility,
     reviewVisibility,
+    notifyFollows,
+    notifyActivity,
+    notifyReviews,
+    notifyCollectionFollows,
+    notifyAnnouncements,
   });
 
   if (result.error) {

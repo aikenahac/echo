@@ -5,6 +5,8 @@ import { db } from "@/db";
 import { follows, users } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { revalidateLocalized } from "@/lib/revalidate";
+import { after } from "next/server";
+import { notifyNewFollower } from "@/lib/push";
 import { getActivityPage, getFeedPage } from "@/lib/feed";
 import { getProfileAccess, getUserReviewsPage } from "@/lib/visibility";
 import { isBlockedEitherWay } from "@/lib/blocks";
@@ -48,6 +50,8 @@ export async function followUser(followingId: string) {
     if (!created) {
       return { error: "Already following this user" };
     }
+
+    after(() => notifyNewFollower(userId, followingId));
 
     revalidateLocalized("/users/search", "/users", "/profile", "/feed");
 
