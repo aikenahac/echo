@@ -3,13 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import { useFormatter, useTranslations } from "next-intl";
 import { Link } from "@/i18n/routing";
-import { loadFeedPage } from "@/app/[locale]/actions/social";
+import { loadFeedPage, loadUserActivityPage } from "@/app/[locale]/actions/social";
 import { AdminBadge } from "@/components/echo/admin-badge";
 import { Cover } from "@/components/echo/cover";
 import { AvatarTile, Stars } from "@/components/echo/primitives";
 import { Stamp } from "@/components/echo/stamp";
 import { ModerationMenu } from "@/components/moderation/moderation-menu";
 import type { FeedActivity } from "@/lib/feed";
+import { userHref } from "@/lib/user-href";
 import { cn } from "@/lib/utils";
 
 const MINUTE = 60_000;
@@ -35,15 +36,20 @@ function useWhen(now: number) {
 
 const key = (a: FeedActivity) => `${a.type}-${a.user.id}-${a.book.id}`;
 
-/** The Friends feed with infinite scroll. */
+/**
+ * The Friends feed with infinite scroll, or one reader's activity when
+ * `userId` is set
+ */
 export function FeedList({
   initial,
   initialHasMore,
   now,
+  userId,
 }: {
   initial: FeedActivity[];
   initialHasMore: boolean;
   now: number;
+  userId?: string;
 }) {
   const t = useTranslations("friends");
   const [items, setItems] = useState(initial);
@@ -59,7 +65,10 @@ export function FeedList({
       (entries) => {
         if (!entries[0].isIntersecting || loading) return;
         setLoading(true);
-        loadFeedPage(items.length).then((page) => {
+        (userId
+          ? loadUserActivityPage(userId, items.length)
+          : loadFeedPage(items.length)
+        ).then((page) => {
           setItems((prev) => {
             const seen = new Set(prev.map(key));
             return [...prev, ...page.activities.filter((a) => !seen.has(key(a)))];
@@ -72,7 +81,7 @@ export function FeedList({
     );
     io.observe(el);
     return () => io.disconnect();
-  }, [items.length, hasMore, loading]);
+  }, [items.length, hasMore, loading, userId]);
 
   return (
     <>
@@ -108,7 +117,9 @@ function FeedItem({
   const header = (
     <p className="flex text-[15px] leading-5">
       <span className="min-w-0">
-        <b className="font-semibold">{name}</b>
+        <Link href={userHref(a.user)} className="font-semibold hover:underline">
+          {name}
+        </Link>
         {a.user.isAdmin && <AdminBadge size={13} className="-mt-0.5 ml-1" />}{" "}
         {a.type === "review"
           ? t("reviewed")
@@ -129,7 +140,9 @@ function FeedItem({
     // "started reading": the book has entered "now", so it sits on the field
     return (
       <li className="on-field -mx-5 flex gap-3 bg-field px-5 pt-[18px] pb-[22px] md:-mx-10 md:px-10">
-        <AvatarTile name={name} src={a.user.profilePictureUrl} blurhash={a.user.profilePictureBlurhash} className="bg-[rgba(255,235,243,.6)] dark:bg-white/10" />
+        <Link href={userHref(a.user)} aria-label={name} className="flex-none self-start">
+          <AvatarTile name={name} src={a.user.profilePictureUrl} blurhash={a.user.profilePictureBlurhash} className="bg-[rgba(255,235,243,.6)] dark:bg-white/10" />
+        </Link>
         <div className="min-w-0 flex-1">
           {header}
           <Link href={href} className="mt-2.5 flex items-end gap-3">
@@ -151,7 +164,9 @@ function FeedItem({
 
   return (
     <li className={cn("flex gap-3 py-[18px]", !afterBand && "[&:not(:first-child)]:hairline-t")}>
-      <AvatarTile name={name} src={a.user.profilePictureUrl} blurhash={a.user.profilePictureBlurhash} />
+      <Link href={userHref(a.user)} aria-label={name} className="flex-none self-start">
+        <AvatarTile name={name} src={a.user.profilePictureUrl} blurhash={a.user.profilePictureBlurhash} />
+      </Link>
       <div className="min-w-0 flex-1">
         {header}
         {a.type === "review" ? (

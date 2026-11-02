@@ -2,6 +2,7 @@ import { db } from "@/db";
 import { books, userBooks, reviews, follows } from "@/db/schema";
 import { eq, and, inArray, desc } from "drizzle-orm";
 import { publicUserColumns, publicUserExtras } from "@/lib/public-user";
+import { visibleTo } from "@/lib/visibility";
 
 /**
  * A catalog book with the viewer's library entry, the viewer's review, and
@@ -34,6 +35,7 @@ export async function getCatalogBookDetail(
           where: and(
             eq(reviews.bookId, bookId),
             eq(reviews.isPrivate, false),
+            visibleTo(reviews.userId, "reviewVisibility", userId),
             inArray(
               reviews.userId,
               db

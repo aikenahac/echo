@@ -26,6 +26,8 @@ vi.mock("@/lib/auth", () => ({
 }));
 vi.mock("@/lib/revalidate", () => ({ revalidateLocalized: vi.fn() }));
 vi.mock("@/lib/rate-limit", () => ({ rateLimit: () => mocks.rateLimitOk }));
+// Review visibility is a query condition; the mocked query decides the row
+vi.mock("@/lib/visibility", () => ({ visibleTo: () => undefined }));
 vi.mock("@/db", () => {
   const insert = (table: { _?: { name?: string } } & Record<string, unknown>) => ({
     values: (v: unknown) => {

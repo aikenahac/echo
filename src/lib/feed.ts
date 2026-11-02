@@ -2,6 +2,7 @@ import { db } from "@/db";
 import { follows, userBooks, reviews } from "@/db/schema";
 import { eq, and, inArray, desc, or } from "drizzle-orm";
 import { publicUserColumns, publicUserExtras } from "@/lib/public-user";
+import { visibleTo } from "@/lib/visibility";
 
 /**
  * One page of the activity feed from users `userId` follows: books they are
@@ -20,6 +21,22 @@ export async function getFeedPage(userId: string, offset: number, limit: number)
     return { activities: [], hasMore: false, followsAnyone: false };
   }
 
+  const page = await getActivityPage(userId, followingIds, offset, limit);
+  return { ...page, followsAnyone: true };
+}
+
+/**
+ * One page of activity by `ownerIds` as `viewerId` may see it: books they are
+ * reading or finished (when their activity is visible to the viewer) and
+ * their public reviews (when both their activity and reviews are), newest
+ * first. Feeds the Friends feed and the Activity tab of a profile.
+ */
+export async function getActivityPage(
+  viewerId: string,
+  ownerIds: string[],
+  offset: number,
+  limit: number,
+) {
   // The feed merges two streams, so each stream must be read from the start
   // up to offset + limit (+1 to detect more) and then merged and paginated
   const window = offset + limit + 1;
@@ -27,8 +44,9 @@ export async function getFeedPage(userId: string, offset: number, limit: number)
   const [recentBooks, recentReviews] = await Promise.all([
     db.query.userBooks.findMany({
       where: and(
-        inArray(userBooks.userId, followingIds),
+        inArray(userBooks.userId, ownerIds),
         or(eq(userBooks.status, "reading"), eq(userBooks.status, "finished")),
+        visibleTo(userBooks.userId, "activityVisibility", viewerId),
       ),
       with: {
         book: true,
@@ -39,8 +57,10 @@ export async function getFeedPage(userId: string, offset: number, limit: number)
     }),
     db.query.reviews.findMany({
       where: and(
-        inArray(reviews.userId, followingIds),
+        inArray(reviews.userId, ownerIds),
         eq(reviews.isPrivate, false),
+        visibleTo(reviews.userId, "activityVisibility", viewerId),
+        visibleTo(reviews.userId, "reviewVisibility", viewerId),
       ),
       with: {
         book: true,
@@ -81,10 +101,9 @@ export async function getFeedPage(userId: string, offset: number, limit: number)
   return {
     activities: merged.slice(offset, offset + limit),
     hasMore: merged.length > offset + limit,
-    followsAnyone: true,
   };
 }
 
 export type FeedActivity = Awaited<
-  ReturnType<typeof getFeedPage>
+  ReturnType<typeof getActivityPage>
 >["activities"][number];

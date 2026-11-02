@@ -429,7 +429,35 @@
     "privacyGroup": "Privacy",
     "blockedUsers": "Blocked users",
     "redeemCode": "Redeem a code",
-    "promoGrant": "Granted with a code"
+    "promoGrant": "Granted with a code",
+    "profileVisibility": {
+      "label": "Profile",
+      "options": {
+        "public": "Everyone",
+        "followers": "Followers",
+        "friends": "Friends",
+        "private": "Only me"
+      }
+    },
+    "activityVisibility": {
+      "label": "Activity",
+      "options": {
+        "public": "Everyone",
+        "followers": "Followers",
+        "friends": "Friends",
+        "private": "No one"
+      }
+    },
+    "reviewVisibility": {
+      "label": "Reviews",
+      "options": {
+        "public": "Everyone",
+        "followers": "Followers",
+        "friends": "Friends",
+        "private": "Only me"
+      }
+    },
+    "privacyHint": "Friends are readers you follow who follow you back. Reviews you mark private stay private."
   },
   "coll": {
     "back": "Back",
@@ -576,5 +604,55 @@
       "server": "Something went wrong. Try again."
     },
     "haveCode": "Have a code? Redeem it"
+  },
+  "userProfile": {
+    "follow": "Follow",
+    "following": "Following",
+    "friend": "Friend",
+    "followsYou": "Follows you",
+    "followers": "{count, plural, one {# follower} other {# followers}}",
+    "followingCount": "{count} following",
+    "tabsLabel": "Profile sections",
+    "tabs": {
+      "books": "Books",
+      "reviews": "Reviews",
+      "activity": "Activity"
+    },
+    "collections": "Collections",
+    "books": "{count, plural, one {# book} other {# books}}",
+    "shelves": {
+      "reading": "Reading now",
+      "want": "Want to read",
+      "finished": "Finished",
+      "favourites": "Favourites"
+    },
+    "emptyShelf": "Nothing on this shelf yet.",
+    "nothingYet": "{name} hasn't added any books yet.",
+    "noReviews": "No reviews yet.",
+    "noActivity": "Nothing lately.",
+    "locked": {
+      "followers": "Only readers who follow {name} can see this.",
+      "friends": "Only {name}'s friends can see this.",
+      "private": "{name} keeps this to themselves."
+    },
+    "loadMore": "Load more",
+    "previous": "Previous",
+    "next": "Next",
+    "back": "Back to {name}",
+    "seeAll": "See all",
+    "follows": {
+      "label": "Followers and following",
+      "followers": "Followers",
+      "following": "Following",
+      "followersTab": "{count, plural, one {# follower} other {# followers}}",
+      "followingTab": "{count} following",
+      "followBack": "Follow back",
+      "empty": {
+        "followers": "No one follows {name} yet.",
+        "following": "{name} isn't following anyone yet.",
+        "followersSelf": "No followers yet. Readers who follow you show up here.",
+        "followingSelf": "You're not following anyone yet. Find readers in Search."
+      }
+    }
   }
 }

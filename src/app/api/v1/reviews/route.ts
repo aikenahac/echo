@@ -8,6 +8,7 @@ import { and, desc, eq, inArray, notInArray, or } from "drizzle-orm";
 import { getBlockedIds } from "@/lib/blocks";
 import { isUuid } from "@/lib/utils";
 import { publicUserColumns, publicUserExtras } from "@/lib/public-user";
+import { visibleTo } from "@/lib/visibility";
 
 /**
  * POST /api/v1/reviews
@@ -67,6 +68,7 @@ export const GET = withAuth(async (request, { user }) => {
       where: and(
         eq(reviews.bookId, bookId),
         eq(reviews.isPrivate, false),
+        visibleTo(reviews.userId, "reviewVisibility", user.id),
         inArray(
           reviews.userId,
           db
@@ -87,6 +89,7 @@ export const GET = withAuth(async (request, { user }) => {
         eq(reviews.bookId, bookId),
         blockedIds.length ? notInArray(reviews.userId, blockedIds) : undefined,
         or(eq(reviews.isPrivate, false), eq(reviews.userId, user.id)),
+        visibleTo(reviews.userId, "reviewVisibility", user.id),
       ),
       with: { user: { columns: publicUserColumns, extras: publicUserExtras }, book: true },
       orderBy: [desc(reviews.createdAt)],

@@ -13,6 +13,7 @@ import {
 } from "@/lib/s3";
 import { validateImageUpload } from "@/lib/image-validation";
 import { blurhashForKey } from "@/lib/blurhash";
+import { isAudience, type Audience } from "@/lib/audience";
 import { usernameFormatError } from "@/lib/username";
 import { AccountDeletionError, deleteUserAccount } from "@/lib/account";
 
@@ -123,6 +124,9 @@ export type ProfileFields = {
   bio?: string | null;
   displayName?: string | null;
   profilePictureUrl?: string | null;
+  profileVisibility?: Audience;
+  activityVisibility?: Audience;
+  reviewVisibility?: Audience;
 };
 
 const PROFILE_FIELD_LIMITS = {
@@ -133,7 +137,7 @@ const PROFILE_FIELD_LIMITS = {
 /**
  * Partially update the current user's profile. Only fields present in
  * `fields` change; `null` or `""` clears a field. The username can be changed
- * but not cleared.
+ * but not cleared. The privacy settings take an audience and can't be cleared.
  */
 export async function updateProfileFields(fields: ProfileFields) {
   const { userId } = await auth();
@@ -160,6 +164,19 @@ export async function updateProfileFields(fields: ProfileFields) {
       return { error: `Invalid ${field}` };
     }
     updateData[field] = value || null;
+  }
+
+  for (const field of [
+    "profileVisibility",
+    "activityVisibility",
+    "reviewVisibility",
+  ] as const) {
+    const value = fields[field];
+    if (value === undefined) continue;
+    if (!isAudience(value)) {
+      return { error: `Invalid ${field}` };
+    }
+    updateData[field] = value;
   }
 
   if (Object.keys(updateData).length === 0) {
@@ -226,6 +243,13 @@ export async function updateProfileFields(fields: ProfileFields) {
 
     revalidateLocalized("/profile");
     revalidateLocalized("/settings");
+    if (
+      "profileVisibility" in updateData ||
+      "activityVisibility" in updateData ||
+      "reviewVisibility" in updateData
+    ) {
+      revalidateLocalized("/feed");
+    }
 
     return { success: true as const, ...updated };
   } catch (error) {

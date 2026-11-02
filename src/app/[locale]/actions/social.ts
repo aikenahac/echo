@@ -5,8 +5,10 @@ import { db } from "@/db";
 import { follows, users } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { revalidateLocalized } from "@/lib/revalidate";
-import { getFeedPage } from "@/lib/feed";
+import { getActivityPage, getFeedPage } from "@/lib/feed";
+import { getProfileAccess, getUserReviewsPage } from "@/lib/visibility";
 import { isBlockedEitherWay } from "@/lib/blocks";
+import { getFollowList, isFollowDirection } from "@/lib/follow-lists";
 
 /**
  * Follow a user
@@ -47,7 +49,7 @@ export async function followUser(followingId: string) {
       return { error: "Already following this user" };
     }
 
-    revalidateLocalized("/users/search", "/profile", "/feed");
+    revalidateLocalized("/users/search", "/users", "/profile", "/feed");
 
     return { success: true };
   } catch (error) {
@@ -76,7 +78,7 @@ export async function unfollowUser(followingId: string) {
         ),
       );
 
-    revalidateLocalized("/users/search", "/profile", "/feed");
+    revalidateLocalized("/users/search", "/users", "/profile", "/feed");
 
     return { success: true };
   } catch (error) {
@@ -108,4 +110,75 @@ export async function loadFeedPage(offset: number) {
     FEED_PAGE_SIZE,
   );
   return { activities, hasMore };
+}
+
+const safeOffset = (offset: number) =>
+  Math.min(FEED_MAX_OFFSET, Math.max(0, Math.trunc(Number(offset)) || 0));
+
+/**
+ * The next page of a reader's Activity tab, when their activity is visible
+ */
+export async function loadUserActivityPage(targetId: string, offset: number) {
+  const { userId } = await auth();
+  const profile =
+    userId && typeof targetId === "string"
+      ? await getProfileAccess(userId, targetId)
+      : null;
+
+  if (!userId || !profile?.access.activity) {
+    return { error: "Not found", activities: [], hasMore: false };
+  }
+
+  const { activities, hasMore } = await getActivityPage(
+    userId,
+    [profile.user.id],
+    safeOffset(offset),
+    FEED_PAGE_SIZE,
+  );
+  return { activities, hasMore };
+}
+
+/**
+ * The next page of a reader's Reviews tab, when their reviews are visible
+ */
+export async function loadUserReviewsPage(targetId: string, offset: number) {
+  const { userId } = await auth();
+  const profile =
+    userId && typeof targetId === "string"
+      ? await getProfileAccess(userId, targetId)
+      : null;
+
+  if (!userId || !profile?.access.reviews) {
+    return { error: "Not found", results: [], hasMore: false };
+  }
+
+  return getUserReviewsPage(profile.user.id, safeOffset(offset), FEED_PAGE_SIZE);
+}
+
+/**
+ * The next page of a reader's followers or following, when their profile
+ * content is visible (always for the viewer's own lists)
+ */
+export async function loadFollowListPage(
+  targetId: string,
+  direction: string,
+  offset: number,
+) {
+  const { userId } = await auth();
+  const profile =
+    userId && typeof targetId === "string" && isFollowDirection(direction)
+      ? await getProfileAccess(userId, targetId)
+      : null;
+
+  if (!userId || !isFollowDirection(direction) || !profile?.access.content) {
+    return { error: "Not found", results: [], hasMore: false };
+  }
+
+  return getFollowList(
+    profile.user.id,
+    direction,
+    userId,
+    FEED_PAGE_SIZE,
+    safeOffset(offset),
+  );
 }

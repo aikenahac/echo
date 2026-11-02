@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useFormatter, useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Link, useRouter } from "@/i18n/routing";
+import { userHref } from "@/lib/user-href";
 import {
   addBookToLibrary,
   rateBook,
@@ -251,10 +252,14 @@ export function BookDetail({
                     const name = r.user.displayName || r.user.username || "?";
                     return (
                       <li key={r.id} className="flex gap-3 py-3.5 [&+li]:hairline-t">
-                        <AvatarTile name={name} src={r.user.profilePictureUrl} blurhash={r.user.profilePictureBlurhash} />
+                        <Link href={userHref(r.user)} aria-label={name} className="flex-none self-start">
+                          <AvatarTile name={name} src={r.user.profilePictureUrl} blurhash={r.user.profilePictureBlurhash} />
+                        </Link>
                         <div className="min-w-0 flex-1">
                           <p className="text-[15px]">
-                            <b className="font-semibold">{name}</b>
+                            <Link href={userHref(r.user)} className="font-semibold hover:underline">
+                              {name}
+                            </Link>
                             {r.user.isAdmin && <AdminBadge size={13} className="-mt-0.5 ml-1" />}
                             <span className="text-ink-2"> · {shortDate(new Date(r.createdAt))}</span>
                           </p>

@@ -12,6 +12,7 @@ import {
   BillingRow,
   DeleteAccountRow,
   LayoutRow,
+  PrivacyRow,
   SignOutRow,
 } from "@/components/settings/settings-controls";
 
@@ -167,6 +168,9 @@ export default async function SettingsPage({
       </Group>
 
       <Group label={t("privacyGroup")}>
+        <PrivacyRow setting="profileVisibility" initial={user.profileVisibility} />
+        <PrivacyRow setting="activityVisibility" initial={user.activityVisibility} />
+        <PrivacyRow setting="reviewVisibility" initial={user.reviewVisibility} />
         <Link href="/settings/blocked" className={row}>
           <span className="flex-1">{t("blockedUsers")}</span>
           <Icon name="forward" size={16} className="text-ink-3" />

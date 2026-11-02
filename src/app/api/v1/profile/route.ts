@@ -5,22 +5,26 @@ import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { AccountDeletionError, deleteUserAccount } from "@/lib/account";
+import { getFollowCounts } from "@/lib/visibility";
 
 /**
  * GET /api/v1/profile
- * Get current user's profile
+ * Get current user's profile, with follower and following counts
  */
 export const GET = withAuth(async (request, { user }) => {
-  const profile = await db.query.users.findFirst({
-    where: eq(users.id, user.id),
-    with: {
-      subscription: {
-        with: {
-          plan: true,
+  const [profile, counts] = await Promise.all([
+    db.query.users.findFirst({
+      where: eq(users.id, user.id),
+      with: {
+        subscription: {
+          with: {
+            plan: true,
+          },
         },
       },
-    },
-  });
+    }),
+    getFollowCounts(user.id),
+  ]);
 
   if (!profile) {
     throw new ApiError("Profile not found", 404);
@@ -43,6 +47,7 @@ export const GET = withAuth(async (request, { user }) => {
     ...profileData,
     isPremium,
     planName: subscription?.plan.name ?? null,
+    ...counts,
   });
 });
 
@@ -50,7 +55,9 @@ export const GET = withAuth(async (request, { user }) => {
  * PUT /api/v1/profile
  * Partially update current user's profile. Only fields present in the body
  * change; null or "" clears a field (except username, which can't be cleared).
- * Body: { username?, bio?, displayName?, profilePictureUrl? }
+ * Body: { username?, bio?, displayName?, profilePictureUrl?,
+ *   profileVisibility?, activityVisibility?, reviewVisibility? }
+ * The visibility fields take "public" | "followers" | "friends" | "private".
  */
 export const PUT = withAuth(async (request) => {
   const body = await request.json();
@@ -59,13 +66,24 @@ export const PUT = withAuth(async (request) => {
     throw new ApiError("Invalid request body");
   }
 
-  const { username, bio, displayName, profilePictureUrl } = body;
+  const {
+    username,
+    bio,
+    displayName,
+    profilePictureUrl,
+    profileVisibility,
+    activityVisibility,
+    reviewVisibility,
+  } = body;
 
   const result = await updateProfileFields({
     username,
     bio,
     displayName,
     profilePictureUrl,
+    profileVisibility,
+    activityVisibility,
+    reviewVisibility,
   });
 
   if (result.error) {

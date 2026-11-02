@@ -1,97 +1,46 @@
 import { withAuth, ApiError } from "@/lib/api-handler";
 import { createApiResponse } from "@/lib/api-auth";
-import { db } from "@/db";
-import {
-  collectionBooks,
-  collections,
-  follows,
-  userBooks,
-  users,
-} from "@/db/schema";
-import { and, asc, count, eq, getTableColumns } from "drizzle-orm";
-import { publicUserColumns, publicUserExtras } from "@/lib/public-user";
-import { isBlockedEitherWay } from "@/lib/blocks";
-import { getProfileShelves, getYearStats } from "@/lib/reading-stats";
+import { getProfileView } from "@/lib/visibility";
 
 /**
  * GET /api/v1/users/:userId
- * A user's public profile: public columns and bio, reading stats, follow
- * counts, profile shelves and public collections. Reviews aren't included.
+ * A user's profile as the viewer may see it. The header (public columns and
+ * bio), follow counts, `relationship` and `access` are always there. Stats,
+ * shelves and public collections are filled when `access.content` is true,
+ * and are empty otherwise. `access.reviews` and `access.activity` say whether
+ * /users/:userId/reviews and /activity will answer. `visibility` is what the
+ * owner chose for each part.
  */
 export const GET = withAuth(async (request, { user: viewer, params }) => {
-  const { userId } = params;
+  const profile = await getProfileView(viewer.id, params.userId);
 
-  const profile = await db.query.users.findFirst({
-    where: eq(users.id, userId),
-    columns: { ...publicUserColumns, bio: true },
-    extras: publicUserExtras,
-  });
-
-  if (!profile || (await isBlockedEitherWay(viewer.id, userId))) {
+  if (!profile) {
     throw new ApiError("User not found", 404);
   }
 
-  const [
-    yearStats,
-    [finished],
-    [followers],
-    [following],
-    viewerFollow,
-    shelves,
-    publicCollections,
-  ] = await Promise.all([
-    getYearStats(userId),
-    db
-      .select({ count: count() })
-      .from(userBooks)
-      .where(
-        and(eq(userBooks.userId, userId), eq(userBooks.status, "finished")),
-      ),
-    db
-      .select({ count: count() })
-      .from(follows)
-      .where(eq(follows.followingId, userId)),
-    db
-      .select({ count: count() })
-      .from(follows)
-      .where(eq(follows.followerId, userId)),
-    db.query.follows.findFirst({
-      where: and(
-        eq(follows.followerId, viewer.id),
-        eq(follows.followingId, userId),
-      ),
-      columns: { followerId: true },
-    }),
-    getProfileShelves(userId),
-    db
-      .select({
-        ...getTableColumns(collections),
-        bookCount: count(collectionBooks.userBookId),
-      })
-      .from(collections)
-      .leftJoin(
-        collectionBooks,
-        eq(collectionBooks.collectionId, collections.id),
-      )
-      .where(
-        and(eq(collections.userId, userId), eq(collections.isPublic, true)),
-      )
-      .groupBy(collections.id)
-      .orderBy(asc(collections.sortOrder)),
-  ]);
+  const { content, relationship } = profile;
 
   return createApiResponse({
-    user: profile,
+    user: profile.user,
+    relationship,
+    access: profile.access,
+    visibility: profile.visibility,
     stats: {
-      booksFinishedThisYear: yearStats.booksFinishedThisYear,
-      finishedCount: finished?.count ?? 0,
+      booksFinishedThisYear: content?.yearStats.booksFinishedThisYear ?? 0,
+      pagesReadThisYear: content?.yearStats.pagesReadThisYear ?? 0,
+      finishedCount: content?.shelves.counts.finished ?? 0,
     },
-    followerCount: followers?.count ?? 0,
-    followingCount: following?.count ?? 0,
-    isFollowing: !!viewerFollow,
-    currentlyReading: shelves.currentlyReading,
-    recentlyFinished: shelves.recentlyFinished,
-    favorites: shelves.favorites,
-    publicCollections,
+    counts: {
+      want: content?.shelves.counts.want ?? 0,
+      finished: content?.shelves.counts.finished ?? 0,
+    },
+    followerCount: profile.followerCount,
+    followingCount: profile.followingCount,
+    isFollowing: relationship.isFollowing,
+    currentlyReading: content?.shelves.currentlyReading ?? [],
+    recentlyFinished: content?.shelves.recentlyFinished ?? [],
+    wantToRead: content?.shelves.wantToRead ?? [],
+    favorites: content?.shelves.favorites ?? [],
+    publicCollections: content?.publicCollections ?? [],
   });
 });

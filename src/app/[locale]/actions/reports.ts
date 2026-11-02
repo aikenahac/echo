@@ -7,6 +7,7 @@ import { reports, reviews, users } from "@/db/schema";
 import { rateLimit } from "@/lib/rate-limit";
 import { reportInputSchema, type ReportTargetType } from "@/lib/reports";
 import { revalidateLocalized } from "@/lib/revalidate";
+import { visibleTo } from "@/lib/visibility";
 
 const HOUR_MS = 60 * 60 * 1000;
 const REPORTS_PER_HOUR = 20;
@@ -53,7 +54,11 @@ async function submitReport(targetType: ReportTargetType, input: unknown) {
       if (user) target = { targetUserId: user.id, contentSnapshot: null };
     } else {
       const review = await db.query.reviews.findFirst({
-        where: and(eq(reviews.id, targetId), eq(reviews.isPrivate, false)),
+        where: and(
+          eq(reviews.id, targetId),
+          eq(reviews.isPrivate, false),
+          visibleTo(reviews.userId, "reviewVisibility", userId),
+        ),
         columns: { userId: true, content: true },
       });
       if (review) {

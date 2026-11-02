@@ -8,6 +8,8 @@ import { Capsule } from "@/components/echo/buttons";
 import { AdminBadge } from "@/components/echo/admin-badge";
 import { AvatarTile } from "@/components/echo/primitives";
 import { ModerationMenu } from "@/components/moderation/moderation-menu";
+import { Link } from "@/i18n/routing";
+import { userHref } from "@/lib/user-href";
 
 export type Reader = {
   id: string;
@@ -70,8 +72,10 @@ export function ReaderResults({
           const on = following.has(r.id);
           return (
             <li key={r.id} className="flex items-start gap-3 py-3.5 [&+li]:hairline-t">
-              <AvatarTile name={name} src={r.profilePictureUrl} blurhash={r.profilePictureBlurhash} size={44} />
-              <div className="min-w-0 flex-1">
+              <Link href={userHref(r)} aria-label={name} className="flex-none">
+                <AvatarTile name={name} src={r.profilePictureUrl} blurhash={r.profilePictureBlurhash} size={44} />
+              </Link>
+              <Link href={userHref(r)} className="min-w-0 flex-1">
                 <p className="flex items-center gap-1 text-[17px] font-semibold tracking-[-0.4px]">
                   <span className="truncate">{name}</span>
                   {r.isAdmin && <AdminBadge size={14} />}
@@ -80,7 +84,7 @@ export function ReaderResults({
                   <p className="truncate text-[13px] text-ink-2">@{r.username}</p>
                 )}
                 {r.bio && <p className="mt-1 line-clamp-2 text-[15px] leading-5">{r.bio}</p>}
-              </div>
+              </Link>
               <Capsule
                 size="xs"
                 variant={on ? "outline" : "ink"}

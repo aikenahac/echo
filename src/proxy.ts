@@ -10,7 +10,7 @@ const isProtectedRoute = createRouteMatcher([
   "/:locale/feed(.*)",
   "/:locale/search(.*)",
   "/:locale/books/search(.*)",
-  "/:locale/users/search(.*)",
+  "/:locale/users(.*)",
   "/:locale/settings(.*)",
   "/:locale/subscription(.*)",
   "/:locale/redeem(.*)",

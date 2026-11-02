@@ -609,20 +609,25 @@ export const apiEndpoints: ApiEndpoint[] = [
     path: "/api/v1/users/{userId}",
     category: "Social",
     description:
-      "Get a user's public profile: stats, follow counts, shelves (up to 6 books each) and public collections",
+      "Get a user's profile as you may see it (by id or username). The header, follow counts, relationship and access are always there. Stats, shelves (up to 6 books each) and public collections are filled when access.content is true and empty otherwise. access.reviews and access.activity say whether /reviews and /activity will answer; visibility is what the owner chose (public, followers, friends or private). Friends follow each other.",
     requiresAuth: true,
     responses: [
       {
         status: 200,
-        description: "Public profile",
+        description: "Profile",
         example: {
           user: { id: "user_456", username: "bookworm", displayName: "Book Worm", profilePictureUrl: null, profilePictureBlurhash: null, isAdmin: false, bio: "I love reading!" },
-          stats: { booksFinishedThisYear: 12, finishedCount: 87 },
+          relationship: { isSelf: false, isFollowing: true, followsYou: true, isFriend: true },
+          access: { content: true, activity: true, reviews: true },
+          visibility: { content: "friends", activity: "followers", reviews: "public" },
+          stats: { booksFinishedThisYear: 12, pagesReadThisYear: 3810, finishedCount: 87 },
+          counts: { want: 14, finished: 87 },
           followerCount: 34,
           followingCount: 20,
           isFollowing: true,
           currentlyReading: [{ id: "uuid...", status: "reading", book: { title: "Dune" } }],
           recentlyFinished: [],
+          wantToRead: [],
           favorites: [],
           publicCollections: [{ id: "uuid...", name: "Sci-Fi", slug: "sci-fi-1a2b3c4d", colorTag: "blue-500", iconName: "rocket", bookCount: 8 }],
         },
@@ -636,9 +641,32 @@ export const apiEndpoints: ApiEndpoint[] = [
   },
   {
     method: "GET",
-    path: "/api/v1/users/{userId}/followers",
+    path: "/api/v1/users/{userId}/books",
     category: "Social",
-    description: "List a user's followers, newest first",
+    description: "A page of one of a user's shelves, with the catalog book. 404 unless their profile content is visible to you.",
+    requiresAuth: true,
+    queryParams: [
+      { name: "shelf", type: "string", required: true, description: "reading | want | finished | favourites" },
+      { name: "limit", type: "number", required: false, description: "Default: 24, max: 60" },
+      { name: "offset", type: "number", required: false, description: "Default: 0, max: 10000" },
+    ],
+    responses: [
+      {
+        status: 200,
+        description: "A page of library entries",
+        example: {
+          results: [{ id: "uuid...", status: "finished", rating: 4, isFavorite: false, book: { id: "uuid...", title: "Dune", author: "Frank Herbert" } }],
+          hasMore: true,
+        },
+      },
+      { status: 404, description: "User not found, or their profile content is hidden from you", example: { error: "User not found" } },
+    ],
+  },
+  {
+    method: "GET",
+    path: "/api/v1/users/{userId}/reviews",
+    category: "Social",
+    description: "A page of a user's reviews not marked private, newest first, with the book. 404 unless their reviews are visible to you.",
     requiresAuth: true,
     queryParams: [
       { name: "limit", type: "number", required: false, description: "Default: 20, max: 50" },
@@ -647,9 +675,53 @@ export const apiEndpoints: ApiEndpoint[] = [
     responses: [
       {
         status: 200,
-        description: "A page of users (isFollowing: whether you follow them)",
+        description: "A page of reviews",
         example: {
-          results: [{ id: "user_789", username: "reader123", displayName: null, profilePictureUrl: null, profilePictureBlurhash: null, isAdmin: false, isFollowing: false }],
+          results: [{ id: "uuid...", content: "Loved it", isPrivate: false, createdAt: "2026-10-01T10:00:00.000Z", book: { id: "uuid...", title: "Dune", author: "Frank Herbert" } }],
+          hasMore: false,
+        },
+      },
+      { status: 404, description: "User not found, or their reviews are hidden from you", example: { error: "User not found" } },
+    ],
+  },
+  {
+    method: "GET",
+    path: "/api/v1/users/{userId}/activity",
+    category: "Social",
+    description: "A page of a user's activity in the shape of GET /feed (review items only when their reviews are visible to you too). 404 unless their activity is visible to you.",
+    requiresAuth: true,
+    queryParams: [
+      { name: "limit", type: "number", required: false, description: "Default: 20, max: 50" },
+      { name: "offset", type: "number", required: false, description: "Default: 0, max: 1000" },
+    ],
+    responses: [
+      {
+        status: 200,
+        description: "A page of activity",
+        example: {
+          activities: [{ type: "book", date: "2026-10-01T10:00:00.000Z", user: { id: "user_456", username: "bookworm" }, book: { title: "Dune" }, data: { status: "finished", rating: 5 } }],
+          hasMore: false,
+        },
+      },
+      { status: 404, description: "User not found, or their activity is hidden from you", example: { error: "User not found" } },
+    ],
+  },
+  {
+    method: "GET",
+    path: "/api/v1/users/{userId}/followers",
+    category: "Social",
+    description: "List a user's followers, newest first. 404 unless their profile content is visible to you.",
+    requiresAuth: true,
+    queryParams: [
+      { name: "limit", type: "number", required: false, description: "Default: 20, max: 50" },
+      { name: "offset", type: "number", required: false, description: "Default: 0, max: 10000" },
+    ],
+    responses: [
+      {
+        status: 200,
+        description: "A page of users with how you relate to each (isFollowing: you follow them, followsYou: they follow you, isFriend: both, isSelf: it is you)",
+        example: {
+          results: [{ id: "user_789", username: "reader123", displayName: null, profilePictureUrl: null, profilePictureBlurhash: null, isAdmin: false, isSelf: false, isFollowing: false, followsYou: true, isFriend: false }],
           hasMore: false,
         },
       },
@@ -664,7 +736,7 @@ export const apiEndpoints: ApiEndpoint[] = [
     method: "GET",
     path: "/api/v1/users/{userId}/following",
     category: "Social",
-    description: "List the users a user follows, newest first",
+    description: "List the users a user follows, newest first. 404 unless their profile content is visible to you.",
     requiresAuth: true,
     queryParams: [
       { name: "limit", type: "number", required: false, description: "Default: 20, max: 50" },
@@ -673,9 +745,9 @@ export const apiEndpoints: ApiEndpoint[] = [
     responses: [
       {
         status: 200,
-        description: "A page of users (isFollowing: whether you follow them)",
+        description: "A page of users with how you relate to each (isFollowing: you follow them, followsYou: they follow you, isFriend: both, isSelf: it is you)",
         example: {
-          results: [{ id: "user_456", username: "bookworm", displayName: "Book Worm", profilePictureUrl: null, profilePictureBlurhash: null, isAdmin: false, isFollowing: true }],
+          results: [{ id: "user_456", username: "bookworm", displayName: "Book Worm", profilePictureUrl: null, profilePictureBlurhash: null, isAdmin: false, isSelf: false, isFollowing: true, followsYou: true, isFriend: true }],
           hasMore: false,
         },
       },
@@ -687,7 +759,7 @@ export const apiEndpoints: ApiEndpoint[] = [
     method: "GET",
     path: "/api/v1/profile",
     category: "Profile",
-    description: "Get your profile",
+    description: "Get your profile, with follower and following counts",
     requiresAuth: true,
     responses: [
       {
@@ -701,8 +773,13 @@ export const apiEndpoints: ApiEndpoint[] = [
           displayName: "Book Worm",
           profilePictureUrl: null, profilePictureBlurhash: null,
           role: "user",
+          profileVisibility: "friends",
+          activityVisibility: "followers",
+          reviewVisibility: "public",
           isPremium: false,
           planName: "Free",
+          followerCount: 34,
+          followingCount: 20,
         },
       },
     ],
@@ -721,6 +798,9 @@ export const apiEndpoints: ApiEndpoint[] = [
         displayName: "string | null (optional, max 100)",
         bio: "string | null (optional, max 1000)",
         profilePictureUrl: "string | null (optional, a publicUrl from /profile/picture-upload-url)",
+        profileVisibility: '"public" | "followers" | "friends" | "private" (optional): who sees your shelves, stats, collections and follow lists',
+        activityVisibility: '"public" | "followers" | "friends" | "private" (optional): who sees your activity, on your profile and in feeds',
+        reviewVisibility: '"public" | "followers" | "friends" | "private" (optional): who sees your reviews not marked private',
       },
       example: {
         bio: "Avid reader and book reviewer",

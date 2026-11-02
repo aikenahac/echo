@@ -21,6 +21,14 @@ export const readingStatusEnum = pgEnum("reading_status", [
 
 export const userRoleEnum = pgEnum("user_role", ["user", "moderator", "admin"]);
 
+// Who can see a part of a user's profile; friends are mutual follows
+export const audienceEnum = pgEnum("audience", [
+  "public",
+  "followers",
+  "friends",
+  "private",
+]);
+
 export const billingIntervalEnum = pgEnum("billing_interval", [
   "month",
   "year",
@@ -58,6 +66,18 @@ export const users = pgTable(
     // Placeholder shown while the photo loads (https://blurha.sh)
     profilePictureBlurhash: text("profile_picture_blurhash"),
     role: userRoleEnum("role").default("user").notNull(),
+    // Shelves, stats and collections on the profile (and follow lists)
+    profileVisibility: audienceEnum("profile_visibility")
+      .default("friends")
+      .notNull(),
+    // Reading activity on the profile and in other people's feeds
+    activityVisibility: audienceEnum("activity_visibility")
+      .default("followers")
+      .notNull(),
+    // Reviews not marked private, wherever they are shown
+    reviewVisibility: audienceEnum("review_visibility")
+      .default("public")
+      .notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },

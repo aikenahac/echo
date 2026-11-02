@@ -5,7 +5,7 @@ import { useClerk } from "@clerk/nextjs";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { useRouter } from "@/i18n/routing";
-import { deleteAccount } from "@/app/[locale]/actions/profile";
+import { deleteAccount, updateProfileFields } from "@/app/[locale]/actions/profile";
 import { createPortalSession } from "@/app/[locale]/actions/subscriptions";
 import { AdminBadge } from "@/components/echo/admin-badge";
 import { Icon } from "@/components/echo/icons";
@@ -22,6 +22,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { APPEARANCE_COOKIE, type Appearance } from "@/lib/appearance-cookie";
+import { AUDIENCES, type Audience } from "@/lib/audience";
 import {
   LIBRARY_LAYOUT_COOKIE,
   type LibraryLayout,
@@ -100,6 +101,40 @@ export function LayoutRow({ initial }: { initial: LibraryLayout }) {
       onChange={(next) => {
         setValue(next);
         document.cookie = `${LIBRARY_LAYOUT_COOKIE}=${next}; path=/; max-age=${ONE_YEAR}; SameSite=Lax`;
+      }}
+    />
+  );
+}
+
+/** Who can see one part of the viewer's profile; saves on change. */
+export function PrivacyRow({
+  setting,
+  initial,
+}: {
+  setting: "profileVisibility" | "activityVisibility" | "reviewVisibility";
+  initial: Audience;
+}) {
+  const t = useTranslations("settingsPage");
+  const [value, setValue] = useState(initial);
+  const [, startTransition] = useTransition();
+  return (
+    <ChoiceRow
+      label={t(`${setting}.label`)}
+      value={value}
+      options={AUDIENCES.map((v) => ({
+        value: v,
+        label: t(`${setting}.options.${v}`),
+      }))}
+      onChange={(next) => {
+        const previous = value;
+        setValue(next);
+        startTransition(async () => {
+          const result = await updateProfileFields({ [setting]: next });
+          if (result.error) {
+            setValue(previous);
+            toast.error(result.error);
+          }
+        });
       }}
     />
   );

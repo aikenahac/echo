@@ -7,6 +7,7 @@ import { reviews } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { isBlockedEitherWay } from "@/lib/blocks";
 import { publicUserColumns, publicUserExtras } from "@/lib/public-user";
+import { getProfileAccess } from "@/lib/visibility";
 
 /**
  * GET /api/v1/reviews/:id
@@ -33,6 +34,12 @@ export const GET = withAuth(async (request, { user, params }) => {
     review.userId !== user.id &&
     (await isBlockedEitherWay(user.id, review.userId))
   ) {
+    throw new ApiError("Review not found", 404);
+  }
+
+  // The author's review visibility (blocks are covered above)
+  const author = await getProfileAccess(user.id, review.userId);
+  if (!author?.access.reviews) {
     throw new ApiError("Review not found", 404);
   }
 
