@@ -13,6 +13,7 @@ import { getViewer, isPaidPlan } from "@/lib/auth";
 import { getAppearance } from "@/lib/appearance";
 import { isLemonSqueezyConfigured } from "@/lib/lemonsqueezy";
 import { PaymentsProvider } from "@/components/plans/payments-provider";
+import { APP_STORE_ID } from "@/lib/app-links";
 
 // Archivo with the width axis: the display face is set at wdth 62 (condensed)
 // through `font-stretch` in the font-disp utility.
@@ -66,6 +67,8 @@ export const metadata: Metadata = {
     apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
   },
   manifest: "/manifest.webmanifest",
+  // iOS Safari Smart App Banner: "Open" if the app is installed, "Get" if not.
+  itunes: { appId: APP_STORE_ID },
   openGraph: {
     type: "website",
     locale: "en_US",

@@ -4,6 +4,8 @@ import { Link, redirect } from "@/i18n/routing";
 import { EchoMark } from "@/components/echo/icons";
 import { CoverFan } from "@/components/auth/cover-fan";
 import { OAuthButtons } from "@/components/auth/oauth-buttons";
+import Image from "next/image";
+import { APP_STORE_URL, PLAY_STORE_URL } from "@/lib/app-links";
 
 export default async function WelcomePage({
   params,
@@ -70,6 +72,37 @@ export default async function WelcomePage({
                 {t("useEmail")}
               </Link>
               <p className="mt-3 text-center text-[13px] text-on-field-2">{legal}</p>
+              <div className="mt-8 flex flex-col items-center gap-3">
+                <p className="text-[13px] font-semibold text-on-field-2">{t("getApp")}</p>
+                <div className="flex items-center gap-3">
+                  <a href={APP_STORE_URL} target="_blank" rel="noopener noreferrer">
+                    <Image
+                      src="/badges/app-store.svg"
+                      alt="Download on the App Store"
+                      width={120}
+                      height={40}
+                      unoptimized
+                      className="h-10 w-auto"
+                    />
+                  </a>
+                  {/* Google's badge carries transparent padding; size it so the visible badge matches Apple's 40px. */}
+                  <a
+                    href={PLAY_STORE_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="-mx-[9px] -my-[9px]"
+                  >
+                    <Image
+                      src="/badges/google-play.png"
+                      alt="Get it on Google Play"
+                      width={150}
+                      height={58}
+                      unoptimized
+                      className="h-[58px] w-auto"
+                    />
+                  </a>
+                </div>
+              </div>
             </div>
           </div>
         </div>

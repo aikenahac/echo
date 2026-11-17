@@ -10,5 +10,17 @@
     { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
     { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }
-  ]
+  ],
+  "related_applications": [
+    {
+      "platform": "play",
+      "id": "app.echoreads.mobile",
+      "url": "https://play.google.com/store/apps/details?id=app.echoreads.mobile"
+    },
+    {
+      "platform": "itunes",
+      "url": "https://apps.apple.com/app/echo-social-book-journal/id6823274450"
+    }
+  ],
+  "prefer_related_applications": true
 }
