@@ -6,11 +6,13 @@ import { getLibraryLayout } from "@/lib/library-layout";
 import { Icon } from "@/components/echo/icons";
 import { AvatarTile, GroupLabel, ScreenTitle } from "@/components/echo/primitives";
 import { Stamp } from "@/components/echo/stamp";
+import { isDiscordLinkingConfigured } from "@/lib/discord";
 import {
   AccountRow,
   AppearanceRow,
   BillingRow,
   DeleteAccountRow,
+  DiscordConnectRow,
   LayoutRow,
   PrivacyRow,
   SignOutRow,
@@ -59,6 +61,8 @@ export default async function SettingsPage({
   // A promo grant's term comes from the code, not the plan's interval
   const lifetime = promo ? !subscription.currentPeriodEnd : plan?.interval === "lifetime";
   const name = user.displayName || user.username || user.email;
+  const discordInvite = process.env.NEXT_PUBLIC_DISCORD_INVITE_LINK;
+  const discordLinking = isDiscordLinkingConfigured();
   const longDate = (d: Date) =>
     format.dateTime(d, { day: "numeric", month: "short", year: "numeric" });
 
@@ -187,6 +191,18 @@ export default async function SettingsPage({
           <Icon name="forward" size={16} className="text-ink-3" />
         </Link>
       </Group>
+
+      {(discordInvite || discordLinking) && (
+        <Group label={t("community")}>
+          {discordInvite && (
+            <a href={discordInvite} target="_blank" rel="noopener noreferrer" className={row}>
+              <span className="flex-1">{t("joinDiscord")}</span>
+              <Icon name="external" size={16} className="text-ink-3" />
+            </a>
+          )}
+          {discordLinking && <DiscordConnectRow connected={!!user.discordUserId} />}
+        </Group>
+      )}
 
       <Group>
         <SignOutRow />

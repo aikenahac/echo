@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
+import { queueDiscordPremiumSync } from "@/lib/discord";
 import { users, userSubscriptions, webhookEvents } from "@/db/schema";
 import { syncStoreSubscription } from "@/lib/revenuecat";
 import {
@@ -79,6 +80,7 @@ export async function POST(req: NextRequest) {
       }
 
       const result = await syncStoreSubscription(id);
+      if (result !== "unchanged") queueDiscordPremiumSync(id);
       if (!user.email) continue;
       const name = user.username || "there";
       if (result === "activated") {

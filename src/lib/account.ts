@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { users, userSubscriptions } from "@/db/schema";
 import { getLemonSqueezy } from "@/lib/lemonsqueezy";
+import { removeDiscordRoles } from "@/lib/discord";
 
 export class AccountDeletionError extends Error {}
 
@@ -36,6 +37,12 @@ export async function deleteUserAccount(userId: string) {
       );
     }
   }
+
+  const user = await db.query.users.findFirst({
+    where: eq(users.id, userId),
+    columns: { discordUserId: true },
+  });
+  if (user?.discordUserId) await removeDiscordRoles(user.discordUserId);
 
   // Delete the data first: if the Clerk call then fails, the client is still
   // signed in and can retry (the next request re-provisions an empty row).

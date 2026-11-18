@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { users, userSubscriptions, subscriptionPlans } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { revalidateLocalized } from "@/lib/revalidate";
+import { queueDiscordPremiumSync } from "@/lib/discord";
 import { isPaidPlan } from "@/lib/plans";
 import {
   getLemonSqueezy,
@@ -222,6 +223,7 @@ export async function upgradeToFreePlan(planId: string) {
         },
       });
 
+    queueDiscordPremiumSync(userId);
     revalidateLocalized("/subscription");
     return { success: true };
   } catch (error) {

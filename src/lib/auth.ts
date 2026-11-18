@@ -1,10 +1,12 @@
 import { cache } from "react";
+import { after } from "next/server";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { ensureFreePlan } from "@/lib/provisioning";
 import { expirePromoGrant } from "@/lib/promo";
+import { notifySignup } from "@/lib/discord";
 
 export { isPaidPlan } from "@/lib/plans";
 
@@ -44,13 +46,13 @@ export const getViewer = cache(async () => {
     const clerkUser = await currentUser();
     const email = clerkUser?.emailAddresses[0]?.emailAddress || "";
 
-    await db
+    // Concurrent first requests may race; only the one that inserts notifies
+    const created = await db
       .insert(users)
       .values({ id: userId, email })
-      .onConflictDoUpdate({
-        target: users.id,
-        set: { email },
-      });
+      .onConflictDoNothing({ target: users.id })
+      .returning({ id: users.id });
+    if (created.length > 0) after(() => notifySignup({ email, platform: "web" }));
   }
 
   await ensureFreePlan(userId);

@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
+import { useSearchParams } from "next/navigation";
 import { useClerk } from "@clerk/nextjs";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { useRouter } from "@/i18n/routing";
 import { deleteAccount, updateProfileFields } from "@/app/[locale]/actions/profile";
 import { createPortalSession } from "@/app/[locale]/actions/subscriptions";
+import { disconnectDiscord, getDiscordConnectUrl } from "@/app/[locale]/actions/discord";
 import { AdminBadge } from "@/components/echo/admin-badge";
 import { Icon } from "@/components/echo/icons";
 import { ConfirmSheet } from "@/components/library/book-actions-menu";
@@ -190,6 +192,79 @@ export function BillingRow() {
     >
       <span className="flex-1">{t("billing")}</span>
       <Icon name="external" size={16} />
+    </button>
+  );
+}
+
+const DISCORD_RESULTS = {
+  linked: "discordLinked",
+  taken: "discordTaken",
+  denied: "discordDenied",
+  error: "discordError",
+} as const;
+
+/** Link a Discord account (Echo Member role, plus Premium while paid) */
+export function DiscordConnectRow({ connected }: { connected: boolean }) {
+  const t = useTranslations("settingsPage");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [pending, startTransition] = useTransition();
+
+  // Outcome of the OAuth round trip: /settings?discord=linked|taken|denied|error
+  const result = searchParams.get("discord");
+  useEffect(() => {
+    if (!result || !(result in DISCORD_RESULTS)) return;
+    const key = DISCORD_RESULTS[result as keyof typeof DISCORD_RESULTS];
+    if (result === "linked") toast.success(t(key));
+    else toast.error(t(key));
+    router.replace("/settings");
+  }, [result, router, t]);
+
+  const connect = () =>
+    startTransition(async () => {
+      const res = await getDiscordConnectUrl();
+      if ("error" in res) toast.error(t("discordError"));
+      else window.location.assign(res.url);
+    });
+
+  const disconnect = () =>
+    startTransition(async () => {
+      const res = await disconnectDiscord();
+      if ("error" in res) toast.error(t("discordError"));
+      else {
+        toast.success(t("discordDisconnected"));
+        router.refresh();
+      }
+    });
+
+  if (connected) {
+    return (
+      <div className={row}>
+        <span className="flex-1">{t("discordConnected")}</span>
+        <button
+          type="button"
+          onClick={disconnect}
+          disabled={pending}
+          className="cursor-pointer text-ink-2 disabled:opacity-50"
+        >
+          {t("disconnectDiscord")}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={connect}
+      disabled={pending}
+      className={`${row} cursor-pointer disabled:opacity-50`}
+    >
+      <span className="flex-1">
+        <span className="block">{t("connectDiscord")}</span>
+        <span className="block text-[13px] text-ink-2">{t("connectDiscordHint")}</span>
+      </span>
+      <Icon name="forward" size={16} className="text-ink-3" />
     </button>
   );
 }

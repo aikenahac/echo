@@ -7,6 +7,7 @@ import {
   type WebhookCustomData,
 } from "@avarra/lemonsqueezy";
 import { db } from "@/db";
+import { queueDiscordPremiumSync } from "@/lib/discord";
 import {
   users,
   userSubscriptions,
@@ -259,6 +260,7 @@ async function handleSubscriptionUpdate(
       target: userSubscriptions.userId,
       set: { ...values, updatedAt: new Date() },
     });
+  queueDiscordPremiumSync(userId);
 
   console.log("Subscription synced for user:", userId, "- Plan:", plan.name, "- Status:", subscription.status);
 
@@ -319,6 +321,7 @@ async function handleSubscriptionExpired(
       ...(freePlan ? { planId: freePlan.id } : {}),
     })
     .where(eq(userSubscriptions.userId, userId));
+  queueDiscordPremiumSync(userId);
 
   // Send cancellation email
   const user = await db.query.users.findFirst({
@@ -402,6 +405,7 @@ async function handleOrderCreated(
       target: userSubscriptions.userId,
       set: { ...values, updatedAt: new Date() },
     });
+  queueDiscordPremiumSync(userId);
 
   console.log("Lifetime plan granted to user:", userId, "- Order:", order.id);
 
@@ -459,6 +463,7 @@ async function handleOrderRefunded(
       ...(freePlan ? { planId: freePlan.id } : {}),
     })
     .where(eq(userSubscriptions.userId, userId));
+  queueDiscordPremiumSync(userId);
 
   console.log("Lifetime plan revoked after refund for user:", userId);
 }
@@ -481,6 +486,7 @@ async function handlePaymentFailed(subscriptionId: number) {
       updatedAt: new Date(),
     })
     .where(eq(userSubscriptions.userId, subscription.userId));
+  queueDiscordPremiumSync(subscription.userId);
 
   const user = await db.query.users.findFirst({
     where: eq(users.id, subscription.userId),

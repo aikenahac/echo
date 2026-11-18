@@ -20,6 +20,7 @@ vi.mock("@/lib/auth", () => ({
 }));
 vi.mock("@/lib/revalidate", () => ({ revalidateLocalized: vi.fn() }));
 vi.mock("@/lib/lemonsqueezy", () => ({ getLemonSqueezy: vi.fn() }));
+vi.mock("@/lib/discord", () => ({ queueDiscordPremiumSync: vi.fn(), removeDiscordRoles: vi.fn() }));
 vi.mock("@/db", () => {
   const chain = {
     from: () => chain,

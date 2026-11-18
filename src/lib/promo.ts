@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { promoCodes, promoRedemptions, subscriptionPlans, userSubscriptions } from "@/db/schema";
 import { isPaidPlan } from "@/lib/plans";
 import { getOrCreateFreePlan } from "@/lib/provisioning";
+import { queueDiscordPremiumSync } from "@/lib/discord";
 
 export type PromoDurationUnit = (typeof promoCodes.$inferSelect)["durationUnit"];
 
@@ -62,7 +63,7 @@ export async function expirePromoGrant(userId: string) {
   if (!expired) return;
 
   const freePlan = await getOrCreateFreePlan();
-  await db
+  const downgraded = await db
     .update(userSubscriptions)
     .set({
       planId: freePlan.id,
@@ -79,7 +80,9 @@ export async function expirePromoGrant(userId: string) {
         eq(userSubscriptions.source, "promo"),
         lt(userSubscriptions.currentPeriodEnd, new Date()),
       ),
-    );
+    )
+    .returning({ id: userSubscriptions.id });
+  if (downgraded.length > 0) queueDiscordPremiumSync(userId);
 }
 
 class RedeemAbort extends Error {

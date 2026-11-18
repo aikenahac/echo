@@ -127,6 +127,13 @@
       "when": 1792323465004,
       "tag": "0017_push_notifications",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1792323465005,
+      "tag": "0018_discord",
+      "breakpoints": true
     }
   ]
 }

@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { redeemPromo, type RedeemResult } from "@/lib/promo";
 import { rateLimit } from "@/lib/rate-limit";
 import { revalidateLocalized } from "@/lib/revalidate";
+import { queueDiscordPremiumSync } from "@/lib/discord";
 
 const REDEEM_LIMIT = 10;
 const REDEEM_WINDOW_MS = 10 * 60 * 1000;
@@ -20,7 +21,10 @@ export async function redeemPromoCode(code: unknown): Promise<RedeemResult | { o
 
   try {
     const result = await redeemPromo(userId, code);
-    if (result.ok) revalidateLocalized("/settings", "/subscription", "/library");
+    if (result.ok) {
+      revalidateLocalized("/settings", "/subscription", "/library");
+      queueDiscordPremiumSync(userId);
+    }
     return result;
   } catch (error) {
     console.error("Error redeeming promo code:", error);

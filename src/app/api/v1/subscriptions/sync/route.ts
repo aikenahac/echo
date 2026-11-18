@@ -3,6 +3,7 @@ import { createApiResponse, createErrorResponse } from "@/lib/api-auth";
 import { getSubscriptionResponse } from "@/lib/subscriptions";
 import { syncStoreSubscription } from "@/lib/revenuecat";
 import { rateLimit } from "@/lib/rate-limit";
+import { queueDiscordPremiumSync } from "@/lib/discord";
 
 export const POST = withAuth(async (_request, { user }) => {
   if (!rateLimit(`subscription-sync:${user.id}`, 5, 60_000)) {
@@ -10,7 +11,8 @@ export const POST = withAuth(async (_request, { user }) => {
   }
 
   try {
-    await syncStoreSubscription(user.id);
+    const result = await syncStoreSubscription(user.id);
+    if (result !== "unchanged") queueDiscordPremiumSync(user.id);
   } catch (error) {
     console.error("Error syncing store subscription:", error);
   }

@@ -6,6 +6,7 @@ import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { AccountDeletionError, deleteUserAccount } from "@/lib/account";
 import { getFollowCounts } from "@/lib/visibility";
+import { isDiscordLinkingConfigured } from "@/lib/discord";
 
 /**
  * GET /api/v1/profile
@@ -41,11 +42,14 @@ export const GET = withAuth(async (request, { user }) => {
   );
 
   // Return profile with isPremium field, excluding subscription details
-  const { subscription, ...profileData } = profile;
+  const { subscription, discordUserId, ...profileData } = profile;
 
   return createApiResponse({
     ...profileData,
     isPremium,
+    discordConnected: !!discordUserId,
+    discordLinkingAvailable: isDiscordLinkingConfigured(),
+    discordInviteUrl: process.env.NEXT_PUBLIC_DISCORD_INVITE_LINK || null,
     planName: subscription?.plan.name ?? null,
     ...counts,
   });

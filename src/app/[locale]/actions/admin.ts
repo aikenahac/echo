@@ -13,6 +13,7 @@ import {
 } from "@/db/schema";
 import { and, asc, count, desc, eq, ilike, or, type SQL } from "drizzle-orm";
 import { revalidateLocalized } from "@/lib/revalidate";
+import { queueDiscordPremiumSync, removeDiscordRoles } from "@/lib/discord";
 import { getLemonSqueezy } from "@/lib/lemonsqueezy";
 import { escapeLike } from "@/lib/utils";
 import {
@@ -270,6 +271,12 @@ export async function deleteUserAsAdmin(targetUserId: string) {
   }
 
   try {
+    const target = await db.query.users.findFirst({
+      where: eq(users.id, targetUserId),
+      columns: { discordUserId: true },
+    });
+    if (target?.discordUserId) await removeDiscordRoles(target.discordUserId);
+
     // Delete user (cascades to userBooks, reviews, follows, auditLogs)
     await db.delete(users).where(eq(users.id, targetUserId));
 
@@ -480,6 +487,7 @@ export async function grantPremiumSubscription(
       metadata: JSON.stringify({ planId }),
     });
 
+    queueDiscordPremiumSync(targetUserId);
     revalidateLocalized("/admin/users", "/admin/subscriptions");
 
     return { success: true };
@@ -691,6 +699,7 @@ export async function revokeUserSubscription(targetUserId: string) {
       metadata: JSON.stringify({ downgradedAt: new Date() }),
     });
 
+    queueDiscordPremiumSync(targetUserId);
     revalidateLocalized("/admin/users", "/admin/subscriptions");
 
     return { success: true };

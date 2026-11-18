@@ -88,6 +88,8 @@ export const users = pgTable(
     notifyAnnouncements: boolean("notify_announcements")
       .default(true)
       .notNull(),
+    // Linked Discord account (community server roles, see src/lib/discord.ts)
+    discordUserId: text("discord_user_id").unique(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },

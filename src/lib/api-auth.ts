@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+import { NextRequest, after } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { verifyToken } from "@clerk/backend";
 import { clerkClient } from "@clerk/nextjs/server";
@@ -7,13 +7,15 @@ import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { ensureFreePlan } from "@/lib/provisioning";
 import { expirePromoGrant } from "@/lib/promo";
+import { notifySignup, type SignupPlatform } from "@/lib/discord";
 
 /**
  * Create a user in the database from Clerk user data
  * @param userId The Clerk user ID
+ * @param platform Where the request came from (for the signup alert)
  * @returns The created or existing user
  */
-async function ensureUserExists(userId: string) {
+async function ensureUserExists(userId: string, platform: SignupPlatform) {
   // First check if user already exists
   const user = await db.query.users.findFirst({
     where: eq(users.id, userId),
@@ -33,16 +35,19 @@ async function ensureUserExists(userId: string) {
   }
 
   // Create user in database. Concurrent first requests may race here, so
-  // ignore the conflict and read the row back.
-  await db
+  // ignore the conflict and read the row back; only the insert notifies.
+  const email = clerkUser.emailAddresses[0]?.emailAddress || "";
+  const created = await db
     .insert(users)
     .values({
       id: clerkUser.id,
-      email: clerkUser.emailAddresses[0]?.emailAddress || "",
+      email,
       username: clerkUser.username || null,
       bio: "",
     })
-    .onConflictDoNothing({ target: users.id });
+    .onConflictDoNothing({ target: users.id })
+    .returning({ id: users.id });
+  if (created.length > 0) after(() => notifySignup({ email, platform }));
 
   await ensureFreePlan(userId);
 
@@ -72,7 +77,7 @@ export async function authenticateApiRequest(request: NextRequest) {
       });
 
       if (verifiedToken?.sub) {
-        const user = await ensureUserExists(verifiedToken.sub);
+        const user = await ensureUserExists(verifiedToken.sub, "app");
 
         if (user) {
           return { user, method: "bearer" as const };
@@ -95,7 +100,7 @@ export async function authenticateApiRequest(request: NextRequest) {
   const { userId } = await auth();
 
   if (userId) {
-    const user = await ensureUserExists(userId);
+    const user = await ensureUserExists(userId, "web");
 
     if (user) {
       return { user, method: "session" as const };

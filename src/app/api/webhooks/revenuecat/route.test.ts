@@ -22,6 +22,7 @@ vi.mock("@/db", () => ({ db: {
   query: { users: { findFirst: mocks.user }, userSubscriptions: { findFirst: mocks.subscription } },
 } }));
 vi.mock("@/lib/revenuecat", () => ({ syncStoreSubscription: mocks.sync }));
+vi.mock("@/lib/discord", () => ({ queueDiscordPremiumSync: vi.fn() }));
 vi.mock("@/lib/email", () => ({
   sendWelcomeToPremiumEmail: mocks.welcome,
   sendSubscriptionCanceledEmail: mocks.canceled,
